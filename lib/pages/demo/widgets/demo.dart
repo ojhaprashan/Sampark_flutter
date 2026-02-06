@@ -602,9 +602,6 @@ class _DemoPageState extends State<DemoPage> {
             width: 1,
           ),
         ),
-
-
-        
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
