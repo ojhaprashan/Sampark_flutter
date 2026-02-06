@@ -1,0 +1,85 @@
+name: my_new_app
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  
+  # HTTP requests
+  http: ^1.2.0
+  
+  # Google Fonts
+  google_fonts: ^6.1.0
+  
+  # SVG support
+  flutter_svg: ^2.0.9
+  
+  # Shared Preferences
+  shared_preferences: ^2.2.2
+  
+  # URL Launcher
+  url_launcher: ^6.2.4
+  
+  # Mobile Scanner
+  mobile_scanner: ^5.2.3
+  video_player: ^2.8.2
+  
+  # WebView Flutter
+  webview_flutter: ^4.5.0
+  
+  # Location Services
+  geolocator: ^10.1.0
+  permission_handler: ^12.0.1
+  
+  # State Management
+  provider: ^6.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+  
+  font_awesome_flutter: ^10.7.0
+  hugeicons: ^0.0.7
+
+flutter:
+  uses-material-design: true
+  
+  # Add your assets here
+  assets:
+    - assets/icons/
+    - assets/Banner/Home/
+    - assets/Banner/shop/
+    - assets/Banner/other/
+    - assets/images/
+    - assets/images/sampark_black.png
+    - assets/icons/whatsapp.png
+   
+
+flutter_launcher_icons:
+  image_path: "assets/app_icon.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/app_icon.png"
+    background_color: "#ffffff"
+    theme_color: "#FFC107"
+  ios:
+    background_color: "#ffffff"
+    border_radius: 50
+  android:
+    notification_icon: "launcher_icon"
+    background_color: "#ffffff"
+    border_radius: 50
+    adaptive_icon_background: "#ffffff"
+    adaptive_icon_foreground: "assets/app_icon.png"
+    adaptive_icon_monochrome: "assets/app_icon.png"
