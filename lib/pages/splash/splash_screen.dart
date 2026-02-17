@@ -3,7 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/location_provider.dart';
 import '../../utils/colors.dart';
+import '../../services/auth_service.dart';
 import '../main_navigation.dart';
+import 'onboarding_splash_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -47,11 +49,18 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       await locationProvider.initializeLocation();
     }
 
-    // Navigate to MainNavigation after 3 seconds
+    // Check if user is logged in
+    final isLoggedIn = await AuthService.isLoggedIn();
+
+    // Navigate after 3 seconds
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainNavigation()),
+          MaterialPageRoute(
+            builder: (_) => isLoggedIn
+                ? const MainNavigation()
+                : const OnboardingSplashScreen(), // Show onboarding instead of signup
+          ),
         );
       }
     });

@@ -2,11 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
+import '../../../services/emergency_service.dart';
+import '../../../services/auth_service.dart';
 
 class AddEmergencyContactSheet extends StatefulWidget {
   final String tagId;
+  final String? existingPrimaryPhone;  // ✅ Optional existing primary phone
+  final String? existingSecondaryPhone;  // ✅ Optional existing secondary phone
+  final String? existingBloodGroup;  // ✅ Optional existing blood group
+  final String? existingInsurance;  // ✅ Optional existing insurance
+  final String? existingNote;  // ✅ Optional existing note
 
-  const AddEmergencyContactSheet({super.key, required this.tagId});
+  const AddEmergencyContactSheet({
+    super.key,
+    required this.tagId,
+    this.existingPrimaryPhone,
+    this.existingSecondaryPhone,
+    this.existingBloodGroup,
+    this.existingInsurance,
+    this.existingNote,
+  });
 
   @override
   State<AddEmergencyContactSheet> createState() => _AddEmergencyContactSheetState();
@@ -30,6 +45,27 @@ class _AddEmergencyContactSheetState extends State<AddEmergencyContactSheet> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // ✅ Pre-fill with existing emergency contact data if available
+    if (widget.existingPrimaryPhone != null && widget.existingPrimaryPhone!.isNotEmpty) {
+      _phone1Controller.text = widget.existingPrimaryPhone!;
+    }
+    if (widget.existingSecondaryPhone != null && widget.existingSecondaryPhone!.isNotEmpty) {
+      _phone2Controller.text = widget.existingSecondaryPhone!;
+    }
+    if (widget.existingBloodGroup != null && widget.existingBloodGroup!.isNotEmpty) {
+      _bloodGroupController.text = widget.existingBloodGroup!;
+    }
+    if (widget.existingInsurance != null && widget.existingInsurance!.isNotEmpty) {
+      _insuranceController.text = widget.existingInsurance!;
+    }
+    if (widget.existingNote != null && widget.existingNote!.isNotEmpty) {
+      _noteController.text = widget.existingNote!;
+    }
+  }
+
+  @override
   void dispose() {
     _vehicleController.dispose();
     _phone1Controller.dispose();
@@ -45,22 +81,65 @@ class _AddEmergencyContactSheetState extends State<AddEmergencyContactSheet> {
       return;
     }
 
+    // ✅ If status is Inactive, clear all fields
+    if (_status == 'Inactive') {
+      _phone1Controller.clear();
+      _phone2Controller.clear();
+      _bloodGroupController.clear();
+      _insuranceController.clear();
+      _noteController.clear();
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     HapticFeedback.mediumImpact();
 
-    // ✅ TODO: Call your API here
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      // ✅ Get user data for phone
+      final userData = await AuthService.getUserData();
+      final userPhone = userData['phone'] ?? '';
+      final countryCode = userData['countryCode'] ?? '+91';
+      final phoneWithCountryCode = countryCode.replaceFirst('+', '') + userPhone;
 
-    setState(() {
-      _isLoading = false;
-    });
+      // ✅ Parse tagId to int
+      final tagIdInt = int.tryParse(widget.tagId) ?? 0;
 
-    if (mounted) {
-      Navigator.pop(context);
-      _showSuccessMessage();
+      // ✅ Call Emergency API to save
+      await EmergencyService.updateEmergencyInfo(
+        tagId: tagIdInt,
+        phone: phoneWithCountryCode,
+        phone1: _status == 'Active' ? _phone1Controller.text : null,
+        phone2: _status == 'Active' ? _phone2Controller.text : null,
+        bloodGroup: _status == 'Active' ? _bloodGroupController.text : null,
+        insurance: _status == 'Active' ? _insuranceController.text : null,
+        note: _status == 'Active' ? _noteController.text : null,
+      );
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (mounted) {
+        Navigator.pop(context);
+        _showSuccessMessage();
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -185,7 +264,11 @@ class _AddEmergencyContactSheetState extends State<AddEmergencyContactSheet> {
                           icon: Icons.directions_car,
                           iconColor: Colors.orange.shade600,
                           textCapitalization: TextCapitalization.characters,
-                          validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+                          enabled: _status == 'Active',
+                          validator: (value) {
+                            if (_status == 'Inactive') return null;
+                            return value?.isEmpty ?? true ? 'Required' : null;
+                          },
                         ),
                         const SizedBox(height: 16),
 
@@ -197,7 +280,9 @@ class _AddEmergencyContactSheetState extends State<AddEmergencyContactSheet> {
                           iconColor: Colors.red.shade600,
                           keyboardType: TextInputType.phone,
                           maxLength: 10,
+                          enabled: _status == 'Active',
                           validator: (value) {
+                            if (_status == 'Inactive') return null;
                             if (value?.isEmpty ?? true) return 'Required';
                             if (value!.length != 10) return 'Must be 10 digits';
                             if (!RegExp(r'^[6-9]\d{9}$').hasMatch(value)) return 'Invalid number';
@@ -214,6 +299,7 @@ class _AddEmergencyContactSheetState extends State<AddEmergencyContactSheet> {
                           iconColor: Colors.red.shade400,
                           keyboardType: TextInputType.phone,
                           maxLength: 10,
+                          enabled: _status == 'Active',
                         ),
                         const SizedBox(height: 16),
 
@@ -224,6 +310,7 @@ class _AddEmergencyContactSheetState extends State<AddEmergencyContactSheet> {
                           items: _bloodGroups,
                           icon: Icons.bloodtype,
                           iconColor: Colors.red.shade700,
+                          enabled: _status == 'Active',
                         ),
                         const SizedBox(height: 16),
 
@@ -233,7 +320,11 @@ class _AddEmergencyContactSheetState extends State<AddEmergencyContactSheet> {
                           hintText: 'e.g., ICICI Lombard',
                           icon: Icons.health_and_safety,
                           iconColor: Colors.green.shade600,
-                          validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+                          enabled: _status == 'Active',
+                          validator: (value) {
+                            if (_status == 'Inactive') return null;
+                            return value?.isEmpty ?? true ? 'Required' : null;
+                          },
                         ),
                         const SizedBox(height: 16),
 
@@ -244,6 +335,7 @@ class _AddEmergencyContactSheetState extends State<AddEmergencyContactSheet> {
                           icon: Icons.note_outlined,
                           iconColor: Colors.amber.shade700,
                           maxLines: 3,
+                          enabled: _status == 'Active',
                         ),
                         const SizedBox(height: 16),
 
@@ -385,10 +477,12 @@ class _AddEmergencyContactSheetState extends State<AddEmergencyContactSheet> {
     int maxLines = 1,
     int? maxLength,
     TextCapitalization textCapitalization = TextCapitalization.none,
+    bool enabled = true,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
+      enabled: enabled,
       keyboardType: keyboardType,
       maxLines: maxLines,
       maxLength: maxLength,
@@ -465,12 +559,15 @@ class _AddEmergencyContactSheetState extends State<AddEmergencyContactSheet> {
     required List<String> items,
     required IconData icon,
     required Color iconColor,
+    bool enabled = true,
   }) {
     return GestureDetector(
-      onTap: () => _showBloodGroupPicker(controller, items),
+      onTap: enabled ? () => _showBloodGroupPicker(controller, items) : null,
       child: AbsorbPointer(
+        absorbing: !enabled,
         child: TextFormField(
           controller: controller,
+          enabled: enabled,
           style: TextStyle(
             fontSize: AppConstants.fontSizeCardTitle,
             fontWeight: FontWeight.w600,

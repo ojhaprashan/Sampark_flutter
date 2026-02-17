@@ -5,8 +5,13 @@ import '../../../utils/constants.dart';
 
 class AddSecondaryNumberSheet extends StatefulWidget {
   final String tagId;
+  final String? existingSecondaryNumber;  // ✅ Optional existing secondary number
 
-  const AddSecondaryNumberSheet({super.key, required this.tagId});
+  const AddSecondaryNumberSheet({
+    super.key,
+    required this.tagId,
+    this.existingSecondaryNumber,
+  });
 
   @override
   State<AddSecondaryNumberSheet> createState() => _AddSecondaryNumberSheetState();
@@ -15,7 +20,15 @@ class AddSecondaryNumberSheet extends StatefulWidget {
 class _AddSecondaryNumberSheetState extends State<AddSecondaryNumberSheet> {
   final TextEditingController _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // ✅ Pre-fill with existing secondary number if available
+    if (widget.existingSecondaryNumber != null && widget.existingSecondaryNumber!.isNotEmpty) {
+      _phoneController.text = widget.existingSecondaryNumber!;
+    }
+  }
 
   @override
   void dispose() {
@@ -28,54 +41,12 @@ class _AddSecondaryNumberSheetState extends State<AddSecondaryNumberSheet> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
     HapticFeedback.mediumImpact();
 
-    // ✅ TODO: Call your API here
-    // await ApiService.addSecondaryNumber(widget.tagId, _phoneController.text);
-
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
-
-    setState(() {
-      _isLoading = false;
-    });
-
     if (mounted) {
-      Navigator.pop(context);
-      _showSuccessMessage();
+      // Return the phone number to parent component
+      Navigator.pop(context, _phoneController.text);
     }
-  }
-
-  void _showSuccessMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Secondary number added successfully!',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        duration: const Duration(seconds: 3),
-      ),
-    );
   }
 
   @override
@@ -285,7 +256,7 @@ class _AddSecondaryNumberSheetState extends State<AddSecondaryNumberSheet> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _saveNumber,
+                      onPressed: _saveNumber,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.activeYellow,
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -293,38 +264,26 @@ class _AddSecondaryNumberSheetState extends State<AddSecondaryNumberSheet> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         elevation: 0,
-                        disabledBackgroundColor: AppColors.lightGrey,
                       ),
-                      child: _isLoading
-                          ? SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.black,
-                                ),
-                              ),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.check_circle,
-                                  size: 20,
-                                  color: AppColors.black,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Save Number',
-                                  style: TextStyle(
-                                    fontSize: AppConstants.fontSizeButtonPriceText,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.black,
-                                  ),
-                                ),
-                              ],
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            size: 20,
+                            color: AppColors.black,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Save Number',
+                            style: TextStyle(
+                              fontSize: AppConstants.fontSizeButtonPriceText,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.black,
                             ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
@@ -334,11 +293,9 @@ class _AddSecondaryNumberSheetState extends State<AddSecondaryNumberSheet> {
                   SizedBox(
                     width: double.infinity,
                     child: TextButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () {
-                              Navigator.pop(context);
-                            },
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(

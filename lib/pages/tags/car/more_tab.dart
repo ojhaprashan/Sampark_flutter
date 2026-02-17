@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:my_new_app/pages/widgets/edit_tag_sheet.dart';
+import 'package:my_new_app/pages/widgets/file_upload_sheet.dart';
+import 'package:my_new_app/pages/widgets/offline_qr_download_sheet.dart';
 import 'package:my_new_app/utils/colors.dart';
 import 'package:my_new_app/utils/constants.dart';
 import 'package:my_new_app/services/tags_service.dart';
 import 'package:my_new_app/services/auth_service.dart';
+import 'package:my_new_app/services/offline_qr_service.dart';
+import 'package:my_new_app/pages/widgets/tag_replacement_dialog.dart';
+import 'package:my_new_app/pages/AppWebView/appweb.dart';
 
 class MoreTab extends StatefulWidget {
   final Tag tag;
   final TagSettings? tagSettings;
+  final VoidCallback? onDataUpdated;  // ✅ Callback to refresh data when updated
 
   const MoreTab({
     super.key,
     required this.tag,
     this.tagSettings,
+    this.onDataUpdated,
   });
 
   @override
@@ -25,6 +33,8 @@ class _MoreTabState extends State<MoreTab> {
   bool _isCallMaskingEnabled = false;
   bool _isVideoCallEnabled = false;
   bool _isLoading = false;
+  String _countryCode = '+91'; // Track country code for India-specific features
+  String _userPhone = ''; // ✅ Track user phone
 
   @override
   void initState() {
@@ -33,6 +43,24 @@ class _MoreTabState extends State<MoreTab> {
     _isWhatsappEnabled = widget.tagSettings?.data.callStatus.whatsappEnabled ?? false;
     _isCallMaskingEnabled = widget.tagSettings?.data.callStatus.callMaskingEnabled ?? false;
     _isVideoCallEnabled = widget.tagSettings?.data.callStatus.videoCallEnabled ?? false;
+    _loadCountryCode();
+  }
+
+  // ✅ Load country code and phone from AuthService
+  Future<void> _loadCountryCode() async {
+    try {
+      final userData = await AuthService.getUserData();
+      final countryCode = userData['countryCode'] ?? '+91';
+      final phone = userData['phone'] ?? '';
+      if (mounted) {
+        setState(() {
+          _countryCode = countryCode;
+          _userPhone = phone; // ✅ Set user phone
+        });
+      }
+    } catch (e) {
+      print('Error loading country code: $e');
+    }
   }
 
   @override
@@ -74,8 +102,10 @@ class _MoreTabState extends State<MoreTab> {
               label: 'Upload files',
               trailing: Icons.file_upload,
               onTap: () {
-                // Add your logic
-              },
+    // ✅ OPEN THE NEW SHEET HERE
+    final tagId = int.tryParse(widget.tag.tagInternalId) ?? 0;
+    FileUploadSheet.show(context, tagId: tagId);
+  },
             ),
             _buildActionButton(
               context,
@@ -87,18 +117,41 @@ class _MoreTabState extends State<MoreTab> {
                 _toggleVideoCall(context);
               },
             ),
-            _buildActionButtonWithDescription(
-              context,
-              icon: Icons.wifi_off,
-              iconColor: Colors.orange.shade600,
-              label: 'Offline QR Download',
-              description: 'Download the QR code for offline Usage of your business card.',
-              badge: 'New!',
-              trailing: Icons.wifi_off,
-              onTap: () {
-                // Add your logic
-              },
-            ),
+            // ✅ Show Offline QR Download only for India
+            if (_countryCode == '+91')
+              _buildActionButtonWithDescription(
+                context,
+                icon: Icons.wifi_off,
+                iconColor: Colors.orange.shade600,
+                label: 'Offline QR Download',
+                description: 'Download the QR code for offline Usage of your business card.',
+                badge: 'New!',
+                trailing: Icons.wifi_off,
+                onTap: () {
+                  _generateOfflineQR(context);
+                },
+              ),
+            // ✅ Show FasTag Recharge only for India
+            if (_countryCode == '+91')
+              _buildActionButton(
+                context,
+                icon: Icons.credit_card,
+                iconColor: Colors.indigo.shade600,
+                label: 'FasTag Recharge',
+                trailing: Icons.arrow_forward,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const InAppWebViewPage(
+                        url: 'https://app.ngf132.com/fastag',
+                        title: 'FasTag Recharge',
+                      ),
+                    ),
+                  );
+                },
+              ),
             _buildActionButton(
               context,
               icon: Icons.autorenew,
@@ -106,7 +159,7 @@ class _MoreTabState extends State<MoreTab> {
               label: 'Get a Tag Replacement',
               trailing: Icons.autorenew,
               onTap: () {
-                // Add your logic
+                TagReplacementDialog.show(context);
               },
             ),
             _buildActionButtonWithDescription(
@@ -118,7 +171,14 @@ class _MoreTabState extends State<MoreTab> {
               trailing: Icons.close,
               isRed: true,
               onTap: () {
-                // Add your logic
+                // Get phone with country code
+                final phoneWithCountryCode = _countryCode.replaceFirst('+', '') + _userPhone;
+                EditTagSheet.show(
+                  context,
+                  vehicleNumber: widget.tag.displayName,
+                  tagId: widget.tag.tagInternalId,
+                  phone: phoneWithCountryCode,
+                );
               },
             ),
             const SizedBox(height: AppConstants.spacingMedium),
@@ -230,6 +290,9 @@ class _MoreTabState extends State<MoreTab> {
 
       _hideLoadingOverlay(context);
 
+      // ✅ Call refresh callback to reload data from API
+      widget.onDataUpdated?.call();
+
       _showSuccessDialog(
         context,
         icon: newWhatsappEnabled ? Icons.chat_bubble : Icons.chat_bubble_outline,
@@ -284,7 +347,8 @@ class _MoreTabState extends State<MoreTab> {
       });
 
       _hideLoadingOverlay(context);
-
+      // ✅ Call refresh callback to reload data from API
+      widget.onDataUpdated?.call();
       _showSuccessDialog(
         context,
         icon: newCallMaskingEnabled ? Icons.phone : Icons.phone_disabled,
@@ -340,6 +404,9 @@ class _MoreTabState extends State<MoreTab> {
 
       _hideLoadingOverlay(context);
 
+      // ✅ Call refresh callback to reload data from API
+      widget.onDataUpdated?.call();
+
       _showSuccessDialog(
         context,
         icon: newVideoCallEnabled ? Icons.videocam : Icons.videocam_off,
@@ -355,6 +422,61 @@ class _MoreTabState extends State<MoreTab> {
       });
       _hideLoadingOverlay(context);
       _showErrorDialog(context, 'Error', 'Failed to update settings: $e');
+    }
+  }
+
+  // ========================
+  // ✅ OFFLINE QR FUNCTIONS
+  // ========================
+
+  // ✅ Generate Offline QR
+  void _generateOfflineQR(BuildContext context) async {
+    HapticFeedback.mediumImpact();
+    
+    _showLoadingOverlay(context);
+
+    try {
+      final userData = await AuthService.getUserData();
+      final phone = userData['phone'] ?? '';
+      final countryCode = userData['countryCode'] ?? '+91';
+
+      final response = await OfflineQRService.generateOfflineQR(
+        tagId: widget.tag.tagInternalId.toString(),
+        phone: phone,
+        countryCode: countryCode,
+      );
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+      }
+
+      // Show the offline QR download sheet
+      if (mounted) {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          barrierColor: Colors.black.withOpacity(0.5),
+          builder: (context) => OfflineQRDownloadSheet(
+            tagId: response.data.tagId.toString(),
+            plate: response.data.plate,
+            downloadUrl: response.data.downloadUrl,
+            pdfFile: response.data.pdfFile,
+            message: response.message,
+            onClose: () {
+              // User closed the sheet
+            },
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+      }
+
+      if (mounted) {
+        _showErrorDialog(context, 'Error', 'Failed to generate QR: $e');
+      }
     }
   }
 

@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:my_new_app/pages/scan/contact_reasons.dart';
 import 'package:my_new_app/pages/scan/message_preview_sheet.dart';
 import 'package:my_new_app/pages/scan/masked_call_sheet.dart';
+import 'package:my_new_app/pages/scan/emergency_section_widget.dart';
 import 'package:my_new_app/pages/widgets/app_header.dart';
+
 import '../../utils/colors.dart';
 import '../../utils/constants.dart';
+import '../../services/tag_profile_service.dart';
 
 class ContactVehicleOwnerPage extends StatefulWidget {
+  final int tagId;
   final String vehicleNumber;
   final String vehicleName;
   final String? phoneNumber;
@@ -13,6 +19,7 @@ class ContactVehicleOwnerPage extends StatefulWidget {
 
   const ContactVehicleOwnerPage({
     super.key,
+    required this.tagId,
     required this.vehicleNumber,
     this.vehicleName = '',
     this.phoneNumber,
@@ -29,54 +36,99 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
   bool _showReasonList = false;
   String? _selectedReason;
 
-  final List<ContactReason> _reasons = [
-    ContactReason(
-      icon: Icons.lightbulb_outline,
-      text: 'The lights of this car is on.',
-      value: 'lights_on',
-    ),
-    ContactReason(
-      icon: Icons.no_crash_outlined,
-      text: 'The car is in no parking.',
-      value: 'no_parking',
-    ),
-    ContactReason(
-      icon: Icons.local_shipping_outlined,
-      text: 'The car is getting towed.',
-      value: 'getting_towed',
-    ),
-    ContactReason(
-      icon: Icons.window_outlined,
-      text: 'The window or car is open.',
-      value: 'window_open',
-    ),
-    ContactReason(
-      icon: Icons.warning_amber_outlined,
-      text: 'Something wrong with this car.',
-      value: 'something_wrong',
-    ),
-  ];
+  // Tag profile data
+  TagProfileData? _tagProfileData;
+  bool _isLoadingProfile = true;
+  String? _profileError;
+
+  List<ContactReason> _reasons = [];
 
   @override
   void initState() {
     super.initState();
     _checkLoginStatus();
+    _fetchTagProfile();
   }
 
   Future<void> _checkLoginStatus() async {
     // Check login status
   }
 
+  Future<void> _fetchTagProfile() async {
+    // Skip fetch if tagId is 0 (manual navigation, not from QR scan)
+    if (widget.tagId == 0) {
+      setState(() {
+        _isLoadingProfile = false;
+      });
+      return;
+    }
+
+    try {
+      final response = await TagProfileService.getTagProfile(
+        tagId: widget.tagId,
+      );
+
+      if (mounted) {
+        setState(() {
+          _tagProfileData = response.data;
+          _isLoadingProfile = false;
+          // Load reasons based on tag type
+          _reasons = ContactReasons.getReasonsByTagType(
+              _tagProfileData!.tagTypeCode);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _profileError = e.toString();
+          _isLoadingProfile = false;
+        });
+      }
+    }
+  }
+
   void _makeCall() {
-    MaskedCallSheet.show(
-      context,
-      vehicleNumber: widget.vehicleNumber,
-      maskedNumber: widget.maskedNumber ?? '####',
-      phoneNumber: widget.phoneNumber,
-    );
+    // Check if tag is paused
+    if (_tagProfileData != null && _tagProfileData!.isPaused) {
+      _showErrorSnackBar('Tag is paused. Please enable it first');
+      return;
+    }
+
+    // Check if call masking is enabled
+    if (_tagProfileData != null && _tagProfileData!.callFlags.callMaskingEnabled) {
+      // Open masked call sheet
+      MaskedCallSheet.show(
+        context,
+        vehicleNumber: widget.vehicleNumber,
+        phoneNumber: widget.phoneNumber,
+        tagId: widget.tagId,
+      );
+    } else if (_tagProfileData != null && _tagProfileData!.callFlags.callsEnabled) {
+      // Direct call without masking
+      _makeDirectCall();
+    } else {
+      _showErrorSnackBar('Calls are not enabled for this tag');
+    }
+  }
+
+  void _makeDirectCall() {
+    if (widget.phoneNumber == null || widget.phoneNumber!.isEmpty) {
+      _showErrorSnackBar('Phone number not available');
+      return;
+    }
+
+    // Open phone dialer with the phone number
+    final Uri phoneUri = Uri(scheme: 'tel', path: widget.phoneNumber);
+    launchUrl(phoneUri);
   }
 
   void _onMessageButtonClicked() {
+    // Check if tag is paused
+    if (_tagProfileData != null && _tagProfileData!.isPaused) {
+      _showErrorSnackBar('Tag is paused. Please enable it first');
+      return;
+    }
+
     setState(() {
       _showReasonList = true;
       _selectedReason = null;
@@ -89,103 +141,15 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
       return;
     }
 
-    final reasonText = _reasons
-        .firstWhere((r) => r.value == _selectedReason)
-        .text;
+    final reasonText =
+        _reasons.firstWhere((r) => r.value == _selectedReason).text;
 
     MessagePreviewSheet.show(
       context,
       vehicleNumber: widget.vehicleNumber,
-      maskedNumber: widget.maskedNumber ?? '####',
       reasonText: reasonText,
       phoneNumber: widget.phoneNumber,
-    );
-  }
-
-  void _showEmergencyDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-        ),
-        contentPadding: EdgeInsets.all(AppConstants.paddingPage),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: EdgeInsets.all(AppConstants.paddingLarge),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.emergency,
-                size: 40,
-                color: Colors.red,
-              ),
-            ),
-            SizedBox(height: AppConstants.spacingLarge),
-            Text(
-              'Emergency Contact',
-              style: TextStyle(
-                fontSize: AppConstants.fontSizePageTitle,
-                fontWeight: FontWeight.w700,
-                color: AppColors.black,
-              ),
-            ),
-            SizedBox(height: AppConstants.spacingSmall),
-            Text(
-              'Contact family members or emergency numbers?',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: AppConstants.fontSizeCardTitle,
-                color: AppColors.black,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: AppColors.textGrey,
-                fontSize: AppConstants.fontSizeCardTitle,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showErrorSnackBar('Emergency contacts will be displayed here');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: EdgeInsets.symmetric(
-                horizontal: AppConstants.paddingLarge,
-                vertical: AppConstants.paddingMedium,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.circular(AppConstants.buttonBorderRadius),
-              ),
-            ),
-            child: Text(
-              'Show Contacts',
-              style: TextStyle(
-                fontSize: AppConstants.fontSizeCardTitle,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
+      tagId: widget.tagId,
     );
   }
 
@@ -200,6 +164,16 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
         ),
       ),
     );
+  }
+
+  /// Mask last 4 digits of plate number
+  String _getMaskedPlateNumber(String plateNumber) {
+    if (plateNumber.length <= 4) {
+      return '****';
+    }
+    final unmaskedLength = plateNumber.length - 4;
+    final unmaskedPart = plateNumber.substring(0, unmaskedLength);
+    return '$unmaskedPart****';
   }
 
   @override
@@ -258,181 +232,401 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                               color: AppColors.black,
                             ),
                           ),
-                          SizedBox(height: AppConstants.spacingSmall),
-                          // Vehicle Name (if provided)
-                          if (widget.vehicleName.isNotEmpty) ...[
-                            Text(
-                              widget.vehicleName,
-                              style: TextStyle(
-                                fontSize: AppConstants.fontSizeSectionTitle,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.red,
-                              ),
-                            ),
-                            SizedBox(height: AppConstants.spacingSmall),
-                          ],
-                          // Vehicle Number with Badge
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.verified,
-                                color: Colors.blue,
-                                size: AppConstants.iconSizeMedium,
-                              ),
-                              SizedBox(width: AppConstants.spacingSmall),
-                              Text(
-                                widget.vehicleNumber,
-                                style: TextStyle(
-                                  fontSize: AppConstants.fontSizeSectionTitle,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.black,
-                                  letterSpacing: 1.5,
-                                ),
-                              ),
-                              SizedBox(width: AppConstants.spacingSmall),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: AppConstants.paddingSmall,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.activeYellow,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  widget.maskedNumber ?? '####',
-                                  style: TextStyle(
-                                    fontSize: AppConstants.fontSizeSubtitle,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.black,
+                          SizedBox(height: AppConstants.spacingMedium),
+
+                          // Vehicle Info Card with Blue Tick and Active Badge
+                          if (_tagProfileData != null &&
+                              _tagProfileData!.plateNumber.isNotEmpty) ...[
+                            Container(
+                              padding: EdgeInsets.all(AppConstants.paddingLarge),
+                              decoration: BoxDecoration(
+                                color: AppColors.white,
+                                borderRadius: BorderRadius.circular(
+                                    AppConstants.borderRadiusCard),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
                                   ),
-                                ),
+                                ],
                               ),
-                            ],
-                          ),
-                          SizedBox(height: AppConstants.spacingLarge),
-                          // Show either buttons OR reason list
-                          if (!_showReasonList) ...[
-                            // Question
-                            Text(
-                              'Would you like to call or text the owner ?',
-                              style: TextStyle(
-                                fontSize: AppConstants.fontSizeCardTitle,
-                                color: AppColors.black,
-                                fontWeight: FontWeight.w500,
+                              child: Row(
+                                children: [
+                                  // Blue Tick Icon
+                                  Icon(
+                                    Icons.verified,
+                                    color: _tagProfileData!.isActive
+                                        ? Colors.blue
+                                        : Colors.grey,
+                                    size: 28,
+                                  ),
+                                  SizedBox(width: AppConstants.spacingMedium),
+                                  // Plate Number
+                                  Expanded(
+                                    child: Text(
+                                      _getMaskedPlateNumber(
+                                          _tagProfileData!.plateNumber),
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.red,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                  ),
+                                  // Active Badge
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: AppConstants.paddingMedium,
+                                      vertical: AppConstants.paddingSmall,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _tagProfileData!.isActive
+                                          ? AppColors.activeYellow
+                                          : Colors.grey.withOpacity(0.3),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      _tagProfileData!.statusLabel,
+                                      style: TextStyle(
+                                        fontSize:
+                                            AppConstants.fontSizeCardDescription,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.black,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             SizedBox(height: AppConstants.spacingLarge),
-                            // Action Buttons
-                            Row(
-                              children: [
-                                // Masked Call
-                                Expanded(
-                                  child: _buildActionCard(
-                                    icon: Icons.phone,
-                                    label: 'Masked Call',
-                                    color: Colors.orange,
-                                    onTap: _makeCall,
+                            // ✅ Demo Tag Disclaimer
+                            if (_tagProfileData != null && _tagProfileData!.isDemoTag)
+                              Container(
+                                padding: EdgeInsets.all(AppConstants.paddingLarge),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(
+                                      AppConstants.borderRadiusCard),
+                                  border: Border.all(
+                                    color: Colors.blue.shade300,
+                                    width: 1.5,
                                   ),
                                 ),
-                                SizedBox(width: AppConstants.spacingLarge),
-                                // Message
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      color: Colors.blue.shade700,
+                                      size: 28,
+                                    ),
+                                    SizedBox(
+                                        width:
+                                            AppConstants.spacingMedium),
+                                    Expanded(
+                                      child: Text(
+                                        'This is a free tag. It will have its limitations.',
+                                        style: TextStyle(
+                                          fontSize: AppConstants
+                                              .fontSizeCardTitle,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.blue.shade700,
+                                          height: 1.3,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            if (_tagProfileData != null && _tagProfileData!.isDemoTag)
+                              SizedBox(height: AppConstants.spacingLarge),
+                          ] else if (_isLoadingProfile) ...[
+                            Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    AppColors.activeYellow,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: AppConstants.spacingLarge),
+                          ] else if (_profileError != null) ...[
+                            Container(
+                              padding: EdgeInsets.all(AppConstants.paddingMedium),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(
+                                    AppConstants.borderRadiusCard),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: Colors.red,
+                                    size: AppConstants.iconSizeMedium,
+                                  ),
+                                  SizedBox(width: AppConstants.spacingMedium),
+                                  Expanded(
+                                    child: Text(
+                                      'Error loading profile',
+                                      style: TextStyle(
+                                        fontSize:
+                                            AppConstants.fontSizeCardTitle,
+                                        color: Colors.red,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: AppConstants.spacingLarge),
+                          ],
+
+                          // Show either buttons OR reason list
+                          if (!_showReasonList && _tagProfileData != null) ...[
+                            // Check if tag is paused
+                            if (_tagProfileData!.isPaused) ...[
+                              // Show paused message
+                              Container(
+                                padding: EdgeInsets.all(AppConstants.paddingLarge),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.shade50,
+                                  borderRadius: BorderRadius.circular(
+                                      AppConstants.borderRadiusCard),
+                                  border: Border.all(
+                                    color: Colors.orange.shade300,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.pause_circle_outline,
+                                      color: Colors.orange.shade700,
+                                      size: 28,
+                                    ),
+                                    SizedBox(
+                                        width:
+                                            AppConstants.spacingMedium),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Tag is Paused',
+                                            style: TextStyle(
+                                              fontSize: AppConstants
+                                                  .fontSizeCardTitle,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.orange.shade700,
+                                            ),
+                                          ),
+                                          SizedBox(
+                                              height: AppConstants
+                                                  .spacingSmall),
+                                          Text(
+                                            'Please enable this tag first to call or message the owner.',
+                                            style: TextStyle(
+                                              fontSize: AppConstants
+                                                  .fontSizeCardDescription,
+                                              color: Colors.orange.shade600,
+                                              height: 1.3,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ] else ...[
+                              // Tag is active - show Question and Action Cards
+                              Text(
+                                'Would you like to call or text the owner ?',
+                                style: TextStyle(
+                                  fontSize: AppConstants.fontSizeCardTitle,
+                                  color: AppColors.black,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(
+                                  height: AppConstants.spacingLarge),
+
+                              // Action Cards - Box Design
+                              Row(
+                                children: [
+                                  // Call Options - Show either Masked Call or Direct Call
+                                  if (_tagProfileData!.callFlags.callMaskingEnabled) ...[
+                                    // Show Masked Call button
+                                    Expanded(
+                                      child: _buildActionCard(
+                                        icon: Icons.phone,
+                                        label: 'Masked Call',
+                                        color: Colors.orange,
+                                        isEnabled: true,
+                                        onTap: _makeCall,
+                                      ),
+                                    ),
+                                  ] else if (_tagProfileData!.callFlags.callsEnabled) ...[
+                                    // Show Direct Call button (opens phone dialer)
+                                    Expanded(
+                                      child: _buildActionCard(
+                                        icon: Icons.phone,
+                                        label: 'Call',
+                                        color: Colors.orange,
+                                        isEnabled: true,
+                                        onTap: _makeCall,
+                                      ),
+                                    ),
+                                  ] else ...[
+                                    // No call option available
+                                    Expanded(
+                                      child: Opacity(
+                                        opacity: 0.5,
+                                        child: _buildActionCard(
+                                          icon: Icons.phone,
+                                          label: 'Call',
+                                          color: Colors.grey,
+                                          isEnabled: false,
+                                          onTap: () {},
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  SizedBox(
+                                      width:
+                                          AppConstants.spacingLarge),
+                                  // Message - Always enabled when tag is active
+                                  Expanded(
+                                    child: _buildActionCard(
+                                      icon: Icons.chat_bubble,
+                                      label: 'Message',
+                                      color: Colors.blue,
+                                      isEnabled: true,
+                                      onTap: _onMessageButtonClicked,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ] else if (!_showReasonList &&
+                              !_isLoadingProfile) ...[
+                            // Error state
+                            Center(
+                              child: Text(
+                                _profileError != null
+                                    ? 'Unable to load tag details'
+                                    : '',
+                                style: TextStyle(
+                                  fontSize: AppConstants.fontSizeCardTitle,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ),
+                          ] else if (!_showReasonList) ...[
+                            // Initial loading state
+                            Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    AppColors.activeYellow,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ] else if (_showReasonList) ...[
+                            // Question for reason selection
+                            Row(
+                              children: [
+                                IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _showReasonList = false;
+                                      _selectedReason = null;
+                                    });
+                                  },
+                                  icon: Icon(
+                                    Icons.arrow_back,
+                                    color: AppColors.black,
+                                  ),
+                                ),
                                 Expanded(
-                                  child: _buildActionCard(
-                                    icon: Icons.chat,
-                                    label: 'Message',
-                                    color: Colors.blue,
-                                    onTap: _onMessageButtonClicked,
+                                  child: Text(
+                                    'Why would you like to contact the vehicle owner?',
+                                    style: TextStyle(
+                                      fontSize: AppConstants.fontSizeCardTitle,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.black,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                          ] else ...[
-                            // Question for reason selection
-                            Text(
-                              'Why would you like to contact the vehicle owner?',
-                              style: TextStyle(
-                                fontSize: AppConstants.fontSizeCardTitle,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.black,
-                              ),
-                            ),
                             SizedBox(height: AppConstants.spacingMedium),
+
                             // Reason Options
-                            ..._reasons.map((reason) => _buildReasonOption(reason)),
+                            ..._reasons
+                                .map((reason) => _buildReasonOption(reason)),
                             SizedBox(height: AppConstants.spacingLarge),
+
                             // Action Buttons Row
                             Row(
                               children: [
                                 // Message Button
                                 Expanded(
                                   child: _buildSimpleButton(
-                                    icon: Icons.chat,
+                                    icon: Icons.chat_bubble,
                                     label: 'Message',
                                     color: Colors.blue,
                                     onTap: _sendMessage,
                                   ),
                                 ),
-                                SizedBox(width: AppConstants.spacingSmall),
-                                // Call Button
+                                SizedBox(width: AppConstants.spacingMedium),
+                                // Call Button (with check for calls_enabled)
                                 Expanded(
-                                  child: _buildSimpleButton(
-                                    icon: Icons.phone,
-                                    label: 'Call',
-                                    color: Colors.orange,
-                                    onTap: _makeCall,
+                                  child: Opacity(
+                                    opacity: _tagProfileData != null &&
+                                            _tagProfileData!
+                                                .callFlags.callsEnabled
+                                        ? 1.0
+                                        : 0.5,
+                                    child: _buildSimpleButton(
+                                      icon: Icons.phone,
+                                      label: 'Call',
+                                      color: _tagProfileData != null &&
+                                              _tagProfileData!
+                                                  .callFlags.callsEnabled
+                                          ? Colors.orange
+                                          : Colors.grey,
+                                      onTap: _tagProfileData != null &&
+                                              _tagProfileData!
+                                                  .callFlags.callsEnabled
+                                          ? _makeCall
+                                          : () {
+                                              _showErrorSnackBar(
+                                                  'Calls are not enabled for this tag');
+                                            },
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                           ],
+
                           SizedBox(height: AppConstants.spacingLarge),
+
                           // Emergency Section
-                          Text(
-                            'Do you think the vehicle has an accident and needs to be contacted family members or emergency numbers?',
-                            style: TextStyle(
-                              fontSize: AppConstants.fontSizeCardTitle,
-                              color: AppColors.black,
-                              fontWeight: FontWeight.w500,
-                              height: 1.4,
-                            ),
-                          ),
-                          SizedBox(height: AppConstants.spacingMedium),
-                          // FIXED: Emergency Button - Small and Left Aligned
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: SizedBox(
-                              height: 36, // Smaller height
-                              child: ElevatedButton.icon(
-                                onPressed: _showEmergencyDialog,
-                                icon: Icon(
-                                  Icons.emergency,
-                                  color: AppColors.white,
-                                  size: 14, // Smaller icon
-                                ),
-                                label: Text(
-                                  'Emergency',
-                                  style: TextStyle(
-                                    fontSize: AppConstants.fontSizeSmallText + 2, // 10
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.white,
-                                  ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: AppConstants.paddingMedium,
-                                    vertical: AppConstants.paddingSmall,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                        AppConstants.buttonBorderRadius),
-                                  ),
-                                  elevation: 0,
-                                ),
-                              ),
-                            ),
-                          ),
+                          EmergencySectionWidget(tagId: widget.tagId),
+
                           SizedBox(height: AppConstants.paddingPage),
                         ],
                       ),
@@ -451,6 +645,7 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
     required IconData icon,
     required String label,
     required Color color,
+    required bool isEnabled,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -461,16 +656,23 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
           color: AppColors.white,
           borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
           border: Border.all(
-            color: color.withOpacity(0.5),
-            width: 2,
+            color: color.withOpacity(isEnabled ? 0.6 : 0.3),
+            width: 2.5,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           children: [
             Container(
               padding: EdgeInsets.all(AppConstants.paddingMedium),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withOpacity(isEnabled ? 0.15 : 0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -488,6 +690,17 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                 color: AppColors.black,
               ),
             ),
+            if (!isEnabled) ...[
+              SizedBox(height: 4),
+              Text(
+                'Disabled',
+                style: TextStyle(
+                  fontSize: AppConstants.fontSizeCardDescription,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textGrey,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -504,7 +717,7 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.symmetric(
-          vertical: AppConstants.paddingMedium,
+          vertical: AppConstants.paddingMedium + 2,
           horizontal: AppConstants.paddingSmall,
         ),
         decoration: BoxDecoration(
@@ -512,8 +725,15 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
           borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
           border: Border.all(
             color: color,
-            width: 2,
+            width: 2.5,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -547,23 +767,32 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
         });
       },
       child: Container(
-        margin: EdgeInsets.only(bottom: AppConstants.spacingSmall),
-        padding: EdgeInsets.all(AppConstants.paddingMedium),
+        margin: EdgeInsets.only(bottom: AppConstants.spacingMedium),
+        padding: EdgeInsets.all(AppConstants.paddingLarge),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.activeYellow.withOpacity(0.15)
+              ? AppColors.activeYellow.withOpacity(0.2)
               : AppColors.white,
           borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
           border: Border.all(
             color: isSelected ? AppColors.activeYellow : AppColors.lightGrey,
-            width: isSelected ? 2 : 1,
+            width: isSelected ? 2.5 : 1.5,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.activeYellow.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [],
         ),
         child: Row(
           children: [
             Icon(
               reason.icon,
-              size: AppConstants.iconSizeMedium,
+              size: 24,
               color: isSelected ? AppColors.black : AppColors.textGrey,
             ),
             SizedBox(width: AppConstants.spacingMedium),
@@ -574,12 +803,13 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                   fontSize: AppConstants.fontSizeCardTitle,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isSelected ? AppColors.black : AppColors.textGrey,
+                  height: 1.3,
                 ),
               ),
             ),
             Container(
-              width: 20,
-              height: 20,
+              width: 24,
+              height: 24,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
@@ -593,7 +823,7 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
               child: isSelected
                   ? Icon(
                       Icons.check,
-                      size: 14,
+                      size: 16,
                       color: AppColors.black,
                     )
                   : null,
@@ -603,16 +833,4 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
       ),
     );
   }
-}
-
-class ContactReason {
-  final IconData icon;
-  final String text;
-  final String value;
-
-  ContactReason({
-    required this.icon,
-    required this.text,
-    required this.value,
-  });
 }

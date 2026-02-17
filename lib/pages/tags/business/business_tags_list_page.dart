@@ -240,23 +240,116 @@ class _BusinessTagsListPageState extends State<BusinessTagsListPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              tag.displayName,
-              style: TextStyle(
-                fontSize: AppConstants.fontSizeSectionTitle,
-                fontWeight: FontWeight.w700,
-                color: AppColors.black,
-                height: 1.2,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Tag id: ${tag.tagPublicId}',
-              style: TextStyle(
-                fontSize: AppConstants.fontSizeSubtitle,
-                color: AppColors.textGrey,
-                fontWeight: FontWeight.w500,
-              ),
+            // ✅ Main Row - Tag info on left, badges on right
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left side - Display name and tag ID
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tag.displayName,
+                        style: TextStyle(
+                          fontSize: AppConstants.fontSizeSectionTitle,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.black,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Tag id: ${tag.tagPublicId}',
+                        style: TextStyle(
+                          fontSize: AppConstants.fontSizeSubtitle,
+                          color: AppColors.textGrey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // ✅ Right side - Status badges (vertical stack)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // ✅ Calls active/disabled badge - Dynamic
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tag.callsEnabled ? Colors.green.shade50 : Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            tag.callsEnabled ? 'Calls active' : 'Calls disabled',
+                            style: TextStyle(
+                              fontSize: AppConstants.fontSizeSmallText,
+                              fontWeight: FontWeight.w600,
+                              color: tag.callsEnabled ? Colors.green.shade700 : Colors.red.shade700,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            tag.callsEnabled ? Icons.phone : Icons.phone_disabled,
+                            size: 12,
+                            color: tag.callsEnabled ? Colors.green.shade700 : Colors.red.shade700,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    // ✅ Status badge - Dynamic
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tag.status.toLowerCase() == 'active'
+                            ? Colors.blue.shade50
+                            : Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            tag.status,
+                            style: TextStyle(
+                              fontSize: AppConstants.fontSizeSmallText,
+                              fontWeight: FontWeight.w600,
+                              color: tag.status.toLowerCase() == 'active'
+                                  ? Colors.blue.shade700
+                                  : Colors.grey.shade700,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            tag.status.toLowerCase() == 'active' ? Icons.play_arrow : Icons.pause,
+                            size: 12,
+                            color: tag.status.toLowerCase() == 'active'
+                                ? Colors.blue.shade700
+                                : Colors.grey.shade700,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),

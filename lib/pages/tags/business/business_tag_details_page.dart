@@ -4,7 +4,10 @@ import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/tags_service.dart';
+import '../../../services/offline_qr_service.dart';
 import '../../widgets/app_header.dart';
+import '../../widgets/offline_qr_download_sheet.dart';
+import '../../widgets/edit_tag_sheet.dart';
 
 class BusinessTagDetailsPage extends StatefulWidget {
   final Tag tag;
@@ -23,6 +26,8 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
   TagSettings? _tagSettings;
   bool _isLoadingSettings = true;
   String _settingsError = '';
+  String _userPhone = ''; // ✅ Track user phone
+  String _countryCode = '+91'; // ✅ Default to India
 
   @override
   void initState() {
@@ -71,6 +76,8 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
         setState(() {
           _tagSettings = tagSettings;
           _isLoadingSettings = false;
+          _userPhone = phone; // ✅ Set user phone
+          _countryCode = countryCode; // ✅ Set country code
         });
       }
     } catch (e) {
@@ -342,6 +349,12 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
   Widget _buildBusinessTabContent() {
     return Column(
       children: [
+        // ✅ Demo Tag Disclaimer
+        if (_tagSettings?.data.isDemoTag ?? false)
+          _buildDemoTagDisclaimer(),
+        if (_tagSettings?.data.isDemoTag ?? false)
+          const SizedBox(height: AppConstants.spacingMedium),
+
         // Alert Box
         Container(
           padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
@@ -708,7 +721,9 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
           description: 'Download the QR code for offline, Usage of your business card.',
           badge: 'New',
           trailing: Icons.download,
-          onTap: () {},
+          onTap: () {
+            _generateOfflineQR();
+          },
         ),
 
         _buildActionButton(
@@ -734,6 +749,24 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
           trailing: Icons.close,
           isRed: true,
           onTap: () {},
+        ),
+
+        // ✅ Edit and re-write tag
+        _buildActionButton(
+          icon: Icons.edit,
+          iconColor: Colors.red.shade600,
+          label: 'Edit and re-write tag',
+          trailing: Icons.close,
+          isRed: true,
+          onTap: () {
+            final phoneWithCountryCode = _countryCode.replaceFirst('+', '') + _userPhone;
+            EditTagSheet.show(
+              context,
+              vehicleNumber: widget.tag.displayName,
+              tagId: widget.tag.tagInternalId,
+              phone: phoneWithCountryCode,
+            );
+          },
         ),
 
         const SizedBox(height: AppConstants.spacingLarge),
@@ -795,6 +828,42 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
           ),
         ),
       ],
+    );
+  }
+
+  // ✅ Demo Tag Disclaimer Widget
+  Widget _buildDemoTagDisclaimer() {
+    return Container(
+      padding: const EdgeInsets.all(AppConstants.paddingSmall),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        border: Border.all(
+          color: Colors.orange.shade200,
+          width: 1,
+        ),
+        borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline,
+            color: Colors.orange.shade700,
+            size: 20,
+          ),
+          const SizedBox(width: AppConstants.spacingSmall),
+          Expanded(
+            child: Text(
+              'This is a demo tag for testing purposes only',
+              style: TextStyle(
+                fontSize: AppConstants.fontSizeCardDescription,
+                color: Colors.orange.shade700,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -972,6 +1041,156 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
       ),
     );
   }
+
+  // ========================
+  // ✅ OFFLINE QR FUNCTIONS
+  // ========================
+
+  void _generateOfflineQR() async {
+    HapticFeedback.mediumImpact();
+    
+    _showLoadingOverlay();
+
+    try {
+      final userData = await AuthService.getUserData();
+      final phone = userData['phone'] ?? '';
+      final countryCode = userData['countryCode'] ?? '+91';
+
+      final response = await OfflineQRService.generateOfflineQR(
+        tagId: widget.tag.tagInternalId.toString(),
+        phone: phone,
+        countryCode: countryCode,
+      );
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+      }
+
+      // Show the offline QR download sheet
+      if (mounted) {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          barrierColor: Colors.black.withOpacity(0.5),
+          builder: (context) => OfflineQRDownloadSheet(
+            tagId: response.data.tagId.toString(),
+            plate: response.data.plate,
+            downloadUrl: response.data.downloadUrl,
+            pdfFile: response.data.pdfFile,
+            message: response.message,
+            onClose: () {
+              // User closed the sheet
+            },
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+      }
+
+      if (mounted) {
+        _showErrorDialog('Error', 'Failed to generate QR: $e');
+      }
+    }
+  }
+
+  // ✅ Show Loading Overlay (Simple loader without text)
+  void _showLoadingOverlay() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.activeYellow),
+              strokeWidth: 4,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ✅ Show Error Dialog
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: Colors.red.shade600,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.black,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  message,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textGrey,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade600,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppConstants.buttonBorderRadius,
+                        ),
+                      ),
+                    ),
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ===================
+  // ✅ WHATSAPP FUNCTIONS
+  // ===================
   // ✅ Toggle WhatsApp
   void _toggleWhatsapp() async {
     HapticFeedback.lightImpact();
@@ -999,6 +1218,8 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
         dgValue: 'testYU78dII8iiUIPSISJ',
       );
 
+      await _loadTagSettings();
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text((_tagSettings?.data.callStatus.whatsappEnabled ?? false) ? 'WhatsApp Enabled' : 'WhatsApp Disabled'),
@@ -1022,4 +1243,5 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
         ),
       );
     }
-  }}
+  }
+}

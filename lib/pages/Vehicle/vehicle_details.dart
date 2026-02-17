@@ -3,30 +3,75 @@ import 'package:flutter/services.dart';
 import 'package:my_new_app/pages/scan/contact_vehicle_owner_page.dart';
 import '../../utils/colors.dart';
 import '../widgets/app_header.dart';
+import '../../services/vehicle_search_service.dart';
 
 class VehicleDetailsPage extends StatelessWidget {
   final String vehicleNumber;
-  final String vehicleType;
-  final String color;
-  final String model;
-  final String ownerName;
-  final String city;
-  final String fitnessDate;
-  final String make;
-  final String makeDetails;
+  final String? vehicleType;
+  final String? color;
+  final String? model;
+  final String? ownerName;
+  final String? city;
+  final String? fitnessDate;
+  final String? make;
+  final String? makeDetails;
+  final VehicleSearchData? vehicleData;
+  final int? tagId;
 
   const VehicleDetailsPage({
     super.key,
     required this.vehicleNumber,
-    required this.vehicleType,
-    required this.color,
-    required this.model,
-    required this.ownerName,
-    required this.city,
-    required this.fitnessDate,
-    required this.make,
-    required this.makeDetails,
+    this.vehicleType,
+    this.color,
+    this.model,
+    this.ownerName,
+    this.city,
+    this.fitnessDate,
+    this.make,
+    this.makeDetails,
+    this.vehicleData,
+    this.tagId,
   });
+
+  /// Get vehicle type from dynamic or fallback data
+  String _getVehicleType() {
+    return vehicleData?.vehicle.fuelType ?? vehicleType ?? 'PETROL';
+  }
+
+  /// Get color from dynamic or fallback data
+  String _getColor() {
+    return vehicleData?.vehicle.color ?? color ?? 'RADIANT RED';
+  }
+
+  /// Get model from dynamic or fallback data
+  String _getModel() {
+    return vehicleData?.vehicle.model ?? model ?? 'AMAZE 1.2 S MT (I-VTEC)';
+  }
+
+  /// Get owner name from dynamic or fallback data
+  String _getOwnerName() {
+    return vehicleData?.vehicle.ownerNameMasked ?? ownerName ?? 'OWNER';
+  }
+
+  /// Get city from dynamic or fallback data
+  String _getCity() {
+    return vehicleData?.vehicle.state ?? city ?? 'Uttar Pradesh';
+  }
+
+  /// Get norms from dynamic or fallback data
+  String _getNorms() {
+    return vehicleData?.vehicle.norms ?? make ?? 'BHARAT STAGE IV';
+  }
+
+  /// Get manufacturer from dynamic or fallback data
+  String _getManufacturer() {
+    return vehicleData?.vehicle.manufacturerName ?? makeDetails ?? 'HONDA CARS INDIA LTD';
+  }
+
+  /// Get tag ID from dynamic or fallback data
+  int _getTagId() {
+    return vehicleData?.tagId ?? tagId ?? 0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +144,7 @@ class VehicleDetailsPage extends StatelessWidget {
                                     icon: Icons.person_outline_rounded,
                                     iconColor: Colors.blue.shade600,
                                     label: 'Owner',
-                                    value: ownerName,
+                                    value: _getOwnerName(),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -108,7 +153,7 @@ class VehicleDetailsPage extends StatelessWidget {
                                     icon: Icons.location_city_rounded,
                                     iconColor: Colors.orange.shade600,
                                     label: 'City',
-                                    value: city,
+                                    value: _getCity(),
                                   ),
                                 ),
                               ],
@@ -123,7 +168,7 @@ class VehicleDetailsPage extends StatelessWidget {
                                     icon: Icons.calendar_today_rounded,
                                     iconColor: Colors.green.shade600,
                                     label: 'Fitness Up to',
-                                    value: fitnessDate,
+                                    value: fitnessDate ?? '12-Aug-2033',
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -132,7 +177,7 @@ class VehicleDetailsPage extends StatelessWidget {
                                     icon: Icons.settings_rounded,
                                     iconColor: Colors.purple.shade600,
                                     label: 'Make',
-                                    value: make,
+                                    value: _getNorms(),
                                   ),
                                 ),
                               ],
@@ -219,7 +264,7 @@ class VehicleDetailsPage extends StatelessWidget {
             runSpacing: 2,
             children: [
               Text(
-                vehicleType.toUpperCase(),
+                _getVehicleType().toUpperCase(),
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -229,24 +274,24 @@ class VehicleDetailsPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: _getColorFromName(color).withOpacity(0.15),
+                  color: _getColorFromName(_getColor()).withOpacity(0.15),
                   borderRadius: BorderRadius.circular(4),
                   border: Border.all(
-                    color: _getColorFromName(color).withOpacity(0.3),
+                    color: _getColorFromName(_getColor()).withOpacity(0.3),
                     width: 1,
                   ),
                 ),
                 child: Text(
-                  color.toUpperCase(),
+                  _getColor().toUpperCase(),
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: _getColorFromName(color),
+                    color: _getColorFromName(_getColor()),
                   ),
                 ),
               ),
               Text(
-                model,
+                _getModel(),
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -366,7 +411,7 @@ class VehicleDetailsPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  makeDetails,
+                  _getManufacturer(),
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -431,7 +476,7 @@ class VehicleDetailsPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'If you are facing any issue with this vehicle, contact ${ownerName.toUpperCase()} now.',
+                  'If you are facing any issue with this vehicle, contact ${_getOwnerName().toUpperCase()} now.',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
@@ -474,8 +519,9 @@ class VehicleDetailsPage extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => ContactVehicleOwnerPage(
+                    tagId: _getTagId(),
                     vehicleNumber: vehicleNumber,
-                    vehicleName: model,
+                    vehicleName: _getModel(),
                     maskedNumber: vehicleNumber.substring(vehicleNumber.length - 4),
                   ),
                 ),

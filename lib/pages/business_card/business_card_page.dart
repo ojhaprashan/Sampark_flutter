@@ -17,24 +17,25 @@ class _BusinessCardPageState extends State<BusinessCardPage> {
   bool _isLoggedIn = false;
 
   // Media items - using MediaSliderItem
-  final List<MediaSliderItem> _mediaItems = [
+final List<MediaSliderItem> _mediaItems = [
+
     MediaSliderItem.networkImage(
-      url: 'https://app.ngf132.com/assets/avator/sampark_bc_1.png',
-    ),
-    MediaSliderItem.video(
-      assetPath: 'assets/videos/demo1.mp4',
+      url: 'https://sampark.me/assets/app/business_1.png',
     ),
     MediaSliderItem.networkImage(
-      url: 'https://app.ngf132.com/assets/avator/sambc4.jpeg',
-    ),
-    MediaSliderItem.video(
-      assetPath: 'assets/videos/demo2.mp4',
+      url: 'https://sampark.me/assets/app/business_2.png',
     ),
     MediaSliderItem.networkImage(
-      url: 'https://app.ngf132.com/assets/avator/sampark_bc_1.png',
+      url: 'https://sampark.me/assets/app/business_3.png',
     ),
     MediaSliderItem.networkImage(
-      url: 'https://app.ngf132.com/assets/avator/sambc4.jpeg',
+      url: 'https://sampark.me/assets/app/business_4.png',
+    ),
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/business_5.png',
+    ),
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/business_6.png',
     ),
   ];
 

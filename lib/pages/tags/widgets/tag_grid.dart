@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:my_new_app/pages/tags/business/business_tags_list_page.dart';
 import 'package:my_new_app/pages/tags/door/door_tags_list_page.dart';
 import 'package:my_new_app/pages/tags/lost_found/lost_found_list_page.dart';
+import 'package:my_new_app/pages/auth/vehicle_details_page.dart'; // ✅ Import Vehicle Details
+import 'package:my_new_app/pages/auth/login_page.dart'; // ✅ Import Login
 import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
 import '../../../services/tags_service.dart';
+import '../../../services/auth_service.dart'; // ✅ Import Auth Service
 import '../car/car_tags_list_page.dart';
 import '../bike/bike_tags_list_page.dart';
 
@@ -46,16 +49,12 @@ class TagGrid extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 40,
-              color: Colors.red.shade400,
-            ),
+            Icon(Icons.error_outline, size: 40, color: Colors.red.shade400),
             const SizedBox(height: 12),
             Text(
               'Failed to load tags',
               style: TextStyle(
-                fontSize: AppConstants.fontSizeSectionTitle, // ✅ Increased size
+                fontSize: AppConstants.fontSizeSectionTitle,
                 fontWeight: FontWeight.w600,
                 color: AppColors.black,
               ),
@@ -86,9 +85,9 @@ class TagGrid extends StatelessWidget {
     final List<TagItem> tags = [
       TagItem(
         icon: Icons.directions_car_rounded,
-        label: 'Car Sampark', // ✅ Renamed
+        label: 'Car Sampark',
         count: tagStats?.summary.carTags ?? 0,
-        iconColor: const Color(0xFF2196F3), // Blue
+        iconColor: const Color(0xFF2196F3),
         onTap: () {
           Navigator.push(
             context,
@@ -98,9 +97,9 @@ class TagGrid extends StatelessWidget {
       ),
       TagItem(
         icon: Icons.two_wheeler_rounded,
-        label: 'Bike Sampark', // ✅ Renamed
+        label: 'Bike Sampark',
         count: tagStats?.summary.bikeTags ?? 0,
-        iconColor: const Color(0xFFFF6B00), // Orange
+        iconColor: const Color(0xFFFF6B00),
         onTap: () {
           Navigator.push(
             context,
@@ -109,21 +108,10 @@ class TagGrid extends StatelessWidget {
         },
       ),
       TagItem(
-        icon: Icons.backpack_rounded,
-        label: 'Bag Sampark', // ✅ Consistent naming
-        count: 0,
-        iconColor: const Color(0xFF9C27B0), // Purple
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Bag Tags - Coming Soon!')),
-          );
-        },
-      ),
-      TagItem(
         icon: Icons.business_center_rounded,
         label: 'Business',
         count: tagStats?.summary.businessTags ?? 0,
-        iconColor: const Color(0xFF00897B), // Teal
+        iconColor: const Color(0xFF00897B),
         onTap: () {
           Navigator.push(
             context,
@@ -135,7 +123,7 @@ class TagGrid extends StatelessWidget {
         icon: Icons.pets_rounded,
         label: 'Lost & Found',
         count: tagStats?.summary.emergencyTags ?? 0,
-        iconColor: const Color(0xFFE91E63), // Pink
+        iconColor: const Color(0xFFE91E63),
         onTap: () {
           Navigator.push(
             context,
@@ -145,9 +133,9 @@ class TagGrid extends StatelessWidget {
       ),
       TagItem(
         icon: Icons.meeting_room_rounded,
-        label: 'Door Sampark', // ✅ Renamed
+        label: 'Door Sampark',
         count: tagStats?.summary.doorTags ?? 0,
-        iconColor: const Color(0xFF5D4037), // Brown
+        iconColor: const Color(0xFF5D4037),
         onTap: () {
           Navigator.push(
             context,
@@ -155,48 +143,44 @@ class TagGrid extends StatelessWidget {
           );
         },
       ),
+      // ✅ ADD VEHICLE BUTTON (With Direct Navigation Logic)
+      TagItem(
+        icon: Icons.add_circle_outline_rounded,
+        label: 'Add Vehicle',
+        count: -1, 
+        iconColor: AppColors.black,
+        isAction: true,
+        onTap: () async {
+          // 1. Check Login Status
+          final isLoggedIn = await AuthService.isLoggedIn();
+          
+          if (!context.mounted) return;
+
+          if (isLoggedIn) {
+            // 2. Go to Vehicle Details
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const VehicleDetailsPage()),
+            );
+          } else {
+            // 3. Prompt Login
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Please login to add a vehicle'),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            );
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginPage()),
+            );
+          }
+        },
+      ),
     ];
-
-    // Filter tags with count > 0
-    final List<TagItem> availableTags = tags.where((tag) => tag.count > 0).toList();
-
-    if (availableTags.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: AppConstants.paddingLarge,
-          horizontal: AppConstants.paddingLarge,
-        ),
-        child: Center(
-          child: Column(
-            children: [
-              Icon(
-                Icons.info_outline,
-                size: 50,
-                color: AppColors.activeYellow,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'No Tags Yet',
-                style: TextStyle(
-                  fontSize: AppConstants.fontSizeSectionTitle, // ✅ Increased size
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.black,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Start creating tags to manage them here',
-                style: TextStyle(
-                  fontSize: AppConstants.fontSizeCardDescription,
-                  color: AppColors.textGrey,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
 
     return GridView.builder(
       shrinkWrap: true,
@@ -210,9 +194,9 @@ class TagGrid extends StatelessWidget {
         mainAxisSpacing: 10,
         childAspectRatio: 1.0,
       ),
-      itemCount: availableTags.length,
+      itemCount: tags.length,
       itemBuilder: (context, index) {
-        return _TagCard(tag: availableTags[index]);
+        return _TagCard(tag: tags[index]);
       },
     );
   }
@@ -225,18 +209,24 @@ class _TagCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isAddButton = tag.isAction;
+
     return GestureDetector(
       onTap: tag.onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: isAddButton ? AppColors.activeYellow.withOpacity(0.1) : AppColors.white,
           borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+          border: isAddButton 
+              ? Border.all(color: AppColors.activeYellow, width: 2) 
+              : null,
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
+            if (!isAddButton)
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
           ],
         ),
         child: Stack(
@@ -247,7 +237,6 @@ class _TagCard extends StatelessWidget {
                 children: [
                   Icon(
                     tag.icon,
-                    // ✅ Used Constant (approx 32.0 is good for grid)
                     size: AppConstants.largeIconSizeGrid, 
                     color: tag.iconColor,
                   ),
@@ -257,12 +246,11 @@ class _TagCard extends StatelessWidget {
                     child: Text(
                       tag.label,
                       textAlign: TextAlign.center,
-                      maxLines: 2, // Allow 2 lines if "Sampark" wraps
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        // ✅ Increased from fontSizeCardTitle (12) to fontSizeSectionTitle (14)
                         fontSize: AppConstants.fontSizeSectionTitle, 
-                        fontWeight: FontWeight.w700, // Made slightly bolder
+                        fontWeight: FontWeight.w700, 
                         color: AppColors.black,
                         height: 1.2,
                       ),
@@ -284,6 +272,7 @@ class TagItem {
   final int count;
   final Color iconColor;
   final VoidCallback? onTap;
+  final bool isAction;
 
   TagItem({
     required this.icon,
@@ -291,5 +280,6 @@ class TagItem {
     required this.count,
     required this.iconColor,
     this.onTap,
+    this.isAction = false,
   });
 }

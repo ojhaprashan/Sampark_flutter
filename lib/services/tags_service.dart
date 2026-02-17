@@ -1,6 +1,7 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+
 // Tag Call Status model
 class TagCallStatus {
   bool callsEnabled;
@@ -8,12 +9,14 @@ class TagCallStatus {
   bool callMaskingEnabled;
   bool videoCallEnabled;
 
+
   TagCallStatus({
     required this.callsEnabled,
     required this.whatsappEnabled,
     required this.callMaskingEnabled,
     required this.videoCallEnabled,
   });
+
 
   factory TagCallStatus.fromJson(Map<String, dynamic> json) {
     return TagCallStatus(
@@ -25,17 +28,20 @@ class TagCallStatus {
   }
 }
 
+
 // Tag Settings model for detailed tag information
 class TagSettings {
   final String status;
   final String message;
   final TagSettingsData data;
 
+
   TagSettings({
     required this.status,
     required this.message,
     required this.data,
   });
+
 
   factory TagSettings.fromJson(Map<String, dynamic> json) {
     return TagSettings(
@@ -46,23 +52,34 @@ class TagSettings {
   }
 }
 
+
 // Tag Settings Data model
 class TagSettingsData {
   final int tagId;
   final String tagPublicId;
   final String displayName;
   final String status;
+  final String statusCode;  // ✅ Add status_code field (6 = paused, 1 = active)
   final TagCallStatus callStatus;
   final bool hasSecondaryNumber;
+  final String? secondaryNumber;  // ✅ Add secondary_number field
+  final bool isDemoTag;
+
+  // ✅ Getter to check if tag is paused based on status_code
+  bool get isPaused => statusCode == '6';
 
   TagSettingsData({
     required this.tagId,
     required this.tagPublicId,
     required this.displayName,
     required this.status,
+    required this.statusCode,
     required this.callStatus,
     required this.hasSecondaryNumber,
+    this.secondaryNumber,
+    required this.isDemoTag,
   });
+
 
   factory TagSettingsData.fromJson(Map<String, dynamic> json) {
     return TagSettingsData(
@@ -70,13 +87,17 @@ class TagSettingsData {
       tagPublicId: json['tag_public_id'] as String? ?? '',
       displayName: json['display_name'] as String? ?? '',
       status: json['status'] as String? ?? '',
+      statusCode: json['status_code']?.toString() ?? '',  // ✅ Parse status_code
       callStatus: TagCallStatus.fromJson(
         json['call_status'] as Map<String, dynamic>? ?? {},
       ),
       hasSecondaryNumber: json['has_secondary_number'] as bool? ?? false,
+      secondaryNumber: json['secondary_number']?.toString(),  // ✅ Parse secondary_number
+      isDemoTag: json['is_demo_tag'] as bool? ?? false,
     );
   }
 }
+
 
 // Tag model for category-based fetch
 class Tag {
@@ -85,6 +106,8 @@ class Tag {
   final String displayName;
   final String status;
   final String manageUrl;
+  final bool callsEnabled;  // ✅ Parse from call_status.calls_enabled
+
 
   Tag({
     required this.tagInternalId,
@@ -92,29 +115,41 @@ class Tag {
     required this.displayName,
     required this.status,
     required this.manageUrl,
+    required this.callsEnabled,
   });
 
+
   factory Tag.fromJson(Map<String, dynamic> json) {
+    // Parse calls_enabled from nested call_status object
+    bool parsedCallsEnabled = false;
+    if (json['call_status'] != null && json['call_status'] is Map<String, dynamic>) {
+      parsedCallsEnabled = (json['call_status']['calls_enabled'] as bool?) ?? false;
+    }
+
     return Tag(
       tagInternalId: json['tag_internal_id'] as String,
       tagPublicId: json['tag_public_id'] as String,
       displayName: json['display_name'] as String,
       status: json['status'] as String,
       manageUrl: json['manage_url'] as String,
+      callsEnabled: parsedCallsEnabled,  // ✅ Now correctly parses from call_status.calls_enabled
     );
   }
 }
+
 
 class TagsByCategory {
   final String status;
   final int count;
   final List<Tag> tags;
 
+
   TagsByCategory({
     required this.status,
     required this.count,
     required this.tags,
   });
+
 
   factory TagsByCategory.fromJson(Map<String, dynamic> json) {
     return TagsByCategory(
@@ -128,11 +163,13 @@ class TagsByCategory {
   }
 }
 
+
 class UserTagsStats {
   final String status;
   final String phone;
   final bool hasActiveTags;
   final TagsSummary summary;
+
 
   UserTagsStats({
     required this.status,
@@ -140,6 +177,7 @@ class UserTagsStats {
     required this.hasActiveTags,
     required this.summary,
   });
+
 
   factory UserTagsStats.fromJson(Map<String, dynamic> json) {
     return UserTagsStats(
@@ -151,6 +189,7 @@ class UserTagsStats {
   }
 }
 
+
 class TagsSummary {
   final int carTags;
   final int bikeTags;
@@ -158,6 +197,7 @@ class TagsSummary {
   final int menuTags;
   final int emergencyTags;
   final int doorTags;
+
 
   TagsSummary({
     required this.carTags,
@@ -167,6 +207,7 @@ class TagsSummary {
     required this.emergencyTags,
     required this.doorTags,
   });
+
 
   factory TagsSummary.fromJson(Map<String, dynamic> json) {
     return TagsSummary(
@@ -179,19 +220,24 @@ class TagsSummary {
     );
   }
 
+
   int getTotalTags() {
     return carTags + bikeTags + businessTags + menuTags + emergencyTags + doorTags;
   }
 }
 
+
 class TagsService {
   static const String _baseUrl = 'https://app.ngf132.com/app_api/get_user_stats_api';
+
 
   static Future<UserTagsStats> fetchUserTags({
     required String phone,
     required String smValue,
     required String dgValue,
   }) async {
+    print('📞 API Call: fetchUserTags - GET User Stats');
+    
     try {
       final response = await http.post(
         Uri.parse(_baseUrl),
@@ -209,6 +255,7 @@ class TagsService {
         onTimeout: () => throw Exception('Request timeout'),
       );
 
+
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
         return UserTagsStats.fromJson(jsonData);
@@ -222,9 +269,11 @@ class TagsService {
     }
   }
 
+
   // Fetch tags by category
   static const String _getCategoryTagsUrl =
       'https://app.ngf132.com/app_api/get_my_tags_by_category_api';
+
 
   static Future<TagsByCategory> fetchTagsByCategory({
     required String type,
@@ -232,6 +281,8 @@ class TagsService {
     required String smValue,
     required String dgValue,
   }) async {
+    print('📞 API Call: fetchTagsByCategory - GET Tags by Category (type: $type)');
+    
     try {
       final response = await http.post(
         Uri.parse(_getCategoryTagsUrl),
@@ -250,6 +301,7 @@ class TagsService {
         onTimeout: () => throw Exception('Request timeout'),
       );
 
+
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
         return TagsByCategory.fromJson(jsonData);
@@ -263,9 +315,11 @@ class TagsService {
     }
   }
 
+
   // Fetch tag settings/details including call status
   static const String _getTagSettingsUrl =
       'https://app.ngf132.com/app_api/get_tag_settings_api';
+
 
   static Future<TagSettings> fetchTagSettings({
     required String tagId,
@@ -273,6 +327,8 @@ class TagsService {
     required String smValue,
     required String dgValue,
   }) async {
+    print('📞 API Call: fetchTagSettings - GET Tag Settings (tagId: $tagId)');
+    
     try {
       final response = await http.post(
         Uri.parse(_getTagSettingsUrl),
@@ -291,8 +347,10 @@ class TagsService {
         onTimeout: () => throw Exception('Request timeout'),
       );
 
+
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
+        print('Tag Settings Response: $jsonData');
         return TagSettings.fromJson(jsonData);
       } else {
         throw Exception(
@@ -304,10 +362,13 @@ class TagsService {
     }
   }
 
+
   // Update tag settings/call status
   static const String _manageTagSettingsUrl =
       'https://app.ngf132.com/app_api/manage_tag_settings_api';
 
+
+  // ✅ Updated to support status and secondary_number parameters
   static Future<Map<String, dynamic>> updateTagSettings({
     required String tagId,
     required String phone,
@@ -317,29 +378,43 @@ class TagsService {
     required bool videoCallEnabled,
     required String smValue,
     required String dgValue,
+    String? status,  // ✅ Optional status parameter (active/pause)
+    String? secondaryNumber,  // ✅ Optional secondary_number parameter
+    
   }) async {
+    print('📞 API Call: updateTagSettings - UPDATE Tag Settings (tagId: $tagId)');
+    
     try {
+      final body = {
+        'tag_id': tagId,
+        'ph': phone,
+        'sm': smValue,
+        '6s888iop': '6s888iop',
+        'dg': dgValue,
+        'status': status ?? 'active',  // ✅ Use provided status or default to 'active'
+        'enable_calls': callsEnabled ? '1' : '0',
+        'whatsapp_enabled': whatsappEnabled ? '1' : '0',
+        'call_masking_enabled': callMaskingEnabled ? '1' : '0',
+        'video_call_enabled': videoCallEnabled ? '1' : '0',
+      };
+
+      // ✅ Add secondary_number to body only if provided and not empty
+      if (secondaryNumber != null && secondaryNumber.isNotEmpty) {
+        body['secondary_number'] = secondaryNumber;
+      }
+
+      print('📝 Request Body: $body');
       final response = await http.post(
         Uri.parse(_manageTagSettingsUrl),
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: {
-          'tag_id': tagId,
-          'ph': phone,
-          'sm': smValue,
-          '6s888iop': '6s888iop',
-          'dg': dgValue,
-          'status': 'active',
-          'enable_calls': callsEnabled ? '1' : '0',
-          'whatsapp_enabled': whatsappEnabled ? '1' : '0',
-          'call_masking_enabled': callMaskingEnabled ? '1' : '0',
-          'video_call_enabled': videoCallEnabled ? '1' : '0',
-        },
+        body: body,
       ).timeout(
         const Duration(seconds: 30),
         onTimeout: () => throw Exception('Request timeout'),
       );
+
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
@@ -353,5 +428,66 @@ class TagsService {
       throw Exception('Error updating tag settings: $e');
     }
   }
-}
 
+  // ✅ NEW: Delete/Reset Tag API - Deactivates tag, clears secondary number, car_papers, etc.
+  static const String _deleteTagUrl =
+      'https://app.ngf132.com/app_api/delete_tag_api';
+
+  static Future<Map<String, dynamic>> deleteTag({
+    required String tagId,
+    required String phone,
+    required String smValue,
+    required String dgValue,
+  }) async {
+    print('🗑️ API Call: deleteTag - DELETE/RESET Tag (tagId: $tagId, phone: $phone)');
+    
+    try {
+      final body = {
+        'sm': smValue,
+        '6s888iop': '6s888iop',
+        'dg': dgValue,
+        'tag_id': tagId,
+        'ph': phone,
+      };
+
+      print('📝 Request Body: $body');
+      print('🔗 URL: $_deleteTagUrl');
+
+      final response = await http.post(
+        Uri.parse(_deleteTagUrl),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: body,
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception('Request timeout'),
+      );
+
+      print('📊 Status Code: ${response.statusCode}');
+      print('📝 Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        try {
+          final jsonData = jsonDecode(response.body);
+          print('✅ Delete Tag Success: $jsonData');
+          return jsonData;
+        } catch (e) {
+          // If response is not JSON, return a success map
+          print('⚠️ Response is not JSON, treating as success');
+          return {
+            'status': 'success',
+            'message': 'Tag deleted successfully',
+          };
+        }
+      } else {
+        throw Exception(
+          'Failed to delete tag. Status code: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('❌ Error deleting tag: $e');
+      throw Exception('Error deleting tag: $e');
+    }
+  }
+}

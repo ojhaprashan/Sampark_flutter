@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:my_new_app/pages/widgets/notification_sheet.dart';
+import 'package:my_new_app/pages/widgets/edit_tag_sheet.dart';
 import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/tags_service.dart';
 import '../../widgets/app_header.dart';
+import '../../scan/contact_vehicle_owner_page.dart';
 
 class DoorTagDetailsPage extends StatefulWidget {
   final Tag tag;
@@ -32,6 +35,8 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
   bool _isWhatsappEnabled = false;
   bool _isCallMaskingEnabled = false;
   bool _isVideoCallEnabled = false;
+  String _userPhone = '';
+  String _countryCode = '+91'; // ✅ Default to India
 
   @override
   void initState() {
@@ -80,6 +85,8 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
           _tagSettings = tagSettings;
           _isLoadingSettings = false;
           _settingsError = '';
+          _userPhone = phone;
+          _countryCode = countryCode; // ✅ Set country code
 
           // ✅ Update state variables from API
           _isCallsEnabled = tagSettings.data.callStatus.callsEnabled;
@@ -477,6 +484,42 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
     );
   }
 
+  // ✅ Demo Tag Disclaimer Widget
+  Widget _buildDemoTagDisclaimer() {
+    return Container(
+      padding: const EdgeInsets.all(AppConstants.paddingSmall),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        border: Border.all(
+          color: Colors.orange.shade200,
+          width: 1,
+        ),
+        borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline,
+            color: Colors.orange.shade700,
+            size: 20,
+          ),
+          const SizedBox(width: AppConstants.spacingSmall),
+          Expanded(
+            child: Text(
+              'This is a demo tag for testing purposes only',
+              style: TextStyle(
+                fontSize: AppConstants.fontSizeCardDescription,
+                color: Colors.orange.shade700,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTabs() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: AppConstants.paddingSmall),
@@ -564,13 +607,25 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
           iconColor: Colors.blue.shade600,
           label: 'View Contact Page.',
           trailing: Icons.chat_bubble_outline,
-          onTap: () {},
+          onTap: () {
+              final tagId = int.tryParse(widget.tag.tagInternalId) ?? 0;
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ContactVehicleOwnerPage(
+                  tagId: tagId,
+                  vehicleNumber: widget.tag.displayName,
+                  vehicleName: 'Door Tag',
+                ),
+              ),
+            );
+          },
         ),
         _buildActionButtonHighlighted(
           icon: Icons.notifications,
           label: 'View Notifications',
           trailing: Icons.notifications,
-          onTap: () {},
+          onTap: () => _showNotificationSheet(),
         ),
         _buildActionButton(
           icon: Icons.location_on_outlined,
@@ -679,6 +734,23 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
           label: 'Check Video Call Requests',
           trailing: Icons.videocam,
           onTap: () {},
+        ),
+        // ✅ Edit and re-write tag
+        _buildActionButton(
+          icon: Icons.edit,
+          iconColor: Colors.red.shade600,
+          label: 'Edit and re-write tag',
+          trailing: Icons.close,
+          isRed: true,
+          onTap: () {
+            final phoneWithCountryCode = _countryCode.replaceFirst('+', '') + _userPhone;
+            EditTagSheet.show(
+              context,
+              vehicleNumber: widget.tag.displayName,
+              tagId: widget.tag.tagInternalId,
+              phone: phoneWithCountryCode,
+            );
+          },
         ),
       ],
     );
@@ -859,12 +931,8 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
         dgValue: 'testYU78dII8iiUIPSISJ',
       );
 
-      setState(() {
-        _isCallsEnabled = newCallsEnabled;
-        _isLoading = false;
-      });
-
       _hideLoadingOverlay();
+      await _loadTagSettings();
 
       _showSuccessDialog(
         icon: newCallsEnabled ? Icons.phone_enabled : Icons.phone_disabled,
@@ -901,6 +969,7 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
       final phoneWithCountryCode = countryCode.replaceFirst('+', '') + phone;
 
       final newTagEnabled = !_isTagEnabled;
+      final newStatus = newTagEnabled ? 'active' : 'pause';
 
       await TagsService.updateTagSettings(
         tagId: widget.tag.tagInternalId,
@@ -909,16 +978,13 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
         whatsappEnabled: _isWhatsappEnabled,
         callMaskingEnabled: _isCallMaskingEnabled,
         videoCallEnabled: _isVideoCallEnabled,
+        status: newStatus,
         smValue: '67s87s6yys66',
         dgValue: 'testYU78dII8iiUIPSISJ',
       );
 
-      setState(() {
-        _isTagEnabled = newTagEnabled;
-        _isLoading = false;
-      });
-
       _hideLoadingOverlay();
+      await _loadTagSettings();
 
       _showSuccessDialog(
         icon: newTagEnabled ? Icons.check_circle : Icons.pause_circle,
@@ -971,12 +1037,8 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
         dgValue: 'testYU78dII8iiUIPSISJ',
       );
 
-      setState(() {
-        _isWhatsappEnabled = newWhatsappEnabled;
-        _isLoading = false;
-      });
-
       _hideLoadingOverlay();
+      await _loadTagSettings();
 
       _showSuccessDialog(
         icon: newWhatsappEnabled ? Icons.chat_bubble : Icons.chat_bubble_outline,
@@ -1025,12 +1087,8 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
         dgValue: 'testYU78dII8iiUIPSISJ',
       );
 
-      setState(() {
-        _isCallMaskingEnabled = newCallMaskingEnabled;
-        _isLoading = false;
-      });
-
       _hideLoadingOverlay();
+      await _loadTagSettings();
 
       _showSuccessDialog(
         icon: newCallMaskingEnabled ? Icons.phone : Icons.phone_disabled,
@@ -1079,12 +1137,8 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
         dgValue: 'testYU78dII8iiUIPSISJ',
       );
 
-      setState(() {
-        _isVideoCallEnabled = newVideoCallEnabled;
-        _isLoading = false;
-      });
-
       _hideLoadingOverlay();
+      await _loadTagSettings();
 
       _showSuccessDialog(
         icon: newVideoCallEnabled ? Icons.videocam : Icons.videocam_off,
@@ -1279,6 +1333,20 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
           ),
         );
       },
+    );
+  }
+
+  // ✅ Show Notification Sheet
+  void _showNotificationSheet() {
+    HapticFeedback.mediumImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => NotificationSheet(
+        tagInternalId: widget.tag.tagInternalId.toString(),
+        phone: _userPhone,
+      ),
     );
   }
 }

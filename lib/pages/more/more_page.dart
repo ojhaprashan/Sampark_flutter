@@ -1154,17 +1154,17 @@ Future<void> launchURL(String url) async {
     child: ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: MediaSlider(
-        items: [
-          MediaSliderItem.assetImage(
-            assetPath: 'assets/Banner/other/1.png', 
+       items: [
+          MediaSliderItem.networkImage(
+            url: 'https://sampark.me/assets/app/more_1.png', 
             title: 'Tag Feature 1',
           ),
-          MediaSliderItem.assetImage(
-            assetPath: 'assets/Banner/other/2.png', 
+          MediaSliderItem.networkImage(
+            url: 'https://sampark.me/assets/app/more_2.png', 
             title: 'Tag Feature 2',
           ),
-          MediaSliderItem.assetImage(
-            assetPath: 'assets/Banner/other/3.png', 
+          MediaSliderItem.networkImage(
+            url: 'https://sampark.me/assets/app/more_3.png', 
             title: 'Tag Feature 3',
           ),
         ],

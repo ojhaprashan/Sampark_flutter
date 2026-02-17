@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../providers/location_provider.dart';
 import '../../utils/colors.dart';
 
@@ -99,7 +100,15 @@ class LocationPermissionDialog extends StatelessWidget {
                       // Not Now Button
                       Expanded(
                         child: TextButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () {
+                            try {
+                              if (context.mounted) {
+                                Navigator.of(context, rootNavigator: true).pop();
+                              }
+                            } catch (e) {
+                              print('⚠️ Could not close dialog: $e');
+                            }
+                          },
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
@@ -125,14 +134,34 @@ class LocationPermissionDialog extends StatelessWidget {
                       Expanded(
                         child: Consumer<LocationProvider>(
                           builder: (context, locationProvider, _) {
+                            // Check if there's an error about location services
+                            final isLocationServiceDisabled = 
+                                locationProvider.locationError?.contains('Location services are disabled') ?? false;
+                            
                             return ElevatedButton(
-                              onPressed: () async {
-                                await locationProvider
-                                    .requestLocationPermission();
-                                if (context.mounted) {
-                                  Navigator.pop(context);
-                                }
-                              },
+                                  onPressed: isLocationServiceDisabled
+                                  ? () async {
+                                      try {
+                                        if (context.mounted) {
+                                          Navigator.of(context, rootNavigator: true).pop();
+                                        }
+                                      } catch (e) {
+                                        print('⚠️ Could not close dialog: $e');
+                                      }
+                                      // Open location settings
+                                      await Geolocator.openLocationSettings();
+                                    }
+                                  : () async {
+                                      await locationProvider
+                                          .requestLocationPermission();
+                                      if (context.mounted) {
+                                        try {
+                                          Navigator.of(context, rootNavigator: true).pop();
+                                        } catch (e) {
+                                          print('⚠️ Could not close dialog: $e');
+                                        }
+                                      }
+                                    },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.activeYellow,
                                 foregroundColor: AppColors.black,
@@ -147,13 +176,17 @@ class LocationPermissionDialog extends StatelessWidget {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
-                                    Icons.check_circle_rounded,
+                                    isLocationServiceDisabled
+                                        ? Icons.settings
+                                        : Icons.check_circle_rounded,
                                     size: 18,
                                     color: AppColors.black,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    'Allow',
+                                    isLocationServiceDisabled
+                                        ? 'Enable in Settings'
+                                        : 'Allow',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,

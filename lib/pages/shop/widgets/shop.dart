@@ -1,29 +1,31 @@
 import 'package:flutter/material.dart';
 import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
+import '../../widgets/app_header.dart'; 
 import '../../../services/auth_service.dart';
+// Import your shop service file
 import '../../../services/shop_service.dart';
-import '../../widgets/app_header.dart';
-import 'product_details_page.dart';
+import 'product_details_page.dart'; 
 
 class ShopPage extends StatefulWidget {
-  final bool showBackButton;
+  const ShopPage({super.key, this.showBackButton = false});
 
-  const ShopPage({
-    super.key,
-    this.showBackButton = false,
-  });
+  final bool showBackButton;
 
   @override
   State<ShopPage> createState() => _ShopPageState();
 }
 
 class _ShopPageState extends State<ShopPage> {
-  bool _isLoggedIn = false;
-  int _cartItemCount = 0;
-  List<ShopProductUI> _products = [];
+  bool isLoggedIn = false;
   bool _isLoading = true;
-  String? _errorMessage;
+  String? _errorMessage; // To store error messages
+  List<ShopProduct> _products = [];
+  double _scale = 1.0; // For responsive design
+
+  // Credentials
+  final String _smValue = '67s87s6yys66';
+  final String _dgValue = 'testYU78dII8iiUIPSISJ';
 
   @override
   void initState() {
@@ -36,70 +38,53 @@ class _ShopPageState extends State<ShopPage> {
     final loggedIn = await AuthService.isLoggedIn();
     if (mounted) {
       setState(() {
-        _isLoggedIn = loggedIn;
+        isLoggedIn = loggedIn;
       });
     }
   }
 
+  // ✅ Updated to use Real API
   Future<void> _loadProducts() async {
     try {
       setState(() {
         _isLoading = true;
-        _errorMessage = null;
+        _errorMessage = null; // Clear previous errors
       });
 
-      const String smValue = '67s87s6yys66';
-      const String dgValue = 'testYU78dII8iiUIPSISJ';
-
-      final shopProducts = await ShopService.fetchProducts(
-        smValue: smValue,
-        dgValue: dgValue,
+      // Call the API
+      final products = await ShopService.fetchProducts(
+        smValue: _smValue,
+        dgValue: _dgValue,
       );
 
       if (mounted) {
         setState(() {
-          _products = shopProducts
-              .map((product) => ShopProductUI.fromShopProduct(product))
-              .toList();
+          _products = products;
           _isLoading = false;
         });
       }
     } catch (e) {
+      print('Error loading products: $e');
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
           _isLoading = false;
         });
       }
     }
   }
 
-  void _addToCart() {
-    setState(() {
-      _cartItemCount++;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Item added to cart!'),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    // Calculate Scale based on standard width (375.0)
+    _scale = MediaQuery.of(context).size.width / 375.0;
+
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          // Yellow gradient background
+          // 1. Background Gradient
           Container(
-            height: 120,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -113,139 +98,72 @@ class _ShopPageState extends State<ShopPage> {
             ),
           ),
 
-          // Main content
-          SafeArea(
-            child: Column(
-              children: [
-                // App Header
-                AppHeader(
-                  isLoggedIn: _isLoggedIn,
+          // 2. Content
+          Column(
+            children: [
+              // Header
+              SafeArea(
+                bottom: false,
+                child: AppHeader(
+                  key: ValueKey(isLoggedIn),
+                  isLoggedIn: isLoggedIn,
+                  showUserInfo: false, 
                   showBackButton: widget.showBackButton,
-                  showUserInfo: false,
-                  showCartIcon: true,
-                  cartItemCount: _cartItemCount,
-                  onCartTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Cart: $_cartItemCount items'),
-                        backgroundColor: AppColors.activeYellow,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    );
-                  },
                 ),
+              ),
 
-                // White content container
-                Expanded(
-                  // ClipRRect ensures content scrolls BEHIND the curve
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(30),
-                          topRight: Radius.circular(30),
-                        ),
-                      ),
-                      child: _isLoading
-                          ? const Center(
-                              child: CircularProgressIndicator(
-                                color: AppColors.activeYellow,
-                              ),
-                            )
-                          : _errorMessage != null
-                              ? _buildErrorWidget()
-                              : _buildProductsView(context),
-                    ),
+              // Scrollable Content
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(30 * _scale),
+                    topRight: Radius.circular(30 * _scale),
+                  ),
+                  child: Container(
+                    color: AppColors.background,
+                    child: _buildBodyContent(),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildErrorWidget() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.paddingLarge),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 60,
-              color: Colors.red.shade400,
-            ),
-            const SizedBox(height: AppConstants.spacingLarge),
-            Text(
-              'Failed to Load Products',
-              style: TextStyle(
-                fontSize: AppConstants.fontSizeSectionTitle,
-                fontWeight: FontWeight.w700,
-                color: AppColors.black,
-              ),
-            ),
-            const SizedBox(height: AppConstants.spacingSmall),
-            Text(
-              _errorMessage ?? 'Unknown error occurred',
-              style: const TextStyle(
-                fontSize: AppConstants.fontSizeCardDescription,
-                color: AppColors.textGrey,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppConstants.spacingLarge),
-            ElevatedButton.icon(
-              onPressed: _loadProducts,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.activeYellow,
-                foregroundColor: AppColors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    AppConstants.buttonBorderRadius,
-                  ),
-                ),
-              ),
-            ),
-          ],
+  // ✅ Helper to switch between Loading, Error, and Grid
+  Widget _buildBodyContent() {
+    if (_isLoading) {
+      return Center(
+        child: CircularProgressIndicator(
+          color: AppColors.primaryYellow,
         ),
-      ),
-    );
-  }
+      );
+    }
 
-  Widget _buildProductsView(BuildContext context) {
-    if (_products.isEmpty) {
+    if (_errorMessage != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(AppConstants.paddingLarge),
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.shopping_bag_outlined,
-                size: 60,
-                color: AppColors.activeYellow,
-              ),
-              const SizedBox(height: AppConstants.spacingLarge),
+              Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+              const SizedBox(height: 16),
               Text(
-                'No Products Available',
-                style: TextStyle(
-                  fontSize: AppConstants.fontSizeSectionTitle,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.black,
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadProducts,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryYellow,
+                  foregroundColor: Colors.black,
                 ),
+                child: const Text('Retry'),
               ),
             ],
           ),
@@ -253,91 +171,40 @@ class _ShopPageState extends State<ShopPage> {
       );
     }
 
-    // =========================================================
-    // ✅ FINAL FIXED HEIGHT CALCULATION
-    // =========================================================
-    
-    // 1. Get exact screen width
-    double screenWidth = MediaQuery.of(context).size.width;
-    
-    // 2. Calculate the available width for one card
-    // (Screen - Side Padding - Grid Spacing) / 2
-    double itemWidth = (screenWidth - (AppConstants.paddingLarge * 2) - 10) / 2;
+    if (_products.isEmpty) {
+      return const Center(child: Text("No products available"));
+    }
 
-    // 3. ✅ THE FIX: Reduced target height from 200.0 to 182.0
-    // This removes the 18px-20px gap you were seeing.
-    double desiredItemHeight = 182.0; 
-
-    // 4. Calculate aspect ratio
-    double childAspectRatio = itemWidth / desiredItemHeight;
-
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppConstants.paddingLarge,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: AppConstants.paddingLarge),
-
-            // Section Title
-            Row(
-              children: [
-                Text(
-                  'Featured Products',
-                  style: TextStyle(
-                    fontSize: AppConstants.fontSizeSectionTitle,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.black,
-                  ),
-                ),
-                const SizedBox(width: AppConstants.spacingSmall),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.activeYellow,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    '${_products.length}',
-                    style: TextStyle(
-                      fontSize: AppConstants.fontSizeSmallText,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.black,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppConstants.spacingMedium),
-
-            // Product Grid
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                // ✅ Using the calculated ratio to keep height strictly 182px
-                childAspectRatio: childAspectRatio,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemCount: _products.length,
-              itemBuilder: (context, index) {
-                return _buildProductCard(_products[index]);
-              },
-            ),
-            const SizedBox(height: AppConstants.paddingPage),
-          ],
-        ),
+    return GridView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.only(
+        left: 16 * _scale,
+        right: 16 * _scale,
+        top: 20 * _scale,
+        bottom: 90 * _scale,
       ),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.65, 
+        crossAxisSpacing: 12 * _scale,
+        mainAxisSpacing: 12 * _scale,
+      ),
+      itemCount: _products.length,
+      itemBuilder: (context, index) {
+        return _buildProductCard(_products[index]);
+      },
     );
   }
 
-  Widget _buildProductCard(ShopProductUI product) {
+  Widget _buildProductCard(ShopProduct product) {
+    int discount = 0;
+    if (product.mrp > 0) {
+      discount = (((product.mrp - product.price) / product.mrp) * 100).round();
+    }
+
     return GestureDetector(
       onTap: () {
+        // Navigate to product details page with product ID
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -350,131 +217,133 @@ class _ShopPageState extends State<ShopPage> {
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+          borderRadius: BorderRadius.circular(12 * _scale),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8 * _scale,
+              offset: Offset(0, 4 * _scale),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min, 
           children: [
-            // 1. Product Image (90px)
-            Stack(
-              children: [
-                Container(
-                  height: 90, 
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(AppConstants.borderRadiusCard),
-                      topRight: Radius.circular(AppConstants.borderRadiusCard),
-                    ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(AppConstants.borderRadiusCard),
-                      topRight: Radius.circular(AppConstants.borderRadiusCard),
+            // Image Section
+            Expanded(
+              flex: 5,
+              child: Stack(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(8.0 * _scale),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(12 * _scale),
+                      ),
                     ),
                     child: Image.network(
                       product.imageUrl,
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => const Center(
-                        child: Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+                      fit: BoxFit.contain, 
+                      alignment: Alignment.center,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Colors.grey[200],
+                        child: const Icon(Icons.image_not_supported, color: Colors.grey),
                       ),
                     ),
                   ),
-                ),
-                if (product.discountPercent > 0)
-                  Positioned(
-                    top: 6,
-                    right: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade400,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        '-${product.discountPercent}%',
-                        style: const TextStyle(
-                          fontSize: 8,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                  
+                  // Discount Tag
+                  if (discount > 0)
+                    Positioned(
+                      top: 8 * _scale,
+                      left: 8 * _scale,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 6 * _scale, 
+                          vertical: 2 * _scale
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(4 * _scale),
+                        ),
+                        child: Text(
+                          '$discount% OFF',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10 * _scale,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
 
-            // 2. Product Content - Tight Padding
+            // Details Section
             Padding(
-              padding: const EdgeInsets.all(6), // 6px Padding
+              padding: EdgeInsets.all(10.0 * _scale),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title
+                  // Product Name
                   Text(
                     product.name,
-                    style: const TextStyle(
-                      fontSize: AppConstants.fontSizeCardTitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13 * _scale,
                       fontWeight: FontWeight.w700,
                       color: AppColors.black,
-                      height: 1.1,
+                      height: 1.2,
                     ),
-                    maxLines: 2, 
-                    overflow: TextOverflow.ellipsis,
                   ),
                   
-                  const SizedBox(height: 2),
+                  SizedBox(height: 4 * _scale),
 
-                  // Description
+                  // Short Title
                   Text(
                     product.shortTitle,
-                    style: const TextStyle(
-                      fontSize: AppConstants.fontSizeCardDescription,
-                      color: AppColors.textGrey,
-                      height: 1.1,
-                    ),
-                    maxLines: 2, 
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11 * _scale,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textGrey,
+                      height: 1.2,
+                    ),
                   ),
 
-                  const SizedBox(height: 4),
+                  SizedBox(height: 8 * _scale),
 
                   // Price Section
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
+                      // Current Price
                       Text(
                         '₹${product.price}',
-                        style: const TextStyle(
-                          fontSize: AppConstants.fontSizeButtonPriceText,
-                          fontWeight: FontWeight.w900,
+                        style: TextStyle(
+                          fontSize: 16 * _scale,
+                          fontWeight: FontWeight.w800,
                           color: AppColors.black,
-                          height: 1.0, 
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
+                      SizedBox(width: 6 * _scale),
+                      // MRP (Strikethrough)
                       if (product.mrp > product.price)
-                        Text(
-                          '₹${product.mrp}',
-                          style: const TextStyle(
-                            fontSize: AppConstants.fontSizeSmallText,
-                            color: AppColors.textGrey,
-                            decoration: TextDecoration.lineThrough,
-                            height: 1.0,
+                        Padding(
+                          padding: EdgeInsets.only(bottom: 2 * _scale),
+                          child: Text(
+                            '₹${product.mrp}',
+                            style: TextStyle(
+                              fontSize: 12 * _scale,
+                              decoration: TextDecoration.lineThrough,
+                              color: AppColors.textGrey,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                     ],
                   ),
@@ -485,46 +354,5 @@ class _ShopPageState extends State<ShopPage> {
         ),
       ),
     );
-  }
-}
-
-// UI Model for ShopProductUI
-class ShopProductUI {
-  final int id;
-  final String name;
-  final String shortTitle;
-  final int price;
-  final int mrp;
-  final String imageUrl;
-  final String productUrl;
-  final bool isInCart;
-
-  ShopProductUI({
-    required this.id,
-    required this.name,
-    required this.shortTitle,
-    required this.price,
-    required this.mrp,
-    required this.imageUrl,
-    required this.productUrl,
-    required this.isInCart,
-  });
-
-  factory ShopProductUI.fromShopProduct(ShopProduct product) {
-    return ShopProductUI(
-      id: product.id,
-      name: product.name,
-      shortTitle: product.shortTitle,
-      price: product.price,
-      mrp: product.mrp,
-      imageUrl: product.imageUrl,
-      productUrl: product.productUrl,
-      isInCart: product.isInCart,
-    );
-  }
-
-  int get discountPercent {
-    if (mrp <= 0) return 0;
-    return (((mrp - price) / mrp) * 100).toInt();
   }
 }

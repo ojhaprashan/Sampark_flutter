@@ -5,6 +5,7 @@ import 'package:my_new_app/pages/membership/membership_page.dart';
 import 'package:my_new_app/pages/widgets/app_header.dart';
 import 'package:my_new_app/services/auth_service.dart';
 import 'package:my_new_app/services/tags_service.dart';
+import 'package:my_new_app/services/etag_service.dart';
 import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
 import 'manage_tag_tab.dart';
@@ -188,6 +189,11 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
                                   // Tag Header
                                   _buildTagHeader(),
                                   const SizedBox(height: AppConstants.spacingSmall),
+                                  // ✅ Demo Tag Disclaimer
+                                  if (_tagSettings?.data.isDemoTag ?? false)
+                                    _buildDemoTagDisclaimer(),
+                                  if (_tagSettings?.data.isDemoTag ?? false)
+                                    const SizedBox(height: AppConstants.spacingSmall),
                                   // Scan Count
                                   _buildScanCount(),
                                   const SizedBox(height: AppConstants.spacingMedium),
@@ -207,10 +213,12 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
                                 ManageTagTab(
                                   tag: widget.tag,
                                   tagSettings: _tagSettings,
+                                  onDataUpdated: _loadTagSettings,  // ✅ Pass refresh callback
                                 ),
                                 MoreTab(
                                   tag: widget.tag,
                                   tagSettings: _tagSettings,
+                                  onDataUpdated: _loadTagSettings,  // ✅ Pass refresh callback
                                 ),
                               ],
                             ),
@@ -244,14 +252,14 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
                         ),
                       );
                     } else {
-                      // Show snackbar for "List your car"
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('List your car'),
-                          backgroundColor: AppColors.activeYellow,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                      // Open "List Your Car" in WebView
+                      final vehicleNumber = widget.tag.displayName;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => InAppWebViewPage(
+                            url: 'https://app.ngf132.com/list_car?c=$vehicleNumber',
+                            title: 'List Your Vehicle',
                           ),
                         ),
                       );
@@ -543,6 +551,42 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
                     color: AppColors.black,
                   ),
                 ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Demo Tag Disclaimer Widget
+  Widget _buildDemoTagDisclaimer() {
+    return Container(
+      padding: const EdgeInsets.all(AppConstants.paddingSmall),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        border: Border.all(
+          color: Colors.orange.shade200,
+          width: 1,
+        ),
+        borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline,
+            color: Colors.orange.shade700,
+            size: 20,
+          ),
+          const SizedBox(width: AppConstants.spacingSmall),
+          Expanded(
+            child: Text(
+              'This is a demo tag for testing purposes only',
+              style: TextStyle(
+                fontSize: AppConstants.fontSizeCardDescription,
+                color: Colors.orange.shade700,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),

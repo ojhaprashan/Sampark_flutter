@@ -8,7 +8,6 @@ import 'home/home_page.dart';
 import 'tags/tags_page.dart';
 import 'shop/widgets/shop.dart';
 import 'scan/scan_page.dart';
-import 'widgets/location_permission_dialog.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -36,23 +35,6 @@ class _MainNavigationState extends State<MainNavigation> with SingleTickerProvid
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    
-    // Show location permission dialog after the screen loads
-    _showLocationPermissionIfNeeded();
-  }
-
-  Future<void> _showLocationPermissionIfNeeded() async {
-    final locationProvider = context.read<LocationProvider>();
-    final hasAskedPermission = locationProvider.permissionAsked;
-    
-    // Show dialog only if permission hasn't been asked before
-    if (!hasAskedPermission && mounted) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          LocationPermissionDialog.show(context);
-        }
-      });
-    }
   }
 
   @override

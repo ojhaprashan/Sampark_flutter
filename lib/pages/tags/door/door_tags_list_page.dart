@@ -260,32 +260,32 @@ class _DoorTagsListPageState extends State<DoorTagsListPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    // Calls active badge
+                    // ✅ Calls active/disabled badge - Dynamic
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.green.shade50,
+                        color: tag.callsEnabled ? Colors.green.shade50 : Colors.red.shade50,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Calls active',
+                            tag.callsEnabled ? 'Calls active' : 'Calls disabled',
                             style: TextStyle(
                               fontSize: AppConstants.fontSizeSmallText,
                               fontWeight: FontWeight.w600,
-                              color: Colors.green.shade700,
+                              color: tag.callsEnabled ? Colors.green.shade700 : Colors.red.shade700,
                             ),
                           ),
                           const SizedBox(width: 4),
                           Icon(
-                            Icons.phone,
+                            tag.callsEnabled ? Icons.phone : Icons.phone_disabled,
                             size: 12,
-                            color: Colors.green.shade700,
+                            color: tag.callsEnabled ? Colors.green.shade700 : Colors.red.shade700,
                           ),
                         ],
                       ),
@@ -293,14 +293,14 @@ class _DoorTagsListPageState extends State<DoorTagsListPage> {
                     
                     const SizedBox(height: 6),
                     
-                    // Active badge
+                    // ✅ Status badge - Dynamic
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: tag.status == 'Active' 
+                        color: tag.status.toLowerCase() == 'active' 
                             ? Colors.blue.shade50 
                             : Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(6),
@@ -313,16 +313,16 @@ class _DoorTagsListPageState extends State<DoorTagsListPage> {
                             style: TextStyle(
                               fontSize: AppConstants.fontSizeSmallText,
                               fontWeight: FontWeight.w600,
-                              color: tag.status == 'Active' 
+                              color: tag.status.toLowerCase() == 'active' 
                                   ? Colors.blue.shade700 
                                   : Colors.grey.shade700,
                             ),
                           ),
                           const SizedBox(width: 4),
                           Icon(
-                            tag.status == 'Active' ? Icons.play_arrow : Icons.pause,
+                            tag.status.toLowerCase() == 'active' ? Icons.play_arrow : Icons.pause,
                             size: 12,
-                            color: tag.status == 'Active' 
+                            color: tag.status.toLowerCase() == 'active' 
                                 ? Colors.blue.shade700 
                                 : Colors.grey.shade700,
                           ),

@@ -7,8 +7,10 @@ import '../../utils/constants.dart';
 import '../../services/auth_service.dart';
 
 
+
 class SamparkTagPage extends StatefulWidget {
   const SamparkTagPage({super.key});
+
 
 
   @override
@@ -16,28 +18,32 @@ class SamparkTagPage extends StatefulWidget {
 }
 
 
+
 class _SamparkTagPageState extends State<SamparkTagPage> {
   bool _isLoggedIn = false;
 
 
+
   // Define media items
-  final List<MediaSliderItem> _mediaItems = [
-    MediaSliderItem.assetImage(
-      assetPath: 'assets/Banner/Home/1.png',
+final List<MediaSliderItem> _mediaItems = [
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/sampark_1.png',
     ),
-    MediaSliderItem.assetImage(
-      assetPath: 'assets/Banner/Home/2.png',
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/sampark_2.png',
     ),
-    MediaSliderItem.assetImage(
-      assetPath: 'assets/Banner/Home/3.png',
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/sampark_3.png',
     ),
-    MediaSliderItem.assetImage(
-      assetPath: 'assets/Banner/Home/4.png',
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/sampark_4.png',
     ),
-    MediaSliderItem.assetImage(
-      assetPath: 'assets/Banner/Home/5.png',
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/sampark_5.png',
     ),
   ];
+
+
 
 
   @override
@@ -45,6 +51,7 @@ class _SamparkTagPageState extends State<SamparkTagPage> {
     super.initState();
     _checkLoginStatus();
   }
+
 
 
   Future<void> _checkLoginStatus() async {
@@ -55,6 +62,7 @@ class _SamparkTagPageState extends State<SamparkTagPage> {
       });
     }
   }
+
 
   // Navigate to buy form
   void _navigateToBuyForm() {
@@ -68,6 +76,7 @@ class _SamparkTagPageState extends State<SamparkTagPage> {
       ),
     );
   }
+
 
 
   @override
@@ -93,6 +102,7 @@ class _SamparkTagPageState extends State<SamparkTagPage> {
           ),
 
 
+
           SafeArea(
             child: Column(
               children: [
@@ -103,6 +113,7 @@ class _SamparkTagPageState extends State<SamparkTagPage> {
                   showUserInfo: false,
                   showCartIcon: false,
                 ),
+
 
 
                 // Main Content
@@ -120,6 +131,7 @@ class _SamparkTagPageState extends State<SamparkTagPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 8),
+
 
 
                           // Page Title
@@ -151,7 +163,9 @@ class _SamparkTagPageState extends State<SamparkTagPage> {
                           ),
 
 
+
                           const SizedBox(height: 8),
+
 
 
                           // Media Slider - Wrapped with intrinsic sizing
@@ -169,7 +183,9 @@ class _SamparkTagPageState extends State<SamparkTagPage> {
                           ),
 
 
+
                           const SizedBox(height: 8),
+
 
 
                           // One time buy section
@@ -205,7 +221,9 @@ class _SamparkTagPageState extends State<SamparkTagPage> {
                           ),
 
 
+
                           const SizedBox(height: 8),
+
 
 
                           // Buy Now Button with COD
@@ -249,14 +267,31 @@ class _SamparkTagPageState extends State<SamparkTagPage> {
                           ),
 
 
-                          const SizedBox(height: 8),
+
+                          const SizedBox(height: 16),
+
 
 
                           // All Features Box
                           _buildAllFeaturesBox(),
 
 
-                          const SizedBox(height: 60),
+                          const SizedBox(height: 16),
+
+
+                          // How to Use Section
+                          _buildHowToUseSection(),
+
+
+                          const SizedBox(height: 16),
+
+
+                          // Why Choose Section
+                          _buildWhyChooseSection(),
+
+
+                          // Bottom spacing for fixed button
+                          const SizedBox(height: 80),
                         ],
                       ),
                     ),
@@ -267,12 +302,14 @@ class _SamparkTagPageState extends State<SamparkTagPage> {
           ),
 
 
+
           // Bottom Buy Button
           _buildBottomBuyButton(),
         ],
       ),
     );
   }
+
 
 
   // All features in single box - 3 columns grid
@@ -363,6 +400,7 @@ class _SamparkTagPageState extends State<SamparkTagPage> {
   }
 
 
+
   // Compact feature item with icon - NO background
   Widget _buildCompactFeature({
     required IconData icon,
@@ -392,6 +430,7 @@ class _SamparkTagPageState extends State<SamparkTagPage> {
       ],
     );
   }
+
 
 
   // Compact feature with WhatsApp PNG image
@@ -429,6 +468,7 @@ class _SamparkTagPageState extends State<SamparkTagPage> {
       ],
     );
   }
+
 
 
   Widget _buildBottomBuyButton() {
@@ -485,6 +525,176 @@ class _SamparkTagPageState extends State<SamparkTagPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+
+  // How to Use Section
+  Widget _buildHowToUseSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppConstants.paddingPage),
+      child: Container(
+        padding: const EdgeInsets.all(AppConstants.paddingMedium),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+          border: Border.all(
+            color: AppColors.lightGrey,
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.touch_app,
+                  color: AppColors.activeYellow,
+                  size: AppConstants.iconSizeLarge,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'How to Use',
+                  style: TextStyle(
+                    fontSize: AppConstants.fontSizeSectionTitle,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.black,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildStep('1', 'Stick the tag on your car or bike'),
+            _buildStep('2', 'Activate tag with your emergency number'),
+            _buildStep('3', 'Anyone can tap and contact you instantly'),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildStep(String number, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: AppColors.activeYellow,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                number,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.black,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: AppConstants.fontSizeCardTitle,
+                color: AppColors.textGrey,
+                fontWeight: FontWeight.w500,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  // Why Choose Section
+  Widget _buildWhyChooseSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppConstants.paddingPage),
+      child: Container(
+        padding: const EdgeInsets.all(AppConstants.paddingMedium),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+          border: Border.all(
+            color: AppColors.lightGrey,
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Why Choose Sampark Tag?',
+              style: TextStyle(
+                fontSize: AppConstants.fontSizeSectionTitle,
+                fontWeight: FontWeight.w700,
+                color: AppColors.black,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildWhyItem('Private & Secure', 'Your actual phone number stays hidden with masked calls'),
+            _buildWhyItem('Instant Connection', 'Direct contact via phone call, WhatsApp or SMS'),
+            _buildWhyItem('Emergency Ready', 'Add emergency contacts for immediate assistance'),
+            _buildWhyItem('Long Lasting', '10 years warranty - built to last'),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildWhyItem(String title, String description) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.only(top: 6),
+            decoration: BoxDecoration(
+              color: AppColors.activeYellow,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: AppConstants.fontSizeCardTitle,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.black,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: AppConstants.fontSizeCardDescription,
+                    color: AppColors.textGrey,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

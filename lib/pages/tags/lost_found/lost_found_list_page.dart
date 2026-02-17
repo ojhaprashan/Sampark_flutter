@@ -30,7 +30,7 @@ class LostFoundItem {
       tagId: tag.displayName,
       fullTagId: tag.tagPublicId,
       status: tag.status,
-      callsActive: false,
+      callsActive: tag.callsEnabled,  // ✅ Use actual callsEnabled from tag
       type: 'Other',
     );
   }
@@ -289,7 +289,7 @@ class _LostFoundListPageState extends State<LostFoundListPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    // Calls active/inactive badge
+                    // ✅ Calls active/disabled badge - Dynamic
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -303,7 +303,7 @@ class _LostFoundListPageState extends State<LostFoundListPage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Calls active',
+                            item.callsActive ? 'Calls active' : 'Calls disabled',
                             style: TextStyle(
                               fontSize: AppConstants.fontSizeSmallText,
                               fontWeight: FontWeight.w600,
@@ -322,14 +322,14 @@ class _LostFoundListPageState extends State<LostFoundListPage> {
                     
                     const SizedBox(height: 6),
                     
-                    // Active/Paused badge
+                    // ✅ Status badge - Dynamic
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: item.status == 'Active' 
+                        color: item.status.toLowerCase() == 'active' 
                             ? Colors.blue.shade50 
                             : Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(6),
@@ -342,16 +342,16 @@ class _LostFoundListPageState extends State<LostFoundListPage> {
                             style: TextStyle(
                               fontSize: AppConstants.fontSizeSmallText,
                               fontWeight: FontWeight.w600,
-                              color: item.status == 'Active' 
+                              color: item.status.toLowerCase() == 'active' 
                                   ? Colors.blue.shade700 
                                   : Colors.grey.shade700,
                             ),
                           ),
                           const SizedBox(width: 4),
                           Icon(
-                            item.status == 'Active' ? Icons.play_arrow : Icons.pause,
+                            item.status.toLowerCase() == 'active' ? Icons.play_arrow : Icons.pause,
                             size: 12,
-                            color: item.status == 'Active' 
+                            color: item.status.toLowerCase() == 'active' 
                                 ? Colors.blue.shade700 
                                 : Colors.grey.shade700,
                           ),

@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:my_new_app/pages/Vehicle/vehicle_details.dart';
 import '../../utils/colors.dart';
 import '../../services/auth_service.dart';
+import '../../services/vehicle_search_service.dart';
 import '../widgets/app_header.dart';
+import '../widgets/vehicle_search_agreement_sheet.dart';
+import '../widgets/error_dialog.dart';
+import '../AppWebView/appweb.dart';
 import 'widgets/safety_carousel.dart';
 import 'widgets/search_contact_bar.dart';
 import 'widgets/action_grid.dart';
@@ -18,6 +22,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
   bool isLoggedIn = false;
+  String _countryCode = '+91'; // Default to India
 
   @override
   bool get wantKeepAlive => true;
@@ -40,10 +45,21 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin 
       setState(() {
         isLoggedIn = loggedIn;
       });
+
+      // Fetch user data to get country code
+      if (loggedIn) {
+        final userData = await AuthService.getUserData();
+        final countryCode = userData['countryCode'] as String? ?? '+91';
+        if (mounted) {
+          setState(() {
+            _countryCode = countryCode;
+          });
+        }
+      }
     }
   }
 
-  // ✅ Handle vehicle search
+  // ✅ Handle vehicle search with terms and conditions
   Future<void> _handleVehicleSearch(String vehicleNumber) async {
     if (vehicleNumber.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -59,6 +75,33 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin 
       return;
     }
 
+    // ✅ Get phone number from local storage
+    final userData = await AuthService.getUserData();
+    final phoneNumber = userData['phone'] as String? ?? '';
+
+    // ✅ Show Agreement Bottom Sheet
+    if (mounted) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        barrierColor: Colors.black.withOpacity(0.5),
+        builder: (context) => VehicleSearchAgreementSheet(
+          vehicleNumber: vehicleNumber.toUpperCase(),
+          phoneNumber: phoneNumber,
+          onCancel: () {
+            // User cancelled
+          },
+          onAgree: () {
+            _performVehicleSearch(vehicleNumber, phoneNumber);
+          },
+        ),
+      );
+    }
+  }
+
+  // ✅ Perform the actual vehicle search
+  Future<void> _performVehicleSearch(String vehicleNumber, String phoneNumber) async {
     // Show loading dialog
     showDialog(
       context: context,
@@ -94,33 +137,86 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin 
       },
     );
 
-    // Simulate API call (replace with your actual API call)
-    await Future.delayed(const Duration(seconds: 2));
-
-    // Close loading dialog
-    if (mounted) {
-      Navigator.pop(context);
-    }
-
-    // Navigate to vehicle details page
-    // TODO: Replace with actual API data
-    if (mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => VehicleDetailsPage(
-            vehicleNumber: vehicleNumber.toUpperCase(),
-            vehicleType: 'PETROL',
-            color: 'RADIANT RED',
-            model: 'M. AMAZE 1.2 S MT (I-VTEC)',
-            ownerName: 'RAHUL',
-            city: 'Uttar Pradesh',
-            fitnessDate: '12-Aug-2033',
-            make: 'BHARAT STAGE IV',
-            makeDetails: 'HONDA CITY',
-          ),
-        ),
+    try {
+      final response = await VehicleSearchService.searchVehicle(
+        plate: vehicleNumber.toUpperCase(),
+        phone: phoneNumber, // ✅ Pass phone number
       );
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.pop(context);
+      }
+
+      // ✅ Check if tag_found is false - show error dialog with API message
+      if (!response.data.tagFound) {
+        if (mounted) {
+          ErrorDialog.show(
+            context: context,
+            title: 'Vehicle Not Found',
+            message: response.data.message.isNotEmpty 
+                ? response.data.message 
+                : 'Vehicle not found in RTO or data is private.',
+            onRetry: () {
+              _performVehicleSearch(vehicleNumber, phoneNumber);
+            },
+            onCreateTag: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const InAppWebViewPage(
+                    url: 'https://app.ngf132.com/demo-tag',
+                    title: 'Create Demo Tag',
+                  ),
+                ),
+              );
+            },
+          );
+        }
+        return;
+      }
+
+      // Navigate to vehicle details page with API data
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => VehicleDetailsPage(
+              vehicleNumber: vehicleNumber.toUpperCase(),
+              vehicleData: response.data,
+              tagId: response.data.tagId,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) {
+        Navigator.pop(context);
+      }
+
+      // Show error message using common error dialog
+      if (mounted) {
+        ErrorDialog.show(
+          context: context,
+          title: 'Vehicle Search Failed',
+          message: e.toString().replaceFirst('Exception: ', ''),
+          onRetry: () {
+            _performVehicleSearch(vehicleNumber, phoneNumber);
+          },
+          onCreateTag: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const InAppWebViewPage(
+                  url: 'https://app.ngf132.com/demo-tag',
+                  title: 'Create Demo Tag',
+                ),
+              ),
+            );
+          },
+        );
+      }
     }
   }
 
@@ -171,13 +267,16 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin 
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          const SizedBox(height: 1), 
+                          const SizedBox(height: 8), 
                           const SafetyCarousel(),
                           const SizedBox(height: 10), // Reduced from 16
-                          SearchContactBar(
-                            onSearch: _handleVehicleSearch, // ✅ Added callback
-                          ),
-                          const SizedBox(height: 12), // Reduced from 16
+                          // ✅ Only show search bar if country code is India
+                          if (_countryCode == '+91')
+                            SearchContactBar(
+                              onSearch: _handleVehicleSearch, // ✅ Added callback
+                            ),
+                          if (_countryCode == '+91')
+                            const SizedBox(height: 12), // Reduced from 16
                           ActionGrid(key: ValueKey(isLoggedIn)),
                           const SizedBox(height: 12), // Reduced from 20
                           const FeaturesSection(),

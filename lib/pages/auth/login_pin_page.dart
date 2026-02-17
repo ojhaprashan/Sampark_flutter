@@ -3,6 +3,7 @@ import 'package:my_new_app/pages/widgets/app_header.dart';
 import '../../utils/colors.dart';
 import '../../utils/constants.dart';
 import '../../services/auth_service.dart';
+import '../../services/login_pin_service.dart';
 import '../main_navigation.dart';
 
 class LoginPinPage extends StatefulWidget {
@@ -51,7 +52,7 @@ class _LoginPinPageState extends State<LoginPinPage> {
     }
   }
 
-  void _setupPin() {
+  void _setupPin() async {
     if (_pinController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -98,8 +99,36 @@ class _LoginPinPageState extends State<LoginPinPage> {
       _isLoading = true;
     });
 
-    // Simulate API call
-    Future.delayed(const Duration(seconds: 2), () {
+    try {
+      // Get phone number from local storage
+      final userData = await AuthService.getUserData();
+      final phone = userData['phone'] as String? ?? '';
+
+      if (phone.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Error: Phone number not found'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Call API to set PIN
+      await LoginPinService.setPin(
+        phone: phone,
+        pin: _pinController.text,
+      );
+
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -119,7 +148,23 @@ class _LoginPinPageState extends State<LoginPinPage> {
           ),
         );
       }
-    });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+            ),
+          ),
+        );
+      }
+    }
   }
 
   void _resetPin() {
@@ -143,24 +188,83 @@ class _LoginPinPageState extends State<LoginPinPage> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              setState(() {
-                _isPinSet = false;
-                _pinController.clear();
-                _confirmPinController.clear();
-              });
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Login PIN has been reset'),
-                  backgroundColor: Colors.orange,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+              
+              // Show loading
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.activeYellow,
+                    ),
                   ),
                 ),
               );
+
+              try {
+                // Get phone number from local storage
+                final userData = await AuthService.getUserData();
+                final phone = userData['phone'] as String? ?? '';
+
+                if (phone.isEmpty) {
+                  if (mounted) {
+                    Navigator.pop(context); // Close loading
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Error: Phone number not found'),
+                        backgroundColor: Colors.red,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+                        ),
+                      ),
+                    );
+                  }
+                  return;
+                }
+
+                // Call API to reset PIN
+                await LoginPinService.resetPin(phone: phone);
+
+                if (mounted) {
+                  Navigator.pop(context); // Close loading
+                  
+                  setState(() {
+                    _isPinSet = false;
+                    _pinController.clear();
+                    _confirmPinController.clear();
+                  });
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Login PIN has been reset'),
+                      backgroundColor: Colors.orange,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+                      ),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  Navigator.pop(context); // Close loading
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: ${e.toString()}'),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+                      ),
+                    ),
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,

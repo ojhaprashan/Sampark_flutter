@@ -19,6 +19,7 @@ class _CarTagsListPageState extends State<CarTagsListPage> {
   List<Tag> _carTags = [];
   bool _isLoading = false;
   String _errorMessage = '';
+  String _countryCode = '+91'; // Default to India
 
   @override
   void initState() {
@@ -33,7 +34,18 @@ class _CarTagsListPageState extends State<CarTagsListPage> {
         _isLoggedIn = loggedIn;
       });
       if (loggedIn) {
-        _fetchCarTags();
+        // ✅ Load country code
+        final userData = await AuthService.getUserData();
+        final countryCode = userData['countryCode'] ?? '+91';
+        if (mounted) {
+          setState(() {
+            _countryCode = countryCode;
+          });
+        }
+        // ✅ Only fetch car tags for India users
+        if (countryCode == '+91') {
+          _fetchCarTags();
+        }
       }
     }
   }
@@ -144,6 +156,17 @@ class _CarTagsListPageState extends State<CarTagsListPage> {
                                     ),
                                   ),
                                 )
+                              // ✅ Show message for non-India users
+                              : _countryCode != '+91'
+                                  ? Center(
+                                      child: Text(
+                                        'Car tags are available only for India',
+                                        style: TextStyle(
+                                          color: AppColors.textGrey,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    )
                               : _errorMessage.isNotEmpty
                                   ? Center(
                                       child: Text(
@@ -256,36 +279,36 @@ class _CarTagsListPageState extends State<CarTagsListPage> {
                 
                 const SizedBox(width: 8),
                 
-                // ✅ Right side - Status badges (vertical stack like old design)
+                // ✅ Right side - Status badges (vertical stack)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    // Calls active badge
+                    // ✅ Calls active/disabled badge - Dynamic
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.green.shade50,
+                        color: tag.callsEnabled ? Colors.green.shade50 : Colors.red.shade50,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Calls active',
+                            tag.callsEnabled ? 'Calls active' : 'Calls disabled',
                             style: TextStyle(
                               fontSize: AppConstants.fontSizeSmallText,
                               fontWeight: FontWeight.w600,
-                              color: Colors.green.shade700,
+                              color: tag.callsEnabled ? Colors.green.shade700 : Colors.red.shade700,
                             ),
                           ),
                           const SizedBox(width: 4),
                           Icon(
-                            Icons.phone,
+                            tag.callsEnabled ? Icons.phone : Icons.phone_disabled,
                             size: 12,
-                            color: Colors.green.shade700,
+                            color: tag.callsEnabled ? Colors.green.shade700 : Colors.red.shade700,
                           ),
                         ],
                       ),
@@ -293,14 +316,14 @@ class _CarTagsListPageState extends State<CarTagsListPage> {
                     
                     const SizedBox(height: 6),
                     
-                    // Active badge
+                    // ✅ Status badge - Dynamic
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: tag.status == 'Active' 
+                        color: tag.status.toLowerCase() == 'active' 
                             ? Colors.blue.shade50 
                             : Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(6),
@@ -313,16 +336,16 @@ class _CarTagsListPageState extends State<CarTagsListPage> {
                             style: TextStyle(
                               fontSize: AppConstants.fontSizeSmallText,
                               fontWeight: FontWeight.w600,
-                              color: tag.status == 'Active' 
+                              color: tag.status.toLowerCase() == 'active' 
                                   ? Colors.blue.shade700 
                                   : Colors.grey.shade700,
                             ),
                           ),
                           const SizedBox(width: 4),
                           Icon(
-                            tag.status == 'Active' ? Icons.play_arrow : Icons.pause,
+                            tag.status.toLowerCase() == 'active' ? Icons.play_arrow : Icons.pause,
                             size: 12,
-                            color: tag.status == 'Active' 
+                            color: tag.status.toLowerCase() == 'active' 
                                 ? Colors.blue.shade700 
                                 : Colors.grey.shade700,
                           ),

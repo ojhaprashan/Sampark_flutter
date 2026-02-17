@@ -61,6 +61,7 @@ class _SearchContactBarState extends State<SearchContactBar> {
               child: TextField(
                 controller: _controller, // ✅ Added controller
                 onSubmitted: (value) => _handleSearch(), // ✅ Search on Enter
+                textCapitalization: TextCapitalization.characters, // ✅ Convert to uppercase
                 decoration: InputDecoration(
                   hintText: 'Contact any vehicle',
                   hintStyle: TextStyle(

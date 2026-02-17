@@ -2,37 +2,31 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../utils/colors.dart';
 
-
 class SafetyCarousel extends StatefulWidget {
   const SafetyCarousel({super.key});
-
 
   @override
   State<SafetyCarousel> createState() => _SafetyCarouselState();
 }
-
 
 class _SafetyCarouselState extends State<SafetyCarousel> {
   int _currentPage = 0;
   final PageController _pageController = PageController();
   Timer? _timer;
 
-
   final List<String> bannerImages = [
-    'assets/Banner/Home/1.png',
-    'assets/Banner/Home/2.png',
-    'assets/Banner/Home/3.png',
-    'assets/Banner/Home/4.png',
-    'assets/Banner/Home/5.png',
+    'https://sampark.me/assets/app/home_1.png',
+    'https://sampark.me/assets/app/home_2.png',
+    'https://sampark.me/assets/app/home_3.png',
+    'https://sampark.me/assets/app/home_4.png',
+    'https://sampark.me/assets/app/home_5.png',
   ];
-
 
   @override
   void initState() {
     super.initState();
     _startAutoScroll();
   }
-
 
   void _startAutoScroll() {
     _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
@@ -42,7 +36,6 @@ class _SafetyCarouselState extends State<SafetyCarousel> {
         _currentPage = 0;
       }
 
-
       _pageController.animateToPage(
         _currentPage,
         duration: const Duration(milliseconds: 400),
@@ -51,14 +44,12 @@ class _SafetyCarouselState extends State<SafetyCarousel> {
     });
   }
 
-
   @override
   void dispose() {
     _timer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +73,7 @@ class _SafetyCarouselState extends State<SafetyCarousel> {
             },
           ),
         ),
-        const SizedBox(height: 2), // ✅ Minimum gap between image and indicators
+        const SizedBox(height: 2),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
@@ -94,13 +85,27 @@ class _SafetyCarouselState extends State<SafetyCarousel> {
     );
   }
 
-
-  Widget _buildBannerCard(String imageAsset) {
-    return Image.asset(
-      imageAsset,
+  Widget _buildBannerCard(String imageUrl) {
+    return Image.network(
+      imageUrl,
       fit: BoxFit.fitWidth,
       width: double.infinity,
       height: double.infinity,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          color: const Color(0xFFFFF9E6),
+          child: Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                      loadingProgress.expectedTotalBytes!
+                  : null,
+              color: AppColors.activeYellow,
+            ),
+          ),
+        );
+      },
       errorBuilder: (context, error, stackTrace) {
         return Container(
           color: const Color(0xFFFFF9E6),
@@ -115,7 +120,6 @@ class _SafetyCarouselState extends State<SafetyCarousel> {
       },
     );
   }
-
 
   Widget _buildIndicator(bool isActive) {
     return AnimatedContainer(

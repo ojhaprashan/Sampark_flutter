@@ -21,23 +21,25 @@ class _ShopsGaragesPageState extends State<ShopsGaragesPage> {
 
 
   // Media Slider Items
-  final List<MediaSliderItem> _sliderItems = [
-    MediaSliderItem.assetImage(
-      assetPath: 'assets/Banner/Home/1.png',
+ final List<MediaSliderItem> _sliderItems = [
+
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/shops_1.png',
     ),
-    MediaSliderItem.assetImage(
-      assetPath: 'assets/Banner/Home/2.png',
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/shops_2.png',
     ),
-    MediaSliderItem.assetImage(
-      assetPath: 'assets/Banner/Home/3.png',
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/shops_3.png',
     ),
-    MediaSliderItem.assetImage(
-      assetPath: 'assets/Banner/Home/4.png',
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/shops_4.png',
     ),
-    MediaSliderItem.assetImage(
-      assetPath: 'assets/Banner/Home/5.png',
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/shops_5.png',
     ),
   ];
+
 
 
   @override

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:my_new_app/pages/widgets/notification_sheet.dart';
+import 'package:my_new_app/pages/widgets/edit_tag_sheet.dart';
 import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/tags_service.dart';
 import '../../widgets/app_header.dart';
 import 'lost_found_list_page.dart';
+import '../../scan/contact_vehicle_owner_page.dart';
 
 class LostFoundDetailsPage extends StatefulWidget {
   final LostFoundItem item;
@@ -32,6 +35,8 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
   bool _isWhatsappEnabled = false;
   bool _isCallMaskingEnabled = false;
   bool _isVideoCallEnabled = false;
+  String _userPhone = '';
+  String _countryCode = '+91'; // ✅ Default to India
 
   @override
   void initState() {
@@ -80,6 +85,8 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
           _tagSettings = tagSettings;
           _isLoadingSettings = false;
           _settingsError = '';
+          _userPhone = phone;
+          _countryCode = countryCode; // ✅ Set country code
 
           // ✅ Update state variables from API
           _isWhatsappEnabled = tagSettings.data.callStatus.whatsappEnabled;
@@ -475,6 +482,42 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
     );
   }
 
+  // ✅ Demo Tag Disclaimer Widget
+  Widget _buildDemoTagDisclaimer() {
+    return Container(
+      padding: const EdgeInsets.all(AppConstants.paddingSmall),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        border: Border.all(
+          color: Colors.orange.shade200,
+          width: 1,
+        ),
+        borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline,
+            color: Colors.orange.shade700,
+            size: 20,
+          ),
+          const SizedBox(width: AppConstants.spacingSmall),
+          Expanded(
+            child: Text(
+              'This is a demo tag for testing purposes only',
+              style: TextStyle(
+                fontSize: AppConstants.fontSizeCardDescription,
+                color: Colors.orange.shade700,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTabs() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: AppConstants.paddingSmall),
@@ -562,13 +605,25 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
           iconColor: Colors.blue.shade600,
           label: 'View Contact Page.',
           trailing: Icons.chat_bubble_outline,
-          onTap: () {},
+          onTap: () {
+            //  final tagId = int.tryParse( _tagSettings?.data.tagId ?? '') ?? 0;
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ContactVehicleOwnerPage(
+                  tagId: _tagSettings?.data.tagId ?? 0,
+                  vehicleNumber: widget.item.tagId,
+                  vehicleName: widget.item.type,
+                ),
+              ),
+            );
+          },
         ),
         _buildActionButtonHighlighted(
           icon: Icons.notifications,
           label: 'View Notifications',
           trailing: Icons.notifications,
-          onTap: () {},
+          onTap: () => _showNotificationSheet(),
         ),
         _buildActionButton(
           icon: Icons.location_on_outlined,
@@ -672,6 +727,23 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
           label: 'Check Video Call Requests',
           trailing: Icons.videocam,
           onTap: () {},
+        ),
+        // ✅ Edit and re-write tag
+        _buildActionButton(
+          icon: Icons.edit,
+          iconColor: Colors.red.shade600,
+          label: 'Edit and re-write tag',
+          trailing: Icons.close,
+          isRed: true,
+          onTap: () {
+            final phoneWithCountryCode = _countryCode.replaceFirst('+', '') + _userPhone;
+            EditTagSheet.show(
+              context,
+              vehicleNumber: widget.item.tagId,
+              tagId: widget.item.id,
+              phone: phoneWithCountryCode,
+            );
+          },
         ),
       ],
     );
@@ -852,12 +924,8 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
         dgValue: 'testYU78dII8iiUIPSISJ',
       );
 
-      setState(() {
-        _isWhatsappEnabled = newWhatsappEnabled;
-        _isLoading = false;
-      });
-
       _hideLoadingOverlay();
+      await _loadTagSettings();
 
       _showSuccessDialog(
         icon: newWhatsappEnabled ? Icons.chat_bubble : Icons.chat_bubble_outline,
@@ -906,12 +974,8 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
         dgValue: 'testYU78dII8iiUIPSISJ',
       );
 
-      setState(() {
-        _isCallMaskingEnabled = newCallMaskingEnabled;
-        _isLoading = false;
-      });
-
       _hideLoadingOverlay();
+      await _loadTagSettings();
 
       _showSuccessDialog(
         icon: newCallMaskingEnabled ? Icons.phone : Icons.phone_disabled,
@@ -960,12 +1024,8 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
         dgValue: 'testYU78dII8iiUIPSISJ',
       );
 
-      setState(() {
-        _isVideoCallEnabled = newVideoCallEnabled;
-        _isLoading = false;
-      });
-
       _hideLoadingOverlay();
+      await _loadTagSettings();
 
       _showSuccessDialog(
         icon: newVideoCallEnabled ? Icons.videocam : Icons.videocam_off,
@@ -1160,6 +1220,20 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
           ),
         );
       },
+    );
+  }
+
+  // ✅ Show Notification Sheet
+  void _showNotificationSheet() {
+    HapticFeedback.mediumImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => NotificationSheet(
+        tagInternalId: widget.item.id.toString(),
+        phone: _userPhone,
+      ),
     );
   }
 }

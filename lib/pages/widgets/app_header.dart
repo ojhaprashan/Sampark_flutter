@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:my_new_app/pages/widgets/notification_sheet.dart';
 import '../../utils/colors.dart';
 import '../../services/auth_service.dart';
+import '../../services/wallet_service.dart';
 import '../auth/login_page.dart';
 import '../auth/edit_profile_page.dart';
 import '../auth/login_pin_page.dart';
 import '../main_navigation.dart';
+
 
 class AppHeader extends StatefulWidget {
   final bool isLoggedIn;
@@ -15,7 +17,8 @@ class AppHeader extends StatefulWidget {
   final bool showCartIcon;
   final int cartItemCount;
   final VoidCallback? onCartTap;
-  
+
+
   const AppHeader({
     super.key,
     required this.isLoggedIn,
@@ -27,19 +30,39 @@ class AppHeader extends StatefulWidget {
     this.onCartTap,
   });
 
+
   @override
   State<AppHeader> createState() => _AppHeaderState();
 }
 
+
 class _AppHeaderState extends State<AppHeader> {
-  Map<String, String> _userData = {};
-  bool _isLoading = true;
+  Map<String, dynamic> _userData = {};
+  double _walletBalance = 0.0;
+  bool _isLoadingWallet = true;
+
 
   @override
   void initState() {
     super.initState();
+    // ✅ Don't await - let it load asynchronously
+    _loadUserData();
+    
+    AuthService.userDataNotifier.addListener(_handleUserDataChange);
+  }
+
+
+  @override
+  void dispose() {
+    AuthService.userDataNotifier.removeListener(_handleUserDataChange);
+    super.dispose();
+  }
+
+
+  void _handleUserDataChange() {
     _loadUserData();
   }
+
 
   @override
   void didUpdateWidget(AppHeader oldWidget) {
@@ -49,59 +72,115 @@ class _AppHeaderState extends State<AppHeader> {
     }
   }
 
-  Future<void> _loadUserData() async {
+
+  // ✅ Load user data WITHOUT blocking UI - don't use setState until data arrives
+  void _loadUserData() async {
     if (widget.isLoggedIn) {
-      final data = await AuthService.getUserData();
-      if (mounted) {
-        setState(() {
-          _userData = data;
-          _isLoading = false;
-        });
-      }
+      // ✅ Fetch data asynchronously without blocking
+      AuthService.getUserData().then((data) {
+        if (mounted) {
+          setState(() {
+            _userData = data;
+          });
+          
+          // Load wallet data after user data
+          final phone = data['phone'] as String? ?? '';
+          if (phone.isNotEmpty) {
+            _loadWalletData(phone);
+          }
+        }
+      }).catchError((error) {
+        print('❌ Error loading user data: $error');
+        if (mounted) {
+          setState(() {
+            _userData = {};
+          });
+        }
+      });
     } else {
       setState(() {
         _userData = {};
-        _isLoading = false;
+        _walletBalance = 0.0;
+        _isLoadingWallet = false;
       });
     }
   }
 
+
+  void _loadWalletData(String phone) async {
+    if (phone.isEmpty) {
+      setState(() {
+        _isLoadingWallet = false;
+      });
+      return;
+    }
+
+
+    try {
+      final walletData = await WalletService.fetchWallet(phone: phone);
+      if (mounted) {
+        setState(() {
+          _walletBalance = walletData.balance;
+          _isLoadingWallet = false;
+        });
+        print('✅ Wallet balance fetched: ₹${walletData.balance}');
+      }
+    } catch (e) {
+      print('❌ Error fetching wallet: $e');
+      if (mounted) {
+        setState(() {
+          _walletBalance = 0.0;
+          _isLoadingWallet = false;
+        });
+      }
+    }
+  }
+
+
   String get userName {
     final name = _userData['name'] ?? '';
-    return name.trim().isEmpty ? 'RJ' : name;
+    return name.trim().isEmpty ? 'User' : name;
   }
+
 
   String get userFirstName {
-    return userName.split(' ').first;
+    final name = _userData['name'] ?? '';
+    if (name.trim().isEmpty) return 'User';
+    return name.split(' ').first;
   }
 
+
   String get userInitial {
-    return userName[0].toUpperCase();
+    final name = _userData['name'] ?? '';
+    return name.isEmpty ? 'U' : name[0].toUpperCase();
   }
+
 
   String get userPhone {
     final phone = _userData['phone'] ?? '';
     final code = _userData['countryCode'] ?? '+91';
-    return phone.isEmpty ? '' : '$code $phone';
+    if (phone.isEmpty) return '$code ••••••••••';
+    return '$code $phone';
   }
 
 
-void _showNotificationSheet() {
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.transparent,
-    isScrollControlled: true,
-    isDismissible: true,
-    enableDrag: true,
-    useRootNavigator: false,
-    elevation: 0,
-    builder: (context) => AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      child: const NotificationSheet(),
-    ),
-  );
-}
+  void _showNotificationSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      useRootNavigator: false,
+      elevation: 0,
+      builder: (context) => AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        child: const NotificationSheet(),
+      ),
+    );
+  }
+
 
   void _showProfileMenu(BuildContext context) {
     showModalBottomSheet(
@@ -259,6 +338,7 @@ void _showNotificationSheet() {
     );
   }
 
+
   Widget _buildMenuButton({
     required IconData icon,
     required String label,
@@ -272,8 +352,8 @@ void _showNotificationSheet() {
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDestructive 
-              ? Colors.red.withOpacity(0.1) 
+          color: isDestructive
+              ? Colors.red.withOpacity(0.1)
               : AppColors.lightGrey,
           borderRadius: BorderRadius.circular(12),
         ),
@@ -305,28 +385,20 @@ void _showNotificationSheet() {
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
-    if (_isLoading && widget.isLoggedIn && widget.showUserInfo) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-        child: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top Row - Different layout based on showBackButton
+          // Top Row - Always shows immediately
           widget.showBackButton
               ? Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Back button
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
                       child: Container(
@@ -342,8 +414,6 @@ void _showNotificationSheet() {
                         ),
                       ),
                     ),
-                    
-                    // Center - Logo (Clickable)
                     GestureDetector(
                       onTap: () {
                         Navigator.pushAndRemoveUntil(
@@ -360,11 +430,8 @@ void _showNotificationSheet() {
                         fit: BoxFit.contain,
                       ),
                     ),
-                    
-                    // Right side - Icons
                     Row(
                       children: [
-                        // Show either cart or notification icon
                         if (widget.showCartIcon)
                           _buildCartButton()
                         else
@@ -384,6 +451,8 @@ void _showNotificationSheet() {
                                   ),
                                 ),
                               );
+                            } else {
+                              _showNotificationSheet();
                             }
                           }),
                         const SizedBox(width: 12),
@@ -397,7 +466,6 @@ void _showNotificationSheet() {
               : Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Left - Logo (Clickable)
                     GestureDetector(
                       onTap: () {
                         Navigator.pushAndRemoveUntil(
@@ -414,36 +482,31 @@ void _showNotificationSheet() {
                         fit: BoxFit.contain,
                       ),
                     ),
-                    
-                    // Right side - Icons
                     Row(
                       children: [
-                        // Show either cart or notification icon
                         if (widget.showCartIcon)
                           _buildCartButton()
                         else
-                        _buildIconButton(Icons.notifications_outlined, () {
-  if (!widget.isLoggedIn) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Please login to view notifications'),
-        action: SnackBarAction(
-          label: 'Login',
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const LoginPage()),
-            );
-          },
-        ),
-      ),
-    );
-  } else {
-    // ✅ Show notification sheet
-    _showNotificationSheet();
-  }
-}),
-
+                          _buildIconButton(Icons.notifications_outlined, () {
+                            if (!widget.isLoggedIn) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text('Please login to view notifications'),
+                                  action: SnackBarAction(
+                                    label: 'Login',
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (_) => const LoginPage()),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              );
+                            } else {
+                              _showNotificationSheet();
+                            }
+                          }),
                         const SizedBox(width: 12),
                         _buildIconButton(Icons.person_outline, () {
                           _showProfileMenu(context);
@@ -452,9 +515,8 @@ void _showNotificationSheet() {
                     ),
                   ],
                 ),
-          
-          // User info section (only if showUserInfo is true and logged in)
-          if (widget.showUserInfo && widget.isLoggedIn && !_isLoading) ...[
+          // ✅ User info - Shows immediately when logged in (even with placeholder data)
+          if (widget.showUserInfo && widget.isLoggedIn) ...[
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -474,7 +536,7 @@ void _showNotificationSheet() {
                           ),
                         ),
                         const SizedBox(width: 6),
-                        Text(
+                        const Text(
                           '👋',
                           style: TextStyle(fontSize: 22),
                         ),
@@ -504,26 +566,52 @@ void _showNotificationSheet() {
                       ),
                     ],
                   ),
-                  child: Row(
-                    children: [
-                      Text(
-                        'Wallet: ',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textGrey,
+                  child: _isLoadingWallet
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Wallet: ',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textGrey,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.activeYellow,
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Wallet: ',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textGrey,
+                              ),
+                            ),
+                            Text(
+                              '₹${_walletBalance.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.black,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      Text(
-                        '₹500',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.black,
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
               ],
             ),
@@ -532,6 +620,7 @@ void _showNotificationSheet() {
       ),
     );
   }
+
 
   Widget _buildIconButton(IconData icon, VoidCallback onTap) {
     return GestureDetector(
@@ -546,6 +635,7 @@ void _showNotificationSheet() {
       ),
     );
   }
+
 
   Widget _buildCartButton() {
     return GestureDetector(

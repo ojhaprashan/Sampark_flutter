@@ -5,6 +5,7 @@ import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/shop_service.dart';
+import '../../AppWebView/appweb.dart';
 
 class ProductDetailsPage extends StatefulWidget {
   final String? productId;
@@ -42,16 +43,33 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   final int _totalReviews = 456;
   
   // Static images for product slider
-  final List<MediaSliderItem> _productImages = [
-    MediaSliderItem.assetImage(assetPath: 'assets/Banner/shop/1.png'),
-    MediaSliderItem.assetImage(assetPath: 'assets/Banner/shop/2.png'),
-    MediaSliderItem.assetImage(assetPath: 'assets/Banner/shop/3.png'),
-    MediaSliderItem.assetImage(assetPath: 'assets/Banner/shop/4.png'),
-    MediaSliderItem.assetImage(assetPath: 'assets/Banner/shop/5.png'),
-    MediaSliderItem.assetImage(assetPath: 'assets/Banner/shop/6.png'),
-
+final List<MediaSliderItem> _productImages = [
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/shop_1.png', 
+      boxFit: BoxFit.fill,
+    ),
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/shop_2.png', 
+      boxFit: BoxFit.fill,
+    ),
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/shop_3.png', 
+      boxFit: BoxFit.fill,
+    ),
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/shop_4.png', 
+      boxFit: BoxFit.fill,
+    ),
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/shop_5.png', 
+      boxFit: BoxFit.fill,
+    ),
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/shop_6.png', 
+      boxFit: BoxFit.fill,
+    ),
   ];
-  
+
   final List<String> _staticOffers = [
     'Bank Offer: 10% instant discount on HDFC Bank Credit Cards',
     'Special Price: Get extra 5% off (price inclusive of discount)',
@@ -177,16 +195,30 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   }
 
   void _buyNow() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Proceeding to checkout...'),
-        backgroundColor: AppColors.activeYellow,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+    final selectedVariant = _getSelectedVariantName();
+    
+    if (selectedVariant == 'Car' || selectedVariant == 'Bike') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const InAppWebViewPage(
+            url: 'https://app.ngf132.com/qr-for-car',
+            title: 'QR Tag',
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Proceeding to checkout...'),
+          backgroundColor: AppColors.activeYellow,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -217,8 +249,8 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                   isLoggedIn: _isLoggedIn,
                   showBackButton: true,
                   showUserInfo: false,
-                  showCartIcon: true,
-                  cartItemCount: _cartItemCount,
+                  // showCartIcon: true,
+                  // cartItemCount: _cartItemCount,
                   onCartTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -347,71 +379,62 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     );
   }
 
-  Widget _buildImageSlider() {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
-        ),
+Widget _buildImageSlider() {
+  // 1. Get the screen width
+  double screenWidth = MediaQuery.of(context).size.width;
+
+  // 2. Define your "little space" (Padding)
+  double sidePadding = 6.0; 
+
+  // 3. Calculate the slider width (Screen width - padding)
+  double sliderWidth = screenWidth - (sidePadding * 2);
+
+  // 4. Calculate Height dynamically based on Aspect Ratio (16:9)
+  // This ensures it's never "too large" or "too small" on different phones.
+  // Change 1.78 to 2.0 if you want it even shorter (more banner-like).
+  double sliderHeight = sliderWidth / 2.1; 
+
+  return Container(
+    decoration: const BoxDecoration(
+      color: AppColors.white,
+      borderRadius: BorderRadius.only(
+        topLeft: Radius.circular(30),
+        topRight: Radius.circular(30),
       ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
-        ),
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Stack(
-                  children: [
-                    MediaSlider(
-                      items: _productImages,
-                      height: 160,
-                      autoScroll: false,
-                      show3DEffect: false,
-                      viewportFraction: 1.0,
-                      showIndicators: true,
-                    ),
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.favorite_border,
-                          color: AppColors.black,
-                          size: AppConstants.iconSizeMedium,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+    ),
+    child: ClipRRect(
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(30),
+        topRight: Radius.circular(30),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          
+          Padding(
+            // ✅ FIX 1: "Little space" consistent on both sides
+            padding: EdgeInsets.symmetric(horizontal: sidePadding), 
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: MediaSlider(
+                items: _productImages,
+                // ✅ FIX 2: Height is now calculated, not fixed.
+                // It will be ~200 on average phones, which is perfect for products.
+                height: sliderHeight, 
+                autoScroll: false,
+                show3DEffect: false,
+                viewportFraction: 1.0,
+                showIndicators: true,
               ),
             ),
-            
-            const SizedBox(height: 12),
-          ],
-        ),
+          ),
+          
+          const SizedBox(height: 12),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildProductHeader() {
     return Padding(

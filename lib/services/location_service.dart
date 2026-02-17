@@ -52,9 +52,13 @@ class LocationService {
       final jsonString = _locationToJson(locationData.toJson());
       await prefs.setString(_keyLastLocation, jsonString);
       
-      print('✅ Location saved: $locationData');
+      print('✅ [LocationService] Location saved to preferences:');
+      print('   └─ Latitude:  $latitude');
+      print('   └─ Longitude: $longitude');
+      print('   └─ Key: $_keyLastLocation');
+      print('   └─ Stored as: $jsonString');
     } catch (e) {
-      print('❌ Error saving location: $e');
+      print('❌ [LocationService] Error saving location: $e');
     }
   }
 
@@ -65,17 +69,24 @@ class LocationService {
       final jsonString = prefs.getString(_keyLastLocation);
       
       if (jsonString == null) {
-        print('📍 No location found in local storage');
+        print('⚠️  [LocationService] No location found in preferences (key: $_keyLastLocation)');
         return null;
       }
+      
+      print('📍 [LocationService] Found location in preferences:');
+      print('   └─ Raw data: $jsonString');
       
       final jsonMap = _jsonToLocation(jsonString);
       final locationData = LocationData.fromJson(jsonMap);
       
-      print('✅ Location retrieved: $locationData');
+      print('✅ [LocationService] Location retrieved:');
+      print('   └─ Latitude:  ${locationData.latitude}');
+      print('   └─ Longitude: ${locationData.longitude}');
+      print('   └─ Timestamp: ${locationData.timestamp}');
+      
       return locationData;
     } catch (e) {
-      print('❌ Error retrieving location: $e');
+      print('❌ [LocationService] Error retrieving location: $e');
       return null;
     }
   }
@@ -84,9 +95,11 @@ class LocationService {
   static Future<bool> hasAskedForPermission() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getBool(_keyLocationPermissionAsked) ?? false;
+      final hasAsked = prefs.getBool(_keyLocationPermissionAsked) ?? false;
+      print('📍 [LocationService] Permission asked before: $hasAsked');
+      return hasAsked;
     } catch (e) {
-      print('❌ Error checking permission status: $e');
+      print('❌ [LocationService] Error checking permission status: $e');
       return false;
     }
   }
@@ -96,9 +109,9 @@ class LocationService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_keyLocationPermissionAsked, true);
-      print('✅ Permission request marked as asked');
+      print('✅ [LocationService] Permission request marked as asked');
     } catch (e) {
-      print('❌ Error marking permission as asked: $e');
+      print('❌ [LocationService] Error marking permission as asked: $e');
     }
   }
 
@@ -107,9 +120,9 @@ class LocationService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_keyLastLocation);
-      print('✅ Location data cleared');
+      print('✅ [LocationService] Location data cleared from preferences');
     } catch (e) {
-      print('❌ Error clearing location data: $e');
+      print('❌ [LocationService] Error clearing location data: $e');
     }
   }
 
@@ -132,12 +145,16 @@ class LocationService {
   static Future<int?> getLocationAgeInSeconds() async {
     try {
       final location = await getLastLocation();
-      if (location == null) return null;
+      if (location == null) {
+        print('⚠️  [LocationService] No location found to calculate age');
+        return null;
+      }
       
       final age = DateTime.now().difference(location.timestamp).inSeconds;
+      print('📍 [LocationService] Location age: $age seconds');
       return age;
     } catch (e) {
-      print('❌ Error getting location age: $e');
+      print('❌ [LocationService] Error getting location age: $e');
       return null;
     }
   }

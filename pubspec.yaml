@@ -41,6 +41,14 @@ dependencies:
   # State Management
   provider: ^6.1.1
 
+  # For picking files (PDFs, Docs, etc.)
+  file_picker: ^8.0.0 
+
+  # For Camera and Gallery images
+  image_picker: ^1.0.7
+
+
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

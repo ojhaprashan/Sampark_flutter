@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../utils/colors.dart';
+import '../../services/qr_signup_service.dart';
 import 'contact_vehicle_owner_page.dart';
+import 'tag_activation_page.dart';
 class ScanPage extends StatefulWidget {
   const ScanPage({super.key});
 
@@ -269,30 +271,130 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
       ),
     );
   }
-String _extractVehicleNumber(String code) {
-  // TODO: Parse QR code to extract vehicle number
-  return code.length > 10 ? code.substring(0, 10) : code;
+
+/// Extract code from QR URL
+/// Expected format: https://app.ngf132.com/qr-signup?code=415711&pin=2580
+String _extractCodeFromUrl(String url) {
+  try {
+    final uri = Uri.parse(url);
+    return uri.queryParameters['code'] ?? url;
+  } catch (e) {
+    // If parsing fails, assume it's already a code
+    return url;
+  }
 }
-  void _handleScanResult(String code) {
+
+/// Handle scan result - extract code and call API
+void _handleScanResult(String scannedData) async {
   // Stop camera temporarily
   cameraController.stop();
   setState(() => _isCameraActive = false);
 
-  // Navigate to contact page
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => ContactVehicleOwnerPage(
-        vehicleNumber: _extractVehicleNumber(code),
-        phoneNumber: '9876543210', // TODO: Get from API
-        maskedNumber: '####', // TODO: Get from API
+  // Extract code from URL
+  final code = _extractCodeFromUrl(scannedData);
+
+  // Show loading dialog
+  if (mounted) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        content: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(
+              AppColors.activeYellow,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  try {
+    // Call API to verify QR code
+    print('\n🔍 Scanning QR Code: $code\n');
+    final response = await QRSignupService.verifyQRCode(code: code);
+
+    if (mounted) {
+      Navigator.pop(context); // Close loading dialog
+
+      if (response.status == 'success') {
+        final statusCode = response.data.statusCode;
+        print('\n✅ Scan Successful - Status Code: $statusCode\n');
+
+        if (statusCode == '1') {
+          // Navigate to contact vehicle owner page
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ContactVehicleOwnerPage(
+                tagId: response.data.tagId,
+                vehicleNumber: code,
+                phoneNumber: response.data.carUrl,
+                maskedNumber: response.data.qrCodeSuffix,
+              ),
+            ),
+          ).then((_) {
+            // Restart camera when back
+            cameraController.start();
+            setState(() => _isCameraActive = true);
+          });
+        } else if (statusCode == '5') {
+          // Navigate to tag activation page
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TagActivationPage(
+                tagData: response.data,
+              ),
+            ),
+          ).then((_) {
+            // Restart camera when back
+            cameraController.start();
+            setState(() => _isCameraActive = true);
+          });
+        } else {
+          _showErrorAndResumeCamera(
+            'Status Code: $statusCode',
+          );
+        }
+      } else {
+        _showErrorAndResumeCamera(
+          response.message,
+        );
+      }
+    }
+  } catch (e) {
+    if (mounted) {
+      Navigator.pop(context); // Close loading dialog
+      // Extract only the error message
+      String errorMessage = e.toString();
+      if (errorMessage.startsWith('Exception: ')) {
+        errorMessage = errorMessage.replaceFirst('Exception: ', '');
+      }
+      _showErrorAndResumeCamera(errorMessage);
+    }
+  }
+}
+
+/// Show error and resume camera
+void _showErrorAndResumeCamera(String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: Colors.red,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
       ),
     ),
-  ).then((_) {
-    // Restart camera when back
-    cameraController.start();
-    setState(() => _isCameraActive = true);
-  });
+  );
+
+  // Resume camera
+  cameraController.start();
+  setState(() => _isCameraActive = true);
 }
 }
 

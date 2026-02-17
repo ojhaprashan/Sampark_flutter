@@ -20,15 +20,15 @@ class _SocietyHotelsPageState extends State<SocietyHotelsPage> {
   // Media Slider Items
   final List<MediaSliderItem> _sliderItems = [
     MediaSliderItem.networkImage(
-      url: 'https://app.ngf132.com/assets/avator/socitylogo.png',
+      url: 'https://sampark.me/assets/app/society_1.png',
       boxFit: BoxFit.contain,
     ),
     MediaSliderItem.networkImage(
-      url: 'https://app.ngf132.com/assets/avator/shoptags.jpeg',
+      url: 'https://sampark.me/assets/app/society_2.png',
       boxFit: BoxFit.contain,
     ),
     MediaSliderItem.networkImage(
-      url: 'https://app.ngf132.com/assets/avator/socitylogo.png',
+      url: 'https://sampark.me/assets/app/society_3.png',
       boxFit: BoxFit.contain,
     ),
   ];

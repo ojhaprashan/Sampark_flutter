@@ -21,23 +21,24 @@ class _FranchisePageState extends State<FranchisePage> {
 
 
   // Media items for slider
-  final List<MediaSliderItem> _mediaItems = [
-    MediaSliderItem.assetImage(
-      assetPath: 'assets/Banner/Home/1.png',
+final List<MediaSliderItem> _mediaItems = [
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/franchise_1.png',
     ),
-    MediaSliderItem.assetImage(
-      assetPath: 'assets/Banner/Home/2.png',
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/franchise_2.png',
     ),
-    MediaSliderItem.assetImage(
-      assetPath: 'assets/Banner/Home/3.png',
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/franchise_3.png',
     ),
-    MediaSliderItem.assetImage(
-      assetPath: 'assets/Banner/Home/4.png',
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/franchise_4.png',
     ),
-    MediaSliderItem.assetImage(
-      assetPath: 'assets/Banner/Home/5.png',
+    MediaSliderItem.networkImage(
+      url: 'https://sampark.me/assets/app/franchise_5.png',
     ),
   ];
+
 
 
   @override

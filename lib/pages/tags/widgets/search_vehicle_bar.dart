@@ -54,6 +54,7 @@ class _SearchVehicleBarState extends State<SearchVehicleBar> {
               child: TextField(
                 controller: _controller,
                 onSubmitted: (value) => _handleSearch(),
+                textCapitalization: TextCapitalization.characters, // ✅ Convert to uppercase
                 decoration: InputDecoration(
                   hintText: 'Search any vehicle',
                   hintStyle: TextStyle(

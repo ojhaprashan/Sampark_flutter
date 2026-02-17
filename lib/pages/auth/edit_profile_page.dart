@@ -3,6 +3,7 @@ import 'package:my_new_app/pages/widgets/app_header.dart';
 import '../../utils/colors.dart';
 import '../../utils/constants.dart';
 import '../../services/auth_service.dart';
+import '../../services/profile_service.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -15,6 +16,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   bool _isLoggedIn = false;
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  String? _userPhone; // Store phone for API calls
 
   // Form Controllers
   final TextEditingController _nameController = TextEditingController();
@@ -23,6 +25,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _stateController = TextEditingController();
   final TextEditingController _zipCodeController = TextEditingController();
+  final TextEditingController _cityController = TextEditingController();
+  final TextEditingController _facebookController = TextEditingController();
+  final TextEditingController _twitterController = TextEditingController();
+  final TextEditingController _instagramController = TextEditingController();
+  final TextEditingController _dateOfBirthController = TextEditingController();
+  final TextEditingController _aboutController = TextEditingController();
 
   String _selectedGender = 'Male'; // Default value
 
@@ -41,6 +49,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _addressController.dispose();
     _stateController.dispose();
     _zipCodeController.dispose();
+    _cityController.dispose();
+    _facebookController.dispose();
+    _twitterController.dispose();
+    _instagramController.dispose();
+    _dateOfBirthController.dispose();
+    _aboutController.dispose();
     super.dispose();
   }
 
@@ -68,22 +82,126 @@ class _EditProfilePageState extends State<EditProfilePage> {
         setState(() {
           _nameController.text = userData['name'] ?? '';
           _phoneController.text = userData['phone'] ?? '';
-          // Additional fields can be loaded if stored in AuthService
         });
       }
+
+      // Get the phone number to use for API calls (with country code)
+      final countryCode = userData['countryCode'] ?? '+91';
+      final phone = userData['phone'] ?? '';
+      // Remove + from country code if present and combine
+      final phoneWithCode = countryCode.replaceFirst('+', '') + phone;
+      _userPhone = phoneWithCode;
+
+      print('📱 Loading profile for phone: $_userPhone');
+
+      // Fetch profile from API
+      if (_userPhone != null && _userPhone!.isNotEmpty) {
+        final profileResponse = await ProfileService.getProfile(
+          phone: _userPhone!,
+        );
+
+        if (profileResponse['success'] == true && mounted) {
+          final profileData = profileResponse['data'] ?? {};
+          print('✅ Profile loaded: ${profileData.keys}');
+
+          setState(() {
+            // Update all fields with API data
+            _nameController.text = profileData['name'] ?? _nameController.text;
+            _emailController.text = profileData['email'] ?? '';
+            _addressController.text = profileData['address'] ?? '';
+            _stateController.text = profileData['user_state'] ?? '';
+            _zipCodeController.text = profileData['user_zip'] ?? '';
+            _cityController.text = profileData['user_city'] ?? '';
+            _facebookController.text = profileData['fb'] ?? '';
+            _twitterController.text = profileData['tw'] ?? '';
+            _instagramController.text = profileData['insta'] ?? '';
+            _dateOfBirthController.text = profileData['user_dob'] ?? '';
+            _aboutController.text = profileData['about'] ?? '';
+            
+            if (profileData['gender'] != null && profileData['gender'].toString().isNotEmpty) {
+              _selectedGender = profileData['gender'];
+            }
+          });
+        } else {
+          print('❌ Failed to load profile: ${profileResponse['message']}');
+        }
+      }
     } catch (e) {
-      // Handle error silently
+      print('❌ Error loading user data: $e');
     }
   }
 
-  void _submitForm() {
+  void _submitForm() async {
     if (_formKey.currentState!.validate()) {
+      if (_userPhone == null || _userPhone!.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Phone number not found. Please login again.'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+            ),
+          ),
+        );
+        return;
+      }
+
       setState(() {
         _isLoading = true;
       });
 
-      // Simulate API call
-      Future.delayed(const Duration(seconds: 2), () {
+      try {
+        print('📝 Updating profile...');
+        final response = await ProfileService.updateProfile(
+          phone: _userPhone!,
+          name: _nameController.text,
+          email: _emailController.text,
+          address: _addressController.text.isEmpty ? null : _addressController.text,
+          zip: _zipCodeController.text.isEmpty ? null : _zipCodeController.text,
+          state: _stateController.text.isEmpty ? null : _stateController.text,
+          city: _cityController.text.isEmpty ? null : _cityController.text,
+          gender: _selectedGender,
+          about: _aboutController.text.isEmpty ? null : _aboutController.text,
+          facebook: _facebookController.text.isEmpty ? null : _facebookController.text,
+          twitter: _twitterController.text.isEmpty ? null : _twitterController.text,
+          instagram: _instagramController.text.isEmpty ? null : _instagramController.text,
+          dateOfBirth: _dateOfBirthController.text.isEmpty ? null : _dateOfBirthController.text,
+        );
+
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+
+          if (response['success'] == true) {
+            print('✅ Profile updated successfully');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Profile updated successfully!'),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+                ),
+              ),
+            );
+          } else {
+            print('❌ Profile update failed: ${response['message']}');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error: ${response['message'] ?? 'Failed to update profile'}'),
+                backgroundColor: Colors.red,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+                ),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        print('❌ Exception in _submitForm: $e');
         if (mounted) {
           setState(() {
             _isLoading = false;
@@ -91,8 +209,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Profile updated successfully!'),
-              backgroundColor: Colors.green,
+              content: Text('Error: $e'),
+              backgroundColor: Colors.red,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
@@ -100,7 +218,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ),
           );
         }
-      });
+      }
     }
   }
 
@@ -228,15 +346,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               controller: _nameController,
               hint: 'Enter your full name',
               prefixIcon: Icons.person_outline,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your name';
-                }
-                if (value.length < 2) {
-                  return 'Name must be at least 2 characters';
-                }
-                return null;
-              },
+              validator: (value) => null,
             ),
             const SizedBox(height: 20),
 
@@ -255,15 +365,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               hint: 'Enter your email',
               prefixIcon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your email';
-                }
-                if (!value.contains('@')) {
-                  return 'Please enter a valid email address';
-                }
-                return null;
-              },
+              validator: (value) => null,
             ),
             const SizedBox(height: 20),
 
@@ -282,15 +384,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               hint: 'Enter your phone number',
               prefixIcon: Icons.phone_outlined,
               keyboardType: TextInputType.phone,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your phone number';
-                }
-                if (value.length != 10) {
-                  return 'Please enter a valid 10-digit phone number';
-                }
-                return null;
-              },
+              validator: (value) => null,
             ),
             const SizedBox(height: 20),
 
@@ -309,12 +403,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               hint: 'Enter your address',
               prefixIcon: Icons.location_on_outlined,
               maxLines: 2,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your address';
-                }
-                return null;
-              },
+              validator: (value) => null,
             ),
             const SizedBox(height: 20),
 
@@ -332,12 +421,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               controller: _stateController,
               hint: 'Enter your state or city',
               prefixIcon: Icons.location_city_outlined,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your state or city';
-                }
-                return null;
-              },
+              validator: (value) => null,
             ),
             const SizedBox(height: 20),
 
@@ -356,15 +440,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               hint: 'Enter your zip code',
               prefixIcon: Icons.mail_outline,
               keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your zip code';
-                }
-                if (value.length < 5) {
-                  return 'Please enter a valid zip code';
-                }
-                return null;
-              },
+              validator: (value) => null,
             ),
             const SizedBox(height: 20),
 
@@ -408,6 +484,119 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   });
                 },
               ),
+            ),
+            const SizedBox(height: 20),
+
+            // City
+            Text(
+              'City',
+              style: TextStyle(
+                fontSize: AppConstants.fontSizeCardTitle,
+                fontWeight: FontWeight.w600,
+                color: AppColors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildTextField(
+              controller: _cityController,
+              hint: 'Enter your city',
+              prefixIcon: Icons.location_city_outlined,
+              validator: (value) => null,
+            ),
+            const SizedBox(height: 20),
+
+            // Date of Birth
+            Text(
+              'Date of Birth',
+              style: TextStyle(
+                fontSize: AppConstants.fontSizeCardTitle,
+                fontWeight: FontWeight.w600,
+                color: AppColors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildTextField(
+              controller: _dateOfBirthController,
+              hint: 'DD/MM/YYYY',
+              prefixIcon: Icons.calendar_today_outlined,
+              keyboardType: TextInputType.datetime,
+              validator: (value) => null,
+            ),
+            const SizedBox(height: 20),
+
+            // About
+            Text(
+              'About',
+              style: TextStyle(
+                fontSize: AppConstants.fontSizeCardTitle,
+                fontWeight: FontWeight.w600,
+                color: AppColors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildTextField(
+              controller: _aboutController,
+              hint: 'Tell us about yourself',
+              prefixIcon: Icons.info_outlined,
+              maxLines: 3,
+              validator: (value) => null,
+            ),
+            const SizedBox(height: 20),
+
+            // Facebook
+            Text(
+              'Facebook',
+              style: TextStyle(
+                fontSize: AppConstants.fontSizeCardTitle,
+                fontWeight: FontWeight.w600,
+                color: AppColors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildTextField(
+              controller: _facebookController,
+              hint: 'Facebook profile URL or username',
+              prefixIcon: Icons.language_outlined,
+              keyboardType: TextInputType.url,
+              validator: (value) => null,
+            ),
+            const SizedBox(height: 20),
+
+            // Twitter
+            Text(
+              'Twitter',
+              style: TextStyle(
+                fontSize: AppConstants.fontSizeCardTitle,
+                fontWeight: FontWeight.w600,
+                color: AppColors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildTextField(
+              controller: _twitterController,
+              hint: 'Twitter profile URL or handle',
+              prefixIcon: Icons.language_outlined,
+              keyboardType: TextInputType.url,
+              validator: (value) => null,
+            ),
+            const SizedBox(height: 20),
+
+            // Instagram
+            Text(
+              'Instagram',
+              style: TextStyle(
+                fontSize: AppConstants.fontSizeCardTitle,
+                fontWeight: FontWeight.w600,
+                color: AppColors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildTextField(
+              controller: _instagramController,
+              hint: 'Instagram profile URL or username',
+              prefixIcon: Icons.language_outlined,
+              keyboardType: TextInputType.url,
+              validator: (value) => null,
             ),
 
             const SizedBox(height: 28),

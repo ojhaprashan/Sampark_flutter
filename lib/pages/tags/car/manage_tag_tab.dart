@@ -2,21 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:my_new_app/pages/AppWebView/appweb.dart';
 import 'package:my_new_app/pages/widgets/notification_sheet.dart';
+import 'package:my_new_app/pages/widgets/etag_download_sheet.dart';
+import 'package:my_new_app/pages/widgets/error_dialog.dart';
 import 'package:my_new_app/utils/colors.dart';
 import 'package:my_new_app/utils/constants.dart';
 import 'package:my_new_app/services/tags_service.dart';
 import 'package:my_new_app/services/auth_service.dart';
+import 'package:my_new_app/services/etag_service.dart';
+import 'package:my_new_app/services/emergency_service.dart';
+import 'package:my_new_app/pages/scan/contact_vehicle_owner_page.dart';
 import 'add_secondary_number_sheet.dart';
 import 'add_emergency_contact_sheet.dart';
 
 class ManageTagTab extends StatefulWidget {
   final Tag tag;
   final TagSettings? tagSettings;
+  final VoidCallback? onDataUpdated;  // ✅ Callback to refresh data when updated
 
   const ManageTagTab({
     super.key,
     required this.tag,
     this.tagSettings,
+    this.onDataUpdated,
   });
 
   @override
@@ -28,6 +35,8 @@ class _ManageTagTabState extends State<ManageTagTab> {
   bool _isCallsEnabled = true;
   bool _isTagEnabled = true;
   bool _isLoading = false;
+  String _userPhone = '';
+  String _countryCode = '+91'; // Track country code for India-specific features
 
   @override
   void initState() {
@@ -35,6 +44,24 @@ class _ManageTagTabState extends State<ManageTagTab> {
     // Initialize from tagSettings if available
     _isCallsEnabled = widget.tagSettings?.data.callStatus.callsEnabled ?? true;
     _isTagEnabled = widget.tagSettings?.data.status == 'Active';
+    _loadUserPhone();
+  }
+
+  // ✅ Load user phone from AuthService
+  Future<void> _loadUserPhone() async {
+    try {
+      final userData = await AuthService.getUserData();
+      final phone = userData['phone'] ?? '';
+      final countryCode = userData['countryCode'] ?? '+91';
+      if (mounted) {
+        setState(() {
+          _userPhone = phone;
+          _countryCode = countryCode;
+        });
+      }
+    } catch (e) {
+      print('Error loading user phone: $e');
+    }
   }
 
   @override
@@ -54,7 +81,17 @@ class _ManageTagTabState extends State<ManageTagTab> {
               iconColor: Colors.blue.shade600,
               label: 'View Contact Page.',
               onTap: () {
-                // Add your logic
+                 final tagId = int.tryParse(widget.tag.tagInternalId) ?? 0;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ContactVehicleOwnerPage(
+                      tagId: tagId,
+                      vehicleNumber: widget.tag.displayName,
+                      vehicleName: 'Car Tag',
+                    ),
+                  ),
+                );
               },
             ),
             _buildActionButton(
@@ -117,31 +154,47 @@ class _ManageTagTabState extends State<ManageTagTab> {
                 _showEmergencyContactSheet(context);
               },
             ),
-            // ✅ Roadside Assistance (RSA) Button
-            _buildActionButton(
-              context,
-              icon: Icons.car_repair,
-              iconColor: Colors.red.shade600,
-              label: 'Roadside Assistance (RSA)',
-              badge: '24/7',
-              trailing: Icons.arrow_forward_ios,
-              onTap: () {
-                _openRSA(context);
-              },
-            ),
-            _buildActionButton(
-              context,
-              icon: Icons.download,
-              iconColor: Colors.indigo.shade600,
-              label: 'Download eTag',
-              badge: 'New!',
-              trailing: Icons.download,
-              onTap: () {
-                // Add your logic
-              },
-            ),
+            // ✅ Show India-specific features only for India
+            if (_countryCode == '+91') ...[
+              _buildActionButton(
+                context,
+                icon: Icons.car_repair,
+                iconColor: Colors.red.shade600,
+                label: 'Roadside Assistance (RSA)',
+                badge: '24/7',
+                trailing: Icons.arrow_forward_ios,
+                onTap: () {
+                  _openRSA(context);
+                },
+              ),
+              _buildActionButton(
+                context,
+                icon: Icons.download,
+                iconColor: Colors.indigo.shade600,
+                label: 'Download eTag',
+                badge: 'New!',
+                trailing: Icons.download,
+                onTap: () {
+                  _generateETag(context);
+                },
+              ),
+            ],
             const SizedBox(height: AppConstants.spacingMedium),
-            _buildRechargeSection(),
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const InAppWebViewPage(
+                      url: 'https://app.ngf132.com/fastag',
+                      title: 'FasTag Recharge',
+                    ),
+                  ),
+                );
+              },
+              child: _buildRechargeSection(),
+            ),
             const SizedBox(height: 100),
           ],
         ),
@@ -255,6 +308,8 @@ class _ManageTagTabState extends State<ManageTagTab> {
       final phoneWithCountryCode = countryCode.replaceFirst('+', '') + phone;
 
       final newTagEnabled = !_isTagEnabled;
+      // ✅ Set status based on newTagEnabled (active/pause)
+      final newStatus = newTagEnabled ? 'active' : 'pause';
 
       await TagsService.updateTagSettings(
         tagId: widget.tag.tagInternalId,
@@ -265,6 +320,7 @@ class _ManageTagTabState extends State<ManageTagTab> {
         videoCallEnabled: widget.tagSettings?.data.callStatus.videoCallEnabled ?? false,
         smValue: '67s87s6yys66',
         dgValue: 'testYU78dII8iiUIPSISJ',
+        status: newStatus,  // ✅ Pass status parameter
       );
 
       setState(() {
@@ -273,6 +329,9 @@ class _ManageTagTabState extends State<ManageTagTab> {
       });
 
       _hideLoadingOverlay(context);
+
+      // ✅ Call refresh callback to reload data from API
+      widget.onDataUpdated?.call();
 
       _showSuccessDialog(
         context,
@@ -484,30 +543,135 @@ class _ManageTagTabState extends State<ManageTagTab> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const NotificationSheet(),
+      builder: (context) => NotificationSheet(
+        tagInternalId: widget.tag.tagInternalId.toString(),
+        phone: _userPhone,
+      ),
     );
   }
 
   // ✅ Show Add Secondary Number Sheet
-  void _showAddSecondaryNumberSheet(BuildContext context) {
+  void _showAddSecondaryNumberSheet(BuildContext context) async {
     HapticFeedback.mediumImpact();
-    showModalBottomSheet(
+    final phoneNumber = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AddSecondaryNumberSheet(tagId: widget.tag.displayName),
+      builder: (context) => AddSecondaryNumberSheet(
+        tagId: widget.tag.tagInternalId.toString(),
+        existingSecondaryNumber: widget.tagSettings?.data.secondaryNumber,  // ✅ Pass existing data
+      ),
     );
+
+    if (phoneNumber != null && phoneNumber.isNotEmpty) {
+      try {
+        final userData = await AuthService.getUserData();
+        final phone = userData['phone'] ?? '';
+        final countryCode = userData['countryCode'] ?? '+91';
+        final phoneWithCountryCode = countryCode.replaceFirst('+', '') + phone;
+
+        await TagsService.updateTagSettings(
+          tagId: widget.tag.tagInternalId,
+          phone: phoneWithCountryCode,
+          secondaryNumber: phoneNumber,
+          callsEnabled: widget.tagSettings?.data.callStatus.callsEnabled ?? true,
+          whatsappEnabled: widget.tagSettings?.data.callStatus.whatsappEnabled ?? false,
+          callMaskingEnabled: widget.tagSettings?.data.callStatus.callMaskingEnabled ?? false,
+          videoCallEnabled: widget.tagSettings?.data.callStatus.videoCallEnabled ?? false,
+          smValue: '67s87s6yys66',
+          dgValue: 'testYU78dII8iiUIPSISJ',
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Secondary number saved successfully!',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          // Refresh tag settings
+          widget.onDataUpdated?.call();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+        }
+      }
+    }
   }
 
   // ✅ Show Emergency Contact Sheet
-  void _showEmergencyContactSheet(BuildContext context) {
+  void _showEmergencyContactSheet(BuildContext context) async {
     HapticFeedback.mediumImpact();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => AddEmergencyContactSheet(tagId: widget.tag.displayName),
-    );
+    try {
+      // ✅ Convert tagInternalId to int for API call
+      final tagIdInt = int.tryParse(widget.tag.tagInternalId) ?? 0;
+      
+      // ✅ Fetch existing emergency contact data
+      final existingEmergency = await EmergencyService.fetchEmergencyInfo(
+        tagId: tagIdInt,
+      );
+      
+      if (mounted) {
+        await showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => AddEmergencyContactSheet(
+            tagId: widget.tag.tagInternalId.toString(),  // ✅ Convert to String for sheet
+            existingPrimaryPhone: existingEmergency.data.primaryPhone,
+            existingSecondaryPhone: existingEmergency.data.secondaryPhone,
+            existingBloodGroup: existingEmergency.data.bloodGroup,
+            existingInsurance: existingEmergency.data.insurance,
+            existingNote: existingEmergency.data.note,
+          ),
+        );
+        // ✅ Refresh data after sheet closes
+        widget.onDataUpdated?.call();
+      }
+    } catch (e) {
+      print('❌ Error fetching emergency info: $e');
+      // ✅ If no existing data or error, open sheet with empty fields
+      if (mounted) {
+        await showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => AddEmergencyContactSheet(
+            tagId: widget.tag.tagInternalId.toString(),  // ✅ Convert to String for sheet
+          ),
+        );
+        // ✅ Refresh data after sheet closes
+        widget.onDataUpdated?.call();
+      }
+    }
   }
 
   // ✅ Open RSA in WebView
@@ -523,6 +687,69 @@ class _ManageTagTabState extends State<ManageTagTab> {
       ),
     );
   }
+
+  // ✅ Generate and Download eTag
+  void _generateETag(BuildContext context) async {
+    HapticFeedback.mediumImpact();
+    
+    _showLoadingOverlay(context);
+
+    try {
+      final userData = await AuthService.getUserData();
+      final phone = userData['phone'] ?? '';
+      final countryCode = userData['countryCode'] ?? '+91';
+
+      final response = await ETagService.getETag(
+        tagId: widget.tag.tagInternalId.toString(),
+        phone: phone,
+        countryCode: countryCode,
+      );
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.pop(context);
+      }
+
+      // Show the eTag download sheet
+      if (mounted) {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          barrierColor: Colors.black.withOpacity(0.5),
+          builder: (context) => ETagDownloadSheet(
+            tagId: response.data.tagId.toString(),
+            plate: response.data.plate,
+            downloadUrl: response.data.downloadUrl,
+            pdfFile: response.data.pdfFile,
+            message: response.message,
+            onClose: () {
+              // User closed the sheet
+            },
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) {
+        Navigator.pop(context);
+      }
+
+      // Show error dialog
+      if (mounted) {
+        ErrorDialog.show(
+          context: context,
+          title: 'eTag Download Failed',
+          message: e.toString().replaceFirst('Exception: ', ''),
+          onRetry: () {
+            _generateETag(context);
+          },
+        );
+      }
+    }
+  }
+
+
 
   // ========================
   // ✅ UI WIDGETS
