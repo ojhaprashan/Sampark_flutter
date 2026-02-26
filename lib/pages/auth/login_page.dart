@@ -21,7 +21,7 @@ class _LoginPageState extends State<LoginPage> {
   final _phoneController = TextEditingController();
   final _otpPinController = TextEditingController();
   
-  String _selectedCountryCode = '91';
+  String _selectedCountryCode = '+91';
   bool _otpPinSent = false;
   bool _requiresPin = false;
   bool _isLoading = false;
@@ -30,10 +30,10 @@ class _LoginPageState extends State<LoginPage> {
 
 
   final List<Map<String, String>> _countries = [
-    {'code': '91', 'name': 'India', 'flag': '🇮🇳'},
-    {'code': '1', 'name': 'USA', 'flag': '🇺🇸'},
-    {'code': '44', 'name': 'UK', 'flag': '🇬🇧'},
-    {'code': '971', 'name': 'UAE', 'flag': '🇦🇪'},
+    {'code': '+91', 'name': 'India', 'flag': '🇮🇳'},
+    {'code': '+1', 'name': 'USA', 'flag': '🇺🇸'},
+    {'code': '+44', 'name': 'UK', 'flag': '🇬🇧'},
+    {'code': '+971', 'name': 'UAE', 'flag': '🇦🇪'},
   ];
 
   @override
@@ -224,8 +224,10 @@ class _LoginPageState extends State<LoginPage> {
           if (phoneLocal.startsWith('+')) {
             phoneLocal = phoneLocal.substring(1);
           }
-          if (phoneLocal.startsWith(_selectedCountryCode)) {
-            phoneLocal = phoneLocal.substring(_selectedCountryCode.length);
+          // Remove country code prefix if present (country code now includes +, so strip it first)
+          final countryCodeDigits = _selectedCountryCode.replaceFirst('+', '');
+          if (phoneLocal.startsWith(countryCodeDigits)) {
+            phoneLocal = phoneLocal.substring(countryCodeDigits.length);
           }
 
           // Login user with complete data from API
@@ -406,7 +408,7 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                '${country['name']} (+${country['code']})',
+                                '${country['name']} (${country['code']})',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: AppColors.black,
@@ -442,7 +444,7 @@ class _LoginPageState extends State<LoginPage> {
                   maxLength: 10,
                   decoration: InputDecoration(
                     hintText: 'Enter phone number',
-                    prefixText: '+$_selectedCountryCode ',
+                    prefixText: '$_selectedCountryCode ',
                     prefixStyle: TextStyle(
                       fontSize: 16,
                       color: AppColors.black,

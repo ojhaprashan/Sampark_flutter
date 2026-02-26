@@ -326,12 +326,12 @@ class _TagsPageState extends State<TagsPage> with AutomaticKeepAliveClientMixin 
                           const SizedBox(height: 10), // Spacing below slider
 
                           // ✅ 2. Search Bar is now second (only for India)
-                          if (_countryCode == '91')
+                          if (_countryCode == '+91')
                             SearchVehicleBar(
                               onSearch: _handleVehicleSearch,
                             ),
                           
-                          if (_countryCode == '91')
+                          if (_countryCode == '+91')
                             const SizedBox(height: 12),
                           
                           // Title with YouTube Icon and Description

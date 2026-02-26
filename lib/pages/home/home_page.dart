@@ -50,6 +50,7 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin 
       if (loggedIn) {
         final userData = await AuthService.getUserData();
         final countryCode = userData['countryCode'] as String? ?? '+91';
+        print('User country code: $countryCode');
         if (mounted) {
           setState(() {
             _countryCode = countryCode;
@@ -271,11 +272,11 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin 
                           const SafetyCarousel(),
                           const SizedBox(height: 10), // Reduced from 16
                           // ✅ Only show search bar if country code is India
-                          if (_countryCode == '91')
+                          if (_countryCode == '+91')
                             SearchContactBar(
                               onSearch: _handleVehicleSearch, // ✅ Added callback
                             ),
-                          if (_countryCode == '91')
+                          if (_countryCode == '+91')
                             const SizedBox(height: 12), // Reduced from 16
                           ActionGrid(key: ValueKey(isLoggedIn)),
                           const SizedBox(height: 12), // Reduced from 20

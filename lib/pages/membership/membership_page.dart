@@ -172,16 +172,40 @@ class _MembershipPageState extends State<MembershipPage> {
     }
   }
 
-  void _goPro() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const InAppWebViewPage(
-          url: 'https://payments.cashfree.com/forms/membership',
-          title: 'Get Membership',
+  void _goPro() async {
+    try {
+      // Get user phone from local storage
+      final userData = await AuthService.getUserData();
+      String phone = userData['phone'] ?? '';
+      String countryCode = userData['countryCode'] ?? '91';
+
+      // Combine country code and phone
+      countryCode = countryCode.replaceFirst('+', '');
+      final fullPhone = countryCode + phone;
+
+      // Build the URL with phone parameter
+      final membershipUrl = 'https://app.ngf132.com/member_app?ph=$fullPhone';
+
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => InAppWebViewPage(
+              url: membershipUrl,
+              title: 'Get Membership',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
         ),
-      ),
-    );
+      );
+    }
   }
 
   @override

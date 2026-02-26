@@ -26,6 +26,7 @@ class _LoginPinPageState extends State<LoginPinPage> {
   void initState() {
     super.initState();
     _checkLoginStatus();
+    _checkIfPinIsSet();
   }
 
   @override
@@ -47,6 +48,39 @@ class _LoginPinPageState extends State<LoginPinPage> {
       if (mounted) {
         setState(() {
           _isLoggedIn = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _checkIfPinIsSet() async {
+    try {
+      final userData = await AuthService.getUserData();
+      String phone = userData['phone'] as String? ?? '';
+      String countryCode = userData['countryCode'] as String? ?? '91';
+
+      if (phone.isEmpty) {
+        return;
+      }
+
+      // Combine country code and phone (remove '+' if present)
+      countryCode = countryCode.replaceFirst('+', '');
+      final fullPhone = countryCode + phone;
+
+      // Check if PIN is already set for this user
+      final hasPinSet = await LoginPinService.checkPin(phone: fullPhone);
+
+      if (mounted) {
+        setState(() {
+          _isPinSet = hasPinSet;
+        });
+      }
+    } catch (e) {
+      print('Error checking PIN status: $e');
+      // If there's an error checking, don't show PIN as set
+      if (mounted) {
+        setState(() {
+          _isPinSet = false;
         });
       }
     }
@@ -100,9 +134,10 @@ class _LoginPinPageState extends State<LoginPinPage> {
     });
 
     try {
-      // Get phone number from local storage
+      // Get phone number and country code from local storage
       final userData = await AuthService.getUserData();
-      final phone = userData['phone'] as String? ?? '';
+      String phone = userData['phone'] as String? ?? '';
+      String countryCode = userData['countryCode'] as String? ?? '91';
 
       if (phone.isEmpty) {
         if (mounted) {
@@ -123,9 +158,13 @@ class _LoginPinPageState extends State<LoginPinPage> {
         return;
       }
 
+      // Combine country code and phone (remove '+' if present)
+      countryCode = countryCode.replaceFirst('+', '');
+      final fullPhone = countryCode + phone;
+
       // Call API to set PIN
       await LoginPinService.setPin(
-        phone: phone,
+        phone: fullPhone,
         pin: _pinController.text,
       );
 
@@ -165,122 +204,6 @@ class _LoginPinPageState extends State<LoginPinPage> {
         );
       }
     }
-  }
-
-  void _resetPin() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        title: const Text('Reset Login PIN?'),
-        content: const Text('Are you sure you want to reset your login PIN? You will need to set a new PIN.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: AppColors.black,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              
-              // Show loading
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.activeYellow,
-                    ),
-                  ),
-                ),
-              );
-
-              try {
-                // Get phone number from local storage
-                final userData = await AuthService.getUserData();
-                final phone = userData['phone'] as String? ?? '';
-
-                if (phone.isEmpty) {
-                  if (mounted) {
-                    Navigator.pop(context); // Close loading
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Error: Phone number not found'),
-                        backgroundColor: Colors.red,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
-                        ),
-                      ),
-                    );
-                  }
-                  return;
-                }
-
-                // Call API to reset PIN
-                await LoginPinService.resetPin(phone: phone);
-
-                if (mounted) {
-                  Navigator.pop(context); // Close loading
-                  
-                  setState(() {
-                    _isPinSet = false;
-                    _pinController.clear();
-                    _confirmPinController.clear();
-                  });
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Login PIN has been reset'),
-                      backgroundColor: Colors.orange,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
-                      ),
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  Navigator.pop(context); // Close loading
-                  
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: ${e.toString()}'),
-                      backgroundColor: Colors.red,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
-                      ),
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              elevation: 0,
-            ),
-            child: const Text(
-              'Reset',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   void _logoutFromAllDevices() {
@@ -580,7 +503,7 @@ class _LoginPinPageState extends State<LoginPinPage> {
                 Expanded(
                   child: Text(
                     _isPinSet
-                        ? 'Your login PIN is set and active'
+                        ? 'Your login PIN is set - You can update it'
                         : 'You have not set a login PIN yet',
                     style: TextStyle(
                       fontSize: AppConstants.fontSizeCardDescription,
@@ -598,89 +521,69 @@ class _LoginPinPageState extends State<LoginPinPage> {
           const SizedBox(height: 20),
 
           // PIN Input Fields
-          if (!_isPinSet) ...[
-            Text(
-              'Setup Login PIN',
-              style: TextStyle(
-                fontSize: AppConstants.fontSizeCardTitle,
-                fontWeight: FontWeight.w600,
-                color: AppColors.black,
-              ),
+          Text(
+            _isPinSet ? 'Update Login PIN' : 'Setup Login PIN',
+            style: TextStyle(
+              fontSize: AppConstants.fontSizeCardTitle,
+              fontWeight: FontWeight.w600,
+              color: AppColors.black,
             ),
-            const SizedBox(height: 8),
-            _buildPinField(
-              controller: _pinController,
-              label: 'Enter PIN',
-              hint: 'Enter 4-6 digit PIN',
+          ),
+          const SizedBox(height: 8),
+          _buildPinField(
+            controller: _pinController,
+            label: 'Enter PIN',
+            hint: 'Enter 4-6 digit PIN',
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Confirm PIN',
+            style: TextStyle(
+              fontSize: AppConstants.fontSizeCardTitle,
+              fontWeight: FontWeight.w600,
+              color: AppColors.black,
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Confirm PIN',
-              style: TextStyle(
-                fontSize: AppConstants.fontSizeCardTitle,
-                fontWeight: FontWeight.w600,
-                color: AppColors.black,
-              ),
-            ),
-            const SizedBox(height: 8),
-            _buildPinField(
-              controller: _confirmPinController,
-              label: 'Confirm PIN',
-              hint: 'Re-enter your PIN',
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: AppConstants.buttonHeightMedium,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _setupPin,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.activeYellow,
-                  disabledBackgroundColor: AppColors.activeYellow.withOpacity(0.6),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
-                  ),
+          ),
+          const SizedBox(height: 8),
+          _buildPinField(
+            controller: _confirmPinController,
+            label: 'Confirm PIN',
+            hint: 'Re-enter your PIN',
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: AppConstants.buttonHeightMedium,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _setupPin,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.activeYellow,
+                disabledBackgroundColor: AppColors.activeYellow.withOpacity(0.6),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
                 ),
-                child: _isLoading
-                    ? SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            AppColors.black.withOpacity(0.7),
-                          ),
-                        ),
-                      )
-                    : Text(
-                        'Setup PIN',
-                        style: TextStyle(
-                          fontSize: AppConstants.fontSizeButtonText,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.black,
+              ),
+              child: _isLoading
+                  ? SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.black.withOpacity(0.7),
                         ),
                       ),
-              ),
+                    )
+                  : Text(
+                      _isPinSet ? 'Update PIN' : 'Setup PIN',
+                      style: TextStyle(
+                        fontSize: AppConstants.fontSizeButtonText,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.black,
+                      ),
+                    ),
             ),
-          ] else ...[
-            // PIN is already set - Show reset option
-            SizedBox(
-              width: double.infinity,
-              height: AppConstants.buttonHeightMedium,
-              child: ElevatedButton.icon(
-                onPressed: _resetPin,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Reset PIN'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ],
       ),
     );

@@ -233,19 +233,7 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
                 duration: const Duration(milliseconds: 300),
                 opacity: _selectedTab == 2 ? 1.0 : 0.0,
                 child: ElevatedButton.icon(
-                  onPressed: _selectedTab == 2 ? () {
-                    HapticFeedback.mediumImpact();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Share business on WhatsApp'),
-                        backgroundColor: Colors.green,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    );
-                  } : null,
+                  onPressed: _selectedTab == 2 ? _shareBusinessOnWhatsApp : null,
                   icon: const Icon(
                     Icons.share,
                     color: Colors.white,
@@ -452,7 +440,7 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
           iconColor: Colors.blue.shade600, // ✅ Colorful icon
           label: 'View Business',
           trailing: Icons.remove_red_eye,
-          onTap: () {},
+          onTap: _showComingSoonDialog,
         ),
 
         _buildActionButton(
@@ -460,7 +448,7 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
           iconColor: Colors.green.shade600, // ✅ Colorful icon
           label: 'View Leads',
           trailing: Icons.chat_bubble_outline,
-          onTap: () {},
+          onTap: _showComingSoonDialog,
         ),
 
         _buildActionButton(
@@ -468,7 +456,7 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
           iconColor: Colors.orange.shade600, // ✅ Colorful icon
           label: 'Edit Business',
           trailing: Icons.edit,
-          onTap: () {},
+          onTap: _showComingSoonDialog,
         ),
 
         const SizedBox(height: AppConstants.spacingMedium),
@@ -584,7 +572,7 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
           iconColor: Colors.purple.shade600, // ✅ Colorful icon
           label: 'Manage Profile Pic / Video',
           trailing: Icons.image,
-          onTap: () {},
+          onTap: _showComingSoonDialog,
         ),
 
         _buildActionButton(
@@ -592,7 +580,7 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
           iconColor: Colors.indigo.shade600, // ✅ Colorful icon
           label: 'Catalog',
           trailing: Icons.shopping_bag,
-          onTap: () {},
+          onTap: _showComingSoonDialog,
         ),
 
         _buildActionButton(
@@ -600,7 +588,7 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
           iconColor: Colors.blue.shade600, // ✅ Colorful icon
           label: 'Upload Brochure',
           trailing: Icons.description,
-          onTap: () {},
+          onTap: _showComingSoonDialog,
         ),
 
         _buildActionButton(
@@ -608,7 +596,7 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
           iconColor: Colors.amber.shade700, // ✅ Colorful icon
           label: 'Add Offer Codes',
           trailing: Icons.star,
-          onTap: () {},
+          onTap: _showComingSoonDialog,
         ),
 
         _buildActionButton(
@@ -616,7 +604,7 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
           iconColor: Colors.pink.shade600, // ✅ Colorful icon
           label: 'Add Portfolio Images',
           trailing: Icons.photo,
-          onTap: () {},
+          onTap: _showComingSoonDialog,
         ),
 
         _buildActionButtonWithDescription(
@@ -625,7 +613,7 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
           label: 'Manage Social Media',
           description: 'Add / Redirect to Social Pages.',
           trailing: Icons.link,
-          onTap: () {},
+          onTap: _showComingSoonDialog,
         ),
 
         const SizedBox(height: AppConstants.spacingSmall),
@@ -739,7 +727,7 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
           iconColor: Colors.blue.shade600, // ✅ Colorful icon
           label: 'NGF132 TAP IS ACTIVE',
           trailing: Icons.nfc,
-          onTap: () {},
+          onTap: _showComingSoonDialog,
         ),
 
         _buildActionButton(
@@ -748,7 +736,7 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
           label: 'Delete',
           trailing: Icons.close,
           isRed: true,
-          onTap: () {},
+          onTap: _showComingSoonDialog,
         ),
 
         // ✅ Edit and re-write tag
@@ -1186,6 +1174,252 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
         );
       },
     );
+  }
+
+  // ==========================
+  // ✅ COMING SOON POPUP
+  // ==========================
+  void _showComingSoonDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.schedule,
+                  size: 48,
+                  color: Colors.blue.shade600,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Coming Soon',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.black,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'This feature will be updated soon. Please use on Chrome for now.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textGrey,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade600,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppConstants.buttonBorderRadius,
+                        ),
+                      ),
+                    ),
+                    child: const Text(
+                      'Got it',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ==========================
+  // ✅ WHATSAPP SHARING
+  // ==========================
+  void _shareBusinessOnWhatsApp() async {
+    try {
+      final userData = await AuthService.getUserData();
+      final phone = userData['phone'] ?? '';
+      final countryCode = userData['countryCode'] ?? '91';
+      final name = userData['name'] ?? 'Sampark User';
+
+      // Combine country code and phone
+      String formattedPhone = countryCode.replaceFirst('+', '') + phone;
+
+      // Create WhatsApp message
+      String message = 'Hi! Check out my business on Sampark: ';
+      if (widget.tag.manageUrl.isNotEmpty) {
+        message += widget.tag.manageUrl;
+      } else {
+        message += 'Sampark Business Tag';
+      }
+
+      // Show confirmation dialog with business details
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    size: 48,
+                    color: Colors.green.shade600,
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Share on WhatsApp',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.black,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Share your business with:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textGrey,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '+$formattedPhone',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.black,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Message:',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textGrey,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      message,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.black,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey.shade300,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                AppConstants.buttonBorderRadius,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: AppColors.black,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            HapticFeedback.mediumImpact();
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('Opening WhatsApp...'),
+                                backgroundColor: Colors.green,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                AppConstants.buttonBorderRadius,
+                              ),
+                            ),
+                          ),
+                          child: const Text(
+                            'Share',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      _showErrorDialog('Error', 'Failed to share: $e');
+    }
   }
 
   // ===================

@@ -5,6 +5,8 @@ import '../../utils/colors.dart';
 import '../../utils/constants.dart';
 import 'login_page.dart';
 import '../../services/auth_service.dart';
+import '../../services/tags_service.dart';
+import '../main_navigation.dart';
 import 'vehicle_details_page.dart';
 
 class SignupPage extends StatefulWidget {
@@ -101,12 +103,8 @@ class _SignupPageState extends State<SignupPage> {
           await Future.delayed(const Duration(milliseconds: 1000));
 
           if (mounted) {
-            // Navigate to vehicle details page
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (_) => const VehicleDetailsPage(isFromSignup: true),
-              ),
-            );
+            // ✅ Check if user has tags before navigating
+            await _navigateBasedOnUserTags(phoneNumber);
           }
         } catch (e) {
           if (mounted) {
@@ -119,6 +117,75 @@ class _SignupPageState extends State<SignupPage> {
       }
     });
   }
+
+  /// ✅ NEW: Check if user (who just signed up) already has tags
+  /// If old user (has tags) -> MainNavigation (tags page)
+  /// If new user (no tags) -> VehicleDetailsPage (add vehicles)
+  Future<void> _navigateBasedOnUserTags(String phoneNumber) async {
+    try {
+      print('🏷️ [SignupPage] Checking if user has existing tags...');
+      
+      // API credentials
+      const String smValue = '67s87s6yys66';
+      const String dgValue = 'testYU78dII8iiUIPSISJ';
+      
+      // Extract country code from _selectedCountryCode (remove '+' prefix)
+      final countryCode = _selectedCountryCode.replaceFirst('+', '');
+      
+      // Format phone with country code for API call
+      final phone =  phoneNumber;
+      
+      // Fetch user tags
+      final userTagsStats = await TagsService.fetchUserTags(
+        phone: phone,
+        smValue: smValue,
+        dgValue: dgValue,
+      );
+
+      print('📊 [SignupPage] User Tags Check:');
+      print('   ├─ Has Active Tags: ${userTagsStats.hasActiveTags}');
+      print('   ├─ Total Tags: ${userTagsStats.summary.getTotalTags()}');
+      print('   │  ├─ Car Tags: ${userTagsStats.summary.carTags}');
+      print('   │  ├─ Bike Tags: ${userTagsStats.summary.bikeTags}');
+      print('   │  ├─ Business Tags: ${userTagsStats.summary.businessTags}');
+      print('   │  ├─ Menu Tags: ${userTagsStats.summary.menuTags}');
+      print('   │  ├─ Emergency Tags: ${userTagsStats.summary.emergencyTags}');
+      print('   │  └─ Door Tags: ${userTagsStats.summary.doorTags}');
+
+      if (mounted) {
+        if (userTagsStats.hasActiveTags) {
+          // ✅ Old user - has existing tags, navigate to MainNavigation
+          print('✅ [SignupPage] Old user with existing tags detected - navigating to tags page');
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => const MainNavigation(initialIndex: 2),
+            ),
+          );
+        } else {
+          // ✅ New user - no tags, navigate to VehicleDetailsPage
+          print('✅ [SignupPage] New user detected - navigating to vehicle details page');
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => const VehicleDetailsPage(isFromSignup: true),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ [SignupPage] Error checking user tags: $e');
+      
+      if (mounted) {
+        // If tag check fails, default to VehicleDetailsPage for new signup flow
+        print('⚠️ [SignupPage] Tag check failed, defaulting to VehicleDetailsPage');
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const VehicleDetailsPage(isFromSignup: true),
+          ),
+        );
+      }
+    }
+  }
+
 
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -169,7 +236,7 @@ class _SignupPageState extends State<SignupPage> {
                     Text(
                       _otpSent
                           ? 'Enter the OTP sent to $_selectedCountryCode ${_phoneController.text}'
-                          : 'Join SHAMPRAK to manage your tags',
+                          : 'Join SAMPARK to manage your tags',
                       style: TextStyle(
                         fontSize: 14,
                         color: AppColors.textGrey,

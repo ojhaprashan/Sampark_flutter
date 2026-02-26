@@ -185,7 +185,7 @@ class AuthService {
     return {
       'name': prefs.getString(_keyName) ?? '',
       'phone': prefs.getString(_keyPhone) ?? '',
-      'countryCode': prefs.getString(_keyCountryCode) ?? '91',
+      'countryCode': prefs.getString(_keyCountryCode) ?? '+91',
       'email': prefs.getString(_keyEmail) ?? '',
       'city': prefs.getString(_keyCity) ?? '',
       'verified': prefs.getBool(_keyVerified) ?? false,
