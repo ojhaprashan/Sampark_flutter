@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../utils/colors.dart';
 import '../../utils/constants.dart';
 import '../../services/notification_service.dart';
+import '../../services/auth_service.dart';
 
 class NotificationSheet extends StatefulWidget {
   final String? tagInternalId;
@@ -29,19 +30,52 @@ class _NotificationSheetState extends State<NotificationSheet> {
   }
 
   Future<void> _loadNotifications() async {
-    if (widget.tagInternalId == null || widget.phone == null) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Missing tag information';
-      });
-      return;
-    }
-
     try {
-      final response = await NotificationService.fetchNotifications(
-        tagInternalId: widget.tagInternalId!,
-        phone: widget.phone!,
-      );
+      // Get phone number - from widget param or AuthService
+      String? phoneNumber = widget.phone;
+      String countryCode = '91'; // Default to India
+      
+      if (phoneNumber == null || phoneNumber.isEmpty) {
+        // Try to get from AuthService
+        final userData = await AuthService.getUserData();
+        phoneNumber = userData['phone'] ?? '';
+        
+        // Also get country code
+        final countryCodeStr = userData['countryCode'] ?? '+91';
+        countryCode = countryCodeStr.replaceFirst('+', ''); // Remove '+' if present
+      }
+
+      if (phoneNumber == null || phoneNumber.isEmpty) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Phone number not available';
+        });
+        return;
+      }
+
+      // Combine country code with phone number (if phone doesn't already start with country code)
+      final fullPhone = phoneNumber.startsWith(countryCode) 
+          ? phoneNumber 
+          : countryCode + phoneNumber;
+
+      late NotificationResponse response;
+      
+      // Check if we have tagInternalId for tag-specific notifications
+      if (widget.tagInternalId != null && widget.tagInternalId!.isNotEmpty) {
+        // Fetch tag-specific notifications
+        response = await NotificationService.fetchNotifications(
+          tagInternalId: widget.tagInternalId!,
+          phone: fullPhone,
+          countryCode: countryCode,
+        );
+      } else {
+        print("📬 Fetching global notifications for phone: $fullPhone");
+        // Fetch global notifications (all tags)
+        response = await NotificationService.fetchGlobalNotifications(
+          phone: fullPhone,
+          countryCode: countryCode,
+        );
+      }
 
       if (mounted) {
         setState(() {
@@ -367,6 +401,18 @@ class _NotificationSheetState extends State<NotificationSheet> {
                       ],
                     ),
                     const SizedBox(height: 4),
+                    // Show plate number if available (global notifications)
+                    if (notification.plate != null && notification.plate!.isNotEmpty) ...[
+                      Text(
+                        '🚗 ${notification.plate}',
+                        style: TextStyle(
+                          fontSize: AppConstants.fontSizeCardDescription - 1,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                    ],
                     Text(
                       notification.message,
                       style: TextStyle(

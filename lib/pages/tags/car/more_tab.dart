@@ -8,6 +8,7 @@ import 'package:my_new_app/utils/constants.dart';
 import 'package:my_new_app/services/tags_service.dart';
 import 'package:my_new_app/services/auth_service.dart';
 import 'package:my_new_app/services/offline_qr_service.dart';
+import 'package:my_new_app/services/premium_service.dart';
 import 'package:my_new_app/pages/widgets/tag_replacement_dialog.dart';
 import 'package:my_new_app/pages/AppWebView/appweb.dart';
 
@@ -35,6 +36,8 @@ class _MoreTabState extends State<MoreTab> {
   bool _isLoading = false;
   String _countryCode = '+91'; // Track country code for India-specific features
   String _userPhone = ''; // ✅ Track user phone
+  bool _hasPremium = false; // ✅ Premium status
+  bool _isLoadingPremium = false; // ✅ Loading premium data
 
   @override
   void initState() {
@@ -58,8 +61,33 @@ class _MoreTabState extends State<MoreTab> {
           _userPhone = phone; // ✅ Set user phone
         });
       }
+      // ✅ Load premium data
+      _loadPremiumData();
     } catch (e) {
       print('Error loading country code: $e');
+    }
+  }
+
+  // ✅ Load premium data from cache
+  Future<void> _loadPremiumData() async {
+    try {
+      setState(() {
+        _isLoadingPremium = true;
+      });
+      final premiumData = await PremiumService.getCachedPremiumData();
+      if (mounted) {
+        setState(() {
+          _hasPremium = premiumData?.hasPremium ?? false;
+          _isLoadingPremium = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading premium data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingPremium = false;
+        });
+      }
     }
   }
 
@@ -182,38 +210,95 @@ class _MoreTabState extends State<MoreTab> {
               },
             ),
             const SizedBox(height: AppConstants.spacingMedium),
-            // Membership Badge
-            Container(
-              padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-                border: Border.all(
-                  color: AppColors.lightGrey,
-                  width: 1,
+            // ✅ Show premium UI based on state
+            if (_isLoadingPremium)
+              // Loading state
+              Container(
+                padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
+                decoration: BoxDecoration(
+                  color: Colors.purple.shade50,
+                  borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+                  border: Border.all(
+                    color: Colors.purple.shade200,
+                    width: 2,
+                  ),
                 ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.workspace_premium,
-                    size: AppConstants.iconSizeLarge,
-                    color: Colors.purple,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Membership*',
-                    style: TextStyle(
-                      fontSize: AppConstants.fontSizeSectionTitle,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.black,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.purple),
+                      ),
                     ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Loading membership status...',
+                      style: TextStyle(
+                        fontSize: AppConstants.fontSizeCardDescription,
+                        color: Colors.purple.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (_hasPremium)
+              // ✅ Show Membership Badge if user has premium
+              Container(
+                padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
+                decoration: BoxDecoration(
+                  color: Colors.purple.shade50,
+                  borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+                  border: Border.all(
+                    color: Colors.purple.shade200,
+                    width: 2,
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 100),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.workspace_premium,
+                          size: AppConstants.iconSizeLarge,
+                          color: Colors.purple,
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Premium Member',
+                              style: TextStyle(
+                                fontSize: AppConstants.fontSizeSectionTitle,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.purple,
+                              ),
+                            ),
+                            Text(
+                              'Enjoy exclusive features',
+                              style: TextStyle(
+                                fontSize: AppConstants.fontSizeCardDescription,
+                                color: Colors.purple.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Icon(
+                      Icons.check_circle,
+                      color: Colors.green.shade600,
+                      size: 24,
+                    ),
+                  ],
+                ),
+              )
+           
           ],
         ),
       ),

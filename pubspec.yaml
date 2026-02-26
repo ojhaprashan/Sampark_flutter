@@ -20,6 +20,8 @@ dependencies:
   
   # SVG support
   flutter_svg: ^2.0.9
+
+  shimmer: ^3.0.0
   
   # Shared Preferences
   shared_preferences: ^2.2.2
@@ -46,6 +48,11 @@ dependencies:
 
   # For Camera and Gallery images
   image_picker: ^1.0.7
+
+  # Firebase for Push Notifications
+  firebase_core: ^3.3.0
+  firebase_messaging: ^15.1.0
+  flutter_local_notifications: ^17.1.0
 
 
 

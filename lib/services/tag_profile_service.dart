@@ -34,6 +34,7 @@ class TagProfileData {
   final bool isDemoTag;
   final String demoCode;
   final bool isPremium;
+  final String phone;
   final CallFlags callFlags;
   final bool hasSecondaryNumber;
 
@@ -50,6 +51,7 @@ class TagProfileData {
     required this.isDemoTag,
     required this.demoCode,
     required this.isPremium,
+    required this.phone,
     required this.callFlags,
     required this.hasSecondaryNumber,
   });
@@ -68,6 +70,7 @@ class TagProfileData {
       isDemoTag: json['is_demo_tag'] ?? false,
       demoCode: json['demo_code']?.toString() ?? '0',
       isPremium: json['is_premium'] ?? false,
+      phone: json['phone']?.toString() ?? '',
       callFlags: CallFlags.fromJson(json['call_flags'] ?? {}),
       hasSecondaryNumber: json['has_secondary_number'] ?? false,
     );

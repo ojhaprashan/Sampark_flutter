@@ -3,10 +3,12 @@ import 'package:my_new_app/pages/widgets/notification_sheet.dart';
 import '../../utils/colors.dart';
 import '../../services/auth_service.dart';
 import '../../services/wallet_service.dart';
+import '../../services/premium_service.dart';
 import '../auth/login_page.dart';
 import '../auth/edit_profile_page.dart';
 import '../auth/login_pin_page.dart';
 import '../main_navigation.dart';
+
 
 
 class AppHeader extends StatefulWidget {
@@ -17,6 +19,7 @@ class AppHeader extends StatefulWidget {
   final bool showCartIcon;
   final int cartItemCount;
   final VoidCallback? onCartTap;
+
 
 
   const AppHeader({
@@ -31,25 +34,30 @@ class AppHeader extends StatefulWidget {
   });
 
 
+
   @override
   State<AppHeader> createState() => _AppHeaderState();
 }
+
 
 
 class _AppHeaderState extends State<AppHeader> {
   Map<String, dynamic> _userData = {};
   double _walletBalance = 0.0;
   bool _isLoadingWallet = true;
+  PremiumData? _premiumData;
+  bool _isLoadingPremium = true;
+
 
 
   @override
   void initState() {
     super.initState();
-    // ✅ Don't await - let it load asynchronously
     _loadUserData();
     
     AuthService.userDataNotifier.addListener(_handleUserDataChange);
   }
+
 
 
   @override
@@ -59,9 +67,11 @@ class _AppHeaderState extends State<AppHeader> {
   }
 
 
+
   void _handleUserDataChange() {
     _loadUserData();
   }
+
 
 
   @override
@@ -73,21 +83,21 @@ class _AppHeaderState extends State<AppHeader> {
   }
 
 
-  // ✅ Load user data WITHOUT blocking UI - don't use setState until data arrives
+
   void _loadUserData() async {
     if (widget.isLoggedIn) {
-      // ✅ Fetch data asynchronously without blocking
       AuthService.getUserData().then((data) {
         if (mounted) {
           setState(() {
             _userData = data;
           });
           
-          // Load wallet data after user data
           final phone = data['phone'] as String? ?? '';
           if (phone.isNotEmpty) {
             _loadWalletData(phone);
           }
+          
+          _loadPremiumData();
         }
       }).catchError((error) {
         print('❌ Error loading user data: $error');
@@ -102,9 +112,12 @@ class _AppHeaderState extends State<AppHeader> {
         _userData = {};
         _walletBalance = 0.0;
         _isLoadingWallet = false;
+        _premiumData = null;
+        _isLoadingPremium = false;
       });
     }
   }
+
 
 
   void _loadWalletData(String phone) async {
@@ -114,6 +127,7 @@ class _AppHeaderState extends State<AppHeader> {
       });
       return;
     }
+
 
 
     try {
@@ -137,10 +151,34 @@ class _AppHeaderState extends State<AppHeader> {
   }
 
 
+  void _loadPremiumData() async {
+    try {
+      final premiumData = await PremiumService.getCachedPremiumData();
+      if (mounted) {
+        setState(() {
+          _premiumData = premiumData;
+          _isLoadingPremium = false;
+        });
+        print('✅ Premium data loaded: ${_premiumData?.hasPremium}');
+      }
+    } catch (e) {
+      print('❌ Error loading premium data: $e');
+      if (mounted) {
+        setState(() {
+          _premiumData = null;
+          _isLoadingPremium = false;
+        });
+      }
+    }
+  }
+
+
+
   String get userName {
     final name = _userData['name'] ?? '';
     return name.trim().isEmpty ? 'User' : name;
   }
+
 
 
   String get userFirstName {
@@ -150,10 +188,12 @@ class _AppHeaderState extends State<AppHeader> {
   }
 
 
+
   String get userInitial {
     final name = _userData['name'] ?? '';
     return name.isEmpty ? 'U' : name[0].toUpperCase();
   }
+
 
 
   String get userPhone {
@@ -162,6 +202,7 @@ class _AppHeaderState extends State<AppHeader> {
     if (phone.isEmpty) return '$code ••••••••••';
     return '$code $phone';
   }
+
 
 
   void _showNotificationSheet() {
@@ -180,6 +221,7 @@ class _AppHeaderState extends State<AppHeader> {
       ),
     );
   }
+
 
 
   void _showProfileMenu(BuildContext context) {
@@ -339,6 +381,7 @@ class _AppHeaderState extends State<AppHeader> {
   }
 
 
+
   Widget _buildMenuButton({
     required IconData icon,
     required String label,
@@ -386,6 +429,7 @@ class _AppHeaderState extends State<AppHeader> {
   }
 
 
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -394,7 +438,6 @@ class _AppHeaderState extends State<AppHeader> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top Row - Always shows immediately
           widget.showBackButton
               ? Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -515,44 +558,52 @@ class _AppHeaderState extends State<AppHeader> {
                     ),
                   ],
                 ),
-          // ✅ User info - Shows immediately when logged in (even with placeholder data)
           if (widget.showUserInfo && widget.isLoggedIn) ...[
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Hi, $userFirstName',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.black,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'Hi, $userFirstName',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.black,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Text(
-                          '👋',
-                          style: TextStyle(fontSize: 22),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      userPhone,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.black.withOpacity(0.7),
+                          if (_premiumData?.hasPremium == true) ...[
+                            const SizedBox(width: 6),
+                            Icon(
+                              Icons.verified_rounded,
+                              color: Colors.blue.shade700,
+                              size: 22,
+                            ),
+                          ],
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 6),
+                      Text(
+                        userPhone,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.black.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
@@ -622,6 +673,7 @@ class _AppHeaderState extends State<AppHeader> {
   }
 
 
+
   Widget _buildIconButton(IconData icon, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -635,6 +687,7 @@ class _AppHeaderState extends State<AppHeader> {
       ),
     );
   }
+
 
 
   Widget _buildCartButton() {

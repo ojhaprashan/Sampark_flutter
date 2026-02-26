@@ -3,15 +3,18 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../utils/colors.dart';
 import '../../utils/constants.dart';
 import '../../services/emergency_service.dart';
+import '../../pages/scan/contact_reasons.dart';
 
 
 class EmergencySectionWidget extends StatelessWidget {
   final int tagId;
+  final String tagTypeCode;
 
 
   const EmergencySectionWidget({
     super.key,
     required this.tagId,
+    required this.tagTypeCode,
   });
 
 
@@ -659,20 +662,25 @@ class EmergencySectionWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isVehicleTag = ContactReasons.isVehicleTag(tagTypeCode);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Do you think the vehicle has an accident and needs to be contacted family members or emergency numbers?',
-          style: TextStyle(
-            fontSize: AppConstants.fontSizeCardTitle,
-            color: AppColors.black,
-            fontWeight: FontWeight.w500,
-            height: 1.4,
+        // Show question text only for vehicle tags
+        if (isVehicleTag) ...[
+          Text(
+            'Do you think the vehicle has an accident and needs to be contacted family members or emergency numbers?',
+            style: TextStyle(
+              fontSize: AppConstants.fontSizeCardTitle,
+              color: AppColors.black,
+              fontWeight: FontWeight.w500,
+              height: 1.4,
+            ),
           ),
-        ),
-        SizedBox(height: AppConstants.spacingMedium),
-        // Single Emergency Button
+          SizedBox(height: AppConstants.spacingMedium),
+        ],
+        // Single Emergency Button (shown for all tags)
         Align(
           alignment: Alignment.centerLeft,
           child: SizedBox(

@@ -323,15 +323,15 @@ class _TagsPageState extends State<TagsPage> with AutomaticKeepAliveClientMixin 
                           // ✅ 1. Slider Moved to Top
                           _buildImageSlider(),
 
-                          const SizedBox(height: 1), // Spacing below slider
+                          const SizedBox(height: 10), // Spacing below slider
 
                           // ✅ 2. Search Bar is now second (only for India)
-                          if (_countryCode == '+91')
+                          if (_countryCode == '91')
                             SearchVehicleBar(
                               onSearch: _handleVehicleSearch,
                             ),
                           
-                          if (_countryCode == '+91')
+                          if (_countryCode == '91')
                             const SizedBox(height: 12),
                           
                           // Title with YouTube Icon and Description
@@ -433,50 +433,55 @@ class _TagsPageState extends State<TagsPage> with AutomaticKeepAliveClientMixin 
 
   // ✅ Image Slider styled like Product Details Page
  Widget _buildImageSlider() {
-  // 1. Get screen width
-  double screenWidth = MediaQuery.of(context).size.width;
+    // 1. Get screen width
+    double screenWidth = MediaQuery.of(context).size.width;
 
-  // 2. Define "little space" (Optional: set to 0.0 if you want edge-to-edge)
-  double sidePadding = 0.0;
+    // 2. Define "little space" (Changed to 16.0 for left/right spacing)
+    double sidePadding = 10.0; 
 
-  // 3. Calculate Width
-  double sliderWidth = screenWidth - (sidePadding * 2);
+    // 3. Calculate Width
+    double sliderWidth = screenWidth - (sidePadding * 2);
 
-  // 4. Calculate Height dynamically (Ratio 3.6 makes it a thin banner)
-  // Lower number = Taller banner. Higher number = Thinner banner.
-  double sliderHeight = sliderWidth / 3.6; 
+    // 4. Calculate Height dynamically (Ratio 3.6 makes it a thin banner)
+    // Lower number = Taller banner. Higher number = Thinner banner.
+    double sliderHeight = sliderWidth / 3.6; 
 
-  return Padding(
-    padding: EdgeInsets.symmetric(horizontal: sidePadding),
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: MediaSlider(
-        // ✅ Fix 1: Height is calculated based on phone width
-        height: sliderHeight, 
-        
-      items: [
-          MediaSliderItem.networkImage(
-            url: 'https://sampark.me/assets/app/profile_1.png',
-            title: 'Tag Feature 1',
-            boxFit: BoxFit.fill, 
-          ),
-          MediaSliderItem.networkImage(
-            url: 'https://sampark.me/assets/app/profile_2.png', 
-            title: 'Tag Feature 2',
-            boxFit: BoxFit.fill,
-          ),
-          MediaSliderItem.networkImage(
-            url: 'https://sampark.me/assets/app/profile_3.png', 
-            title: 'Tag Feature 3',
-            boxFit: BoxFit.fill,
-          ),
-        ],
-        autoScroll: true,
-        show3DEffect: false,
-        viewportFraction: 1.0, 
-        showIndicators: false,
+    return Padding(
+      // ✅ Changed to EdgeInsets.only to add Top, Left, and Right padding
+      padding: EdgeInsets.only(
+        top: 10.0,         // Spacing from the top
+        left: sidePadding, // Spacing from the left
+        right: sidePadding // Spacing from the right
       ),
-    ),
-  );
-}
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: MediaSlider(
+          // ✅ Height is calculated based on phone width minus padding
+          height: sliderHeight, 
+          
+          items: [
+            MediaSliderItem.networkImage(
+              url: 'https://sampark.me/assets/app/profile_1.png',
+              title: 'Tag Feature 1',
+              boxFit: BoxFit.fill, 
+            ),
+            MediaSliderItem.networkImage(
+              url: 'https://sampark.me/assets/app/profile_2.png', 
+              title: 'Tag Feature 2',
+              boxFit: BoxFit.fill,
+            ),
+            MediaSliderItem.networkImage(
+              url: 'https://sampark.me/assets/app/profile_3.png', 
+              title: 'Tag Feature 3',
+              boxFit: BoxFit.fill,
+            ),
+          ],
+          autoScroll: true,
+          show3DEffect: false,
+          viewportFraction: 1.0, 
+          showIndicators: false,
+        ),
+      ),
+    );
+  }
 }

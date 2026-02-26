@@ -111,6 +111,7 @@ class EmergencyService {
   static Future<Map<String, dynamic>> updateEmergencyInfo({
     required int tagId,
     required String phone,
+    required int status,  // 1 for enable, 0 for disable
     required String? phone1,  // Primary emergency phone
     required String? phone2,  // Secondary emergency phone
     required String? bloodGroup,
@@ -126,7 +127,7 @@ class EmergencyService {
         'dg': 'ABCDYU78dII8iiUIPSISJ',
         'tag_id': tagId.toString(),
         'ph': phone,
-        'status': '1',
+        'status': status.toString(),
       };
 
       // ✅ Add optional fields if provided

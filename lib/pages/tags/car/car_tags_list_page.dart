@@ -43,7 +43,7 @@ class _CarTagsListPageState extends State<CarTagsListPage> {
           });
         }
         // ✅ Only fetch car tags for India users
-        if (countryCode == '+91') {
+        if (countryCode == '91') {
           _fetchCarTags();
         }
       }
@@ -157,7 +157,7 @@ class _CarTagsListPageState extends State<CarTagsListPage> {
                                   ),
                                 )
                               // ✅ Show message for non-India users
-                              : _countryCode != '+91'
+                              : _countryCode != '91'
                                   ? Center(
                                       child: Text(
                                         'Car tags are available only for India',

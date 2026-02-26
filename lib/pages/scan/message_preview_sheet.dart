@@ -7,16 +7,19 @@ import '../../services/owner_message_service.dart';
 import '../../services/auth_service.dart';
 import '../../providers/location_provider.dart';
 
+
 class MessagePreviewSheet extends StatefulWidget {
   final String vehicleNumber;
   final String reasonText;
   final String? phoneNumber;
+  final int? tagId;
 
   const MessagePreviewSheet({
     super.key,
     required this.vehicleNumber,
     required this.reasonText,
     this.phoneNumber,
+    this.tagId,
   });
 
   @override
@@ -37,6 +40,7 @@ class MessagePreviewSheet extends StatefulWidget {
         vehicleNumber: vehicleNumber,
         reasonText: reasonText,
         phoneNumber: phoneNumber,
+        tagId: tagId,
       ),
     );
   }
@@ -88,13 +92,23 @@ class _MessagePreviewSheetState extends State<MessagePreviewSheet> {
     return '$unmaskedPart****';
   }
 
+  /// Get title
+  String _getTitleText() {
+    return 'Verify Vehicle Plate';
+  }
+
+  /// Get phone field label based on tag type
+  String _getTitleForPhoneField() {
+    return 'Your Phone Number:';
+  }
+
   Future<void> _sendMessage() async {
     // Clear previous error
     setState(() {
       _errorMessage = null;
     });
 
-    // Validation
+    // Validate last 4 digits
     if (_last4DigitsController.text.trim().isEmpty) {
       setState(() {
         _errorMessage = '❌ Please enter the last 4 digits of the plate';
@@ -136,7 +150,7 @@ class _MessagePreviewSheetState extends State<MessagePreviewSheet> {
       return;
     }
 
-    // Build message
+    // Build message for vehicle
     String messageText = 'Hi! Regarding your vehicle ${widget.vehicleNumber}: ${widget.reasonText}';
     
     if (_yourPhoneController.text.trim().isNotEmpty) {
@@ -150,10 +164,11 @@ class _MessagePreviewSheetState extends State<MessagePreviewSheet> {
     });
 
     try {
-      // Call the API
+      final last4Digits = _last4DigitsController.text.trim();
+
       final response = await OwnerMessageService.sendOwnerMessage(
-        plateNumber: widget.vehicleNumber,
-        last4Digits: _last4DigitsController.text.trim(),
+        tagId: widget.tagId,
+        last4Digits: last4Digits,
         messageText: messageText,
         userPhoneNumber: _yourPhoneController.text.trim().isEmpty 
             ? widget.phoneNumber!
@@ -237,7 +252,7 @@ class _MessagePreviewSheetState extends State<MessagePreviewSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Verify Vehicle Plate',
+                      _getTitleText(),
                       style: TextStyle(
                         fontSize: AppConstants.fontSizePageTitle,
                         fontWeight: FontWeight.w700,
@@ -270,105 +285,105 @@ class _MessagePreviewSheetState extends State<MessagePreviewSheet> {
                       width: double.infinity,
                       padding: EdgeInsets.all(AppConstants.paddingLarge),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.primaryYellow,
-                            AppColors.activeYellow,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(
-                            AppConstants.borderRadiusCard),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.activeYellow.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.directions_car,
-                                color: AppColors.black,
-                                size: AppConstants.iconSizeMedium,
-                              ),
-                              SizedBox(width: AppConstants.spacingSmall),
-                              Text(
-                                'Vehicle Plate Number',
-                                style: TextStyle(
-                                  fontSize: AppConstants.fontSizeCardTitle,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.black,
-                                ),
-                              ),
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primaryYellow,
+                              AppColors.activeYellow,
                             ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                          SizedBox(height: AppConstants.spacingSmall),
-                          Text(
-                            _getMaskedPlateNumber(widget.vehicleNumber),
-                            style: TextStyle(
-                              fontSize: AppConstants.fontSizePageTitle + 4,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.black,
-                              letterSpacing: 8,
+                          borderRadius: BorderRadius.circular(
+                              AppConstants.borderRadiusCard),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.activeYellow.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: Offset(0, 4),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.directions_car,
+                                  color: AppColors.black,
+                                  size: AppConstants.iconSizeMedium,
+                                ),
+                                SizedBox(width: AppConstants.spacingSmall),
+                                Text(
+                                  'Vehicle Plate Number',
+                                  style: TextStyle(
+                                    fontSize: AppConstants.fontSizeCardTitle,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: AppConstants.spacingSmall),
+                            Text(
+                              _getMaskedPlateNumber(widget.vehicleNumber),
+                              style: TextStyle(
+                                fontSize: AppConstants.fontSizePageTitle + 4,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.black,
+                                letterSpacing: 8,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    SizedBox(height: AppConstants.spacingLarge),
+                      SizedBox(height: AppConstants.spacingLarge),
                     
-                    // --- HIGHLIGHTED INPUT FIELD ---
+                    // --- HIGHLIGHTED INPUT FIELD - Verification for Vehicle Tags ---
                     Container(
-                      decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.activeYellow.withOpacity(0.2),
-                            blurRadius: 15,
-                            offset: Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        controller: _last4DigitsController,
-                        keyboardType: TextInputType.number,
-                        maxLength: 4,
-                        textAlign: TextAlign.center,
-                        autofocus: true, // Auto focus
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        decoration: InputDecoration(
-                          hintText: 'Enter Last 4 Digits',
-                          hintStyle: TextStyle(
-                            color: AppColors.black.withOpacity(0.4),
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1.0,
-                          ),
-                          filled: true,
-                          fillColor: AppColors.white,
-                          counterText: '',
-                          // Standard Border
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide(
-                              color: AppColors.activeYellow,
-                              width: 1.5,
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.activeYellow.withOpacity(0.2),
+                              blurRadius: 15,
+                              offset: Offset(0, 5),
                             ),
-                          ),
-                          // Focused/Active Border
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide(
-                              color: AppColors.activeYellow,
-                              width: 3.0,
+                          ],
+                        ),
+                        child: TextField(
+                          controller: _last4DigitsController,
+                          keyboardType: TextInputType.number,
+                          maxLength: 4,
+                          textAlign: TextAlign.center,
+                          autofocus: true, // Auto focus
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          decoration: InputDecoration(
+                            hintText: 'Enter Last 4 Digits',
+                            hintStyle: TextStyle(
+                              color: AppColors.black.withOpacity(0.4),
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.0,
                             ),
+                            filled: true,
+                            fillColor: AppColors.white,
+                            counterText: '',
+                            // Standard Border
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide(
+                                color: AppColors.activeYellow,
+                                width: 1.5,
+                              ),
+                            ),
+                            // Focused/Active Border
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide(
+                                color: AppColors.activeYellow,
+                                width: 3.0,
+                              ),
                           ),
                           contentPadding: EdgeInsets.symmetric(
                             horizontal: AppConstants.paddingMedium,
@@ -386,7 +401,7 @@ class _MessagePreviewSheetState extends State<MessagePreviewSheet> {
                     
                     SizedBox(height: AppConstants.spacingLarge),
                     Text(
-                      'Registered Phone Number:',
+                      _getTitleForPhoneField(),
                       style: TextStyle(
                         fontSize: AppConstants.fontSizeCardTitle,
                         color: AppColors.black,
@@ -395,17 +410,17 @@ class _MessagePreviewSheetState extends State<MessagePreviewSheet> {
                     ),
                     SizedBox(height: AppConstants.spacingSmall),
                     
-                    // --- DISABLED PHONE INPUT ---
+                    // --- PHONE INPUT - ReadOnly for vehicles, Editable for non-vehicles ---
                     TextField(
                       controller: _yourPhoneController,
-                      readOnly: true, // Disable editing
+                      readOnly: true,
                       decoration: InputDecoration(
                         prefixIcon: Icon(
-                          Icons.phone_locked, // Lock icon
+                          Icons.phone_locked,
                           color: AppColors.textGrey,
                         ),
                         filled: true,
-                        fillColor: Colors.grey[200], // Grey background
+                        fillColor: Colors.grey[200],
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
                           borderSide: BorderSide.none,
@@ -418,7 +433,7 @@ class _MessagePreviewSheetState extends State<MessagePreviewSheet> {
                       style: TextStyle(
                         fontSize: AppConstants.fontSizeCardTitle,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textGrey, // Grey text
+                        color: AppColors.black,
                       ),
                     ),
                     

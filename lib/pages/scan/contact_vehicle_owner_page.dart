@@ -3,7 +3,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:my_new_app/pages/scan/contact_reasons.dart';
 import 'package:my_new_app/pages/scan/message_preview_sheet.dart';
 import 'package:my_new_app/pages/scan/masked_call_sheet.dart';
+import 'package:my_new_app/pages/scan/mt_message_preview_sheet.dart';
+import 'package:my_new_app/pages/scan/mt_masked_call_sheet.dart';
+import 'package:my_new_app/pages/scan/door_message_preview_sheet.dart';
+import 'package:my_new_app/pages/scan/door_masked_call_sheet.dart';
 import 'package:my_new_app/pages/scan/emergency_section_widget.dart';
+import 'package:my_new_app/pages/scan/tag_profile_skeleton.dart';
 import 'package:my_new_app/pages/widgets/app_header.dart';
 
 import '../../utils/colors.dart';
@@ -96,13 +101,31 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
 
     // Check if call masking is enabled
     if (_tagProfileData != null && _tagProfileData!.callFlags.callMaskingEnabled) {
-      // Open masked call sheet
-      MaskedCallSheet.show(
-        context,
-        vehicleNumber: widget.vehicleNumber,
-        phoneNumber: widget.phoneNumber,
-        tagId: widget.tagId,
-      );
+      // Open appropriate masked call sheet based on tag type
+      if (_tagProfileData!.tagTypeCode.toUpperCase() == 'DR') {
+        // Use door sheet for Door tags
+        DoorMaskedCallSheet.show(
+          context,
+          doorTagId: widget.tagId.toString(),
+          phoneNumber: _tagProfileData!.phone,
+        );
+      } else if (ContactReasons.isVehicleTag(_tagProfileData!.tagTypeCode)) {
+        // Use vehicle sheet for Car/Bike tags
+        MaskedCallSheet.show(
+          context,
+          vehicleNumber: _tagProfileData!.plateNumber,
+          phoneNumber: _tagProfileData!.phone,
+          tagId: widget.tagId,
+        );
+      } else {
+        // Use MT sheet for Lost & Found tags
+        MTMaskedCallSheet.show(
+          context,
+          tagName: _tagProfileData!.plateNumber,
+          phoneNumber: _tagProfileData!.phone,
+          tagId: widget.tagId,
+        );
+      }
     } else if (_tagProfileData != null && _tagProfileData!.callFlags.callsEnabled) {
       // Direct call without masking
       _makeDirectCall();
@@ -112,13 +135,13 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
   }
 
   void _makeDirectCall() {
-    if (widget.phoneNumber == null || widget.phoneNumber!.isEmpty) {
+    if (_tagProfileData == null || _tagProfileData!.phone.isEmpty) {
       _showErrorSnackBar('Phone number not available');
       return;
     }
 
-    // Open phone dialer with the phone number
-    final Uri phoneUri = Uri(scheme: 'tel', path: widget.phoneNumber);
+    // Open phone dialer with the phone number from tag profile
+    final Uri phoneUri = Uri(scheme: 'tel', path: _tagProfileData!.phone);
     launchUrl(phoneUri);
   }
 
@@ -141,16 +164,46 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
       return;
     }
 
+    if (_tagProfileData == null || _tagProfileData!.phone.isEmpty) {
+      _showErrorSnackBar('Phone number not available');
+      return;
+    }
+
     final reasonText =
         _reasons.firstWhere((r) => r.value == _selectedReason).text;
 
-    MessagePreviewSheet.show(
-      context,
-      vehicleNumber: widget.vehicleNumber,
-      reasonText: reasonText,
-      phoneNumber: widget.phoneNumber,
-      tagId: widget.tagId,
-    );
+    // Use appropriate sheet based on tag type
+    if (_tagProfileData!.tagTypeCode.toUpperCase() == 'DR') {
+      // Door tag - use integer reason code
+      final reasonCode = int.tryParse(_selectedReason!) ?? 1;
+      DoorMessagePreviewSheet.show(
+        context,
+        doorTagId: widget.tagId.toString(),
+        reasonCode: reasonCode,
+        reasonText: reasonText,
+      );
+    } else if (ContactReasons.isVehicleTag(_tagProfileData!.tagTypeCode)) {
+      // Use vehicle sheet for Car/Bike tags
+      final reasonCode = _reasons.indexWhere((r) => r.value == _selectedReason) + 1;
+      MessagePreviewSheet.show(
+        context,
+        vehicleNumber: _tagProfileData!.plateNumber,
+        reasonText: reasonText,
+        phoneNumber: _tagProfileData!.phone,
+        tagId: widget.tagId,
+      );
+    } else {
+      // Use MT sheet for Lost & Found tags
+      final reasonCode = _reasons.indexWhere((r) => r.value == _selectedReason) + 1;
+      MTMessagePreviewSheet.show(
+        context,
+        tagName: _tagProfileData!.plateNumber,
+        reasonText: reasonText,
+        phoneNumber: _tagProfileData!.phone,
+        tagId: widget.tagId,
+        reasonCode: reasonCode,
+      );
+    }
   }
 
   void _showErrorSnackBar(String message) {
@@ -166,6 +219,21 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
     );
   }
 
+  /// Get display name - mask for vehicles, show full for non-vehicles
+  String _getDisplayName(String name) {
+    if (_tagProfileData == null) return name;
+    
+    final tagTypeCode = _tagProfileData!.tagTypeCode.toUpperCase();
+    
+    // For non-vehicle tags (MT, BS, DR, etc.), show full name
+    if (!['C', 'B'].contains(tagTypeCode)) {
+      return name;
+    }
+    
+    // For vehicle tags (Car, Bike), mask the name
+    return _getMaskedPlateNumber(name);
+  }
+
   /// Mask last 4 digits of plate number
   String _getMaskedPlateNumber(String plateNumber) {
     if (plateNumber.length <= 4) {
@@ -174,6 +242,48 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
     final unmaskedLength = plateNumber.length - 4;
     final unmaskedPart = plateNumber.substring(0, unmaskedLength);
     return '$unmaskedPart****';
+  }
+
+  /// Get page title based on tag type
+  String _getPageTitle() {
+    if (_tagProfileData == null) return 'Contact owner';
+    
+    final tagTypeCode = _tagProfileData!.tagTypeCode.toUpperCase();
+    if (tagTypeCode == 'DR') {
+      return 'Contact tag owner';
+    }
+    if (ContactReasons.isVehicleTag(tagTypeCode)) {
+      return 'Contact vehicle owner.';
+    }
+    return 'Contact tag owner.';
+  }
+
+  /// Get contact question based on tag type
+  String _getContactQuestion() {
+    if (_tagProfileData == null) return 'How would you like to contact?';
+    
+    final tagTypeCode = _tagProfileData!.tagTypeCode.toUpperCase();
+    if (tagTypeCode == 'DR') {
+      return 'How would you like to contact the resident?';
+    }
+    if (ContactReasons.isVehicleTag(tagTypeCode)) {
+      return 'Would you like to call or text the owner ?';
+    }
+    return 'How would you like to contact?';
+  }
+
+  /// Get reason selection question based on tag type
+  String _getReasonSelectionQuestion() {
+    if (_tagProfileData == null) return 'Why would you like to contact?';
+    
+    final tagTypeCode = _tagProfileData!.tagTypeCode.toUpperCase();
+    if (tagTypeCode == 'DR') {
+      return 'Why are you visiting?';
+    }
+    if (ContactReasons.isVehicleTag(tagTypeCode)) {
+      return 'Why would you like to contact the vehicle owner?';
+    }
+    return 'Why would you like to contact the tag owner?';
   }
 
   @override
@@ -218,14 +328,16 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                         topRight: Radius.circular(30),
                       ),
                     ),
-                    child: SingleChildScrollView(
+                    child: _isLoadingProfile
+                        ? const TagProfileSkeleton()
+                        : SingleChildScrollView(
                       padding: EdgeInsets.all(AppConstants.paddingPage),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Title
+                          // Title - Dynamic based on tag type
                           Text(
-                            'Contact vehicle owner.',
+                            _getPageTitle(),
                             style: TextStyle(
                               fontSize: AppConstants.fontSizePageTitle,
                               fontWeight: FontWeight.w600,
@@ -234,7 +346,7 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                           ),
                           SizedBox(height: AppConstants.spacingMedium),
 
-                          // Vehicle Info Card with Blue Tick and Active Badge
+                          // Tag Info Card with Blue Tick and Active Badge
                           if (_tagProfileData != null &&
                               _tagProfileData!.plateNumber.isNotEmpty) ...[
                             Container(
@@ -265,7 +377,7 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                                   // Plate Number
                                   Expanded(
                                     child: Text(
-                                      _getMaskedPlateNumber(
+                                      _getDisplayName(
                                           _tagProfileData!.plateNumber),
                                       style: TextStyle(
                                         fontSize: 24,
@@ -342,19 +454,8 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                             if (_tagProfileData != null && _tagProfileData!.isDemoTag)
                               SizedBox(height: AppConstants.spacingLarge),
                           ] else if (_isLoadingProfile) ...[
-                            Center(
-                              child: SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    AppColors.activeYellow,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: AppConstants.spacingLarge),
+                            // Skeleton is handled at container level
+                            const SizedBox.shrink(),
                           ] else if (_profileError != null) ...[
                             Container(
                               padding: EdgeInsets.all(AppConstants.paddingMedium),
@@ -449,7 +550,7 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                             ] else ...[
                               // Tag is active - show Question and Action Cards
                               Text(
-                                'Would you like to call or text the owner ?',
+                                _getContactQuestion(),
                                 style: TextStyle(
                                   fontSize: AppConstants.fontSizeCardTitle,
                                   color: AppColors.black,
@@ -561,7 +662,7 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                                 ),
                                 Expanded(
                                   child: Text(
-                                    'Why would you like to contact the vehicle owner?',
+                                    _getReasonSelectionQuestion(),
                                     style: TextStyle(
                                       fontSize: AppConstants.fontSizeCardTitle,
                                       fontWeight: FontWeight.w600,
@@ -625,7 +726,10 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                           SizedBox(height: AppConstants.spacingLarge),
 
                           // Emergency Section
-                          EmergencySectionWidget(tagId: widget.tagId),
+                          EmergencySectionWidget(
+                            tagId: widget.tagId,
+                            tagTypeCode: _tagProfileData?.tagTypeCode ?? 'c',
+                          ),
 
                           SizedBox(height: AppConstants.paddingPage),
                         ],

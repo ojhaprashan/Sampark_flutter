@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:my_new_app/pages/widgets/notification_sheet.dart';
 import 'package:my_new_app/pages/widgets/edit_tag_sheet.dart';
+import 'package:my_new_app/services/emergency_service.dart';
+import 'package:my_new_app/services/premium_service.dart';
+import 'package:my_new_app/pages/tags/car/add_secondary_number_sheet.dart';
+import 'package:my_new_app/pages/tags/car/add_emergency_contact_sheet.dart';
+import 'package:my_new_app/pages/membership/membership_page.dart';
 import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
 import '../../../services/auth_service.dart';
@@ -32,11 +37,15 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
   bool _isLoading = false;
 
   // ✅ State variables with default values
+  bool _isCallsEnabled = true;
+  bool _isTagEnabled = true;
   bool _isWhatsappEnabled = false;
   bool _isCallMaskingEnabled = false;
   bool _isVideoCallEnabled = false;
   String _userPhone = '';
   String _countryCode = '+91'; // ✅ Default to India
+  bool _hasPremium = false; // ✅ Premium status
+  bool _isLoadingPremium = false; // ✅ Loading premium data
 
   @override
   void initState() {
@@ -89,16 +98,44 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
           _countryCode = countryCode; // ✅ Set country code
 
           // ✅ Update state variables from API
+          _isCallsEnabled = tagSettings.data.callStatus.callsEnabled;
+          _isTagEnabled = tagSettings.data.status == 'Active';
           _isWhatsappEnabled = tagSettings.data.callStatus.whatsappEnabled;
           _isCallMaskingEnabled = tagSettings.data.callStatus.callMaskingEnabled;
           _isVideoCallEnabled = tagSettings.data.callStatus.videoCallEnabled;
         });
       }
+      
+      // ✅ Load premium data
+      _loadPremiumData();
     } catch (e) {
       if (mounted) {
         setState(() {
           _settingsError = 'Failed to load tag settings';
           _isLoadingSettings = false;
+        });
+      }
+    }
+  }
+
+  // ✅ Load premium data from cache
+  Future<void> _loadPremiumData() async {
+    try {
+      setState(() {
+        _isLoadingPremium = true;
+      });
+      final premiumData = await PremiumService.getCachedPremiumData();
+      if (mounted) {
+        setState(() {
+          _hasPremium = premiumData?.hasPremium ?? false;
+          _isLoadingPremium = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading premium data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingPremium = false;
         });
       }
     }
@@ -232,7 +269,7 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
               ],
             ),
           // Bottom Button
-          if (!_isLoadingSettings && _selectedTab == 1)
+          if (!_isLoadingSettings && _selectedTab == 1 && !_hasPremium && !_isLoadingPremium)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
@@ -243,14 +280,10 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
                 child: ElevatedButton(
                   onPressed: () {
                     HapticFeedback.mediumImpact();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Subscribe Premium'),
-                        backgroundColor: AppColors.activeYellow,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MembershipPage(),
                       ),
                     );
                   },
@@ -261,14 +294,13 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(
-                        AppConstants.buttonBorderRadius * 2,
+                        AppConstants.buttonBorderRadius,
                       ),
                     ),
-                    elevation: 4,
-                    shadowColor: AppColors.activeYellow.withOpacity(0.3),
+                    elevation: 0,
                   ),
                   child: Text(
-                    'Subscribe Premium',
+                    'Get Membership',
                     style: TextStyle(
                       fontSize: AppConstants.fontSizeButtonPriceText,
                       fontWeight: FontWeight.w700,
@@ -600,13 +632,13 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
   Widget _buildManageTabContent() {
     return Column(
       children: [
+        const SizedBox(height: AppConstants.spacingMedium),
         _buildActionButton(
           icon: Icons.chat_bubble_outline,
           iconColor: Colors.blue.shade600,
           label: 'View Contact Page.',
           trailing: Icons.chat_bubble_outline,
           onTap: () {
-            //  final tagId = int.tryParse( _tagSettings?.data.tagId ?? '') ?? 0;
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -632,107 +664,39 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
           trailing: Icons.location_on_outlined,
           onTap: () {},
         ),
+        // ✅ Dynamic Disable/Enable Calls Button (shows opposite action)
         _buildActionButton(
-          icon: Icons.phone_disabled,
-          iconColor: Colors.red.shade700,
-          label: 'Disable Calls',
-          trailing: Icons.close,
-          onTap: () {},
+          icon: _isCallsEnabled ? Icons.phone_disabled : Icons.phone_enabled,
+          iconColor: _isCallsEnabled ? Colors.red.shade700 : Colors.green.shade600,
+          label: _isCallsEnabled ? 'Disable Calls' : 'Enable Calls',
+          trailing: _isCallsEnabled ? Icons.toggle_on : Icons.toggle_off_outlined,
+          onTap: () {
+            _toggleCalls();
+          },
         ),
+        // ✅ Dynamic Enable/Disable Tag Button (shows opposite action)
         _buildActionButton(
-          icon: Icons.pause,
-          iconColor: Colors.amber.shade700,
-          label: 'Pause the tag',
-          trailing: Icons.pause,
-          onTap: () {},
+          icon: _isTagEnabled ? Icons.pause : Icons.play_arrow,
+          iconColor: _isTagEnabled ? Colors.orange.shade600 : Colors.green.shade600,
+          label: _isTagEnabled ? 'Pause the tag' : 'Resume the tag',
+          trailing: _isTagEnabled ? Icons.pause : Icons.play_arrow,
+          onTap: () {
+            _toggleTag();
+          },
         ),
         _buildActionButton(
           icon: Icons.phone,
           iconColor: Colors.teal.shade600,
           label: 'Add secondary number',
           trailing: Icons.phone,
-          onTap: () {},
+          onTap: () {
+            _showAddSecondaryNumberSheet();
+          },
         ),
         _buildActionButton(
           icon: Icons.delete_outline,
           iconColor: Colors.red.shade600,
           label: 'Delete and re-write tag',
-          trailing: Icons.close,
-          isRed: true,
-          onTap: () {},
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMoreTabContent() {
-    return Column(
-      children: [
-        // Membership Badge
-        Container(
-          padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-            border: Border.all(
-              color: AppColors.lightGrey,
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.workspace_premium,
-                size: AppConstants.iconSizeLarge,
-                color: Colors.purple,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Membership*',
-                style: TextStyle(
-                  fontSize: AppConstants.fontSizeSectionTitle,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.black,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppConstants.spacingMedium),
-        _buildActionButton(
-          icon: _isWhatsappEnabled ? Icons.chat_bubble : Icons.chat_bubble_outline,
-          iconColor: _isWhatsappEnabled ? Colors.green.shade600 : Colors.grey.shade600,
-          label: _isWhatsappEnabled ? 'Disable WhatsApp Notifications' : 'Enable WhatsApp Notifications',
-          trailing: _isWhatsappEnabled ? Icons.toggle_on : Icons.toggle_off_outlined,
-          onTap: () => _toggleWhatsapp(),
-        ),
-        _buildActionButton(
-          icon: _isCallMaskingEnabled ? Icons.phone : Icons.phone_disabled,
-          iconColor: _isCallMaskingEnabled ? Colors.green.shade600 : Colors.red.shade600,
-          label: _isCallMaskingEnabled ? 'Disable Call Masking' : 'Enable Call Masking',
-          trailing: _isCallMaskingEnabled ? Icons.toggle_on : Icons.toggle_off_outlined,
-          onTap: () => _toggleCallMasking(),
-        ),
-        _buildActionButton(
-          icon: _isVideoCallEnabled ? Icons.videocam : Icons.videocam_off,
-          iconColor: _isVideoCallEnabled ? Colors.green.shade600 : Colors.grey.shade600,
-          label: _isVideoCallEnabled ? 'Disable Video Call' : 'Enable Video Call',
-          trailing: _isVideoCallEnabled ? Icons.toggle_on : Icons.toggle_off_outlined,
-          onTap: () => _toggleVideoCall(),
-        ),
-        _buildActionButton(
-          icon: Icons.videocam,
-          iconColor: Colors.purple.shade600,
-          label: 'Check Video Call Requests',
-          trailing: Icons.videocam,
-          onTap: () {},
-        ),
-        // ✅ Edit and re-write tag
-        _buildActionButton(
-          icon: Icons.edit,
-          iconColor: Colors.red.shade600,
-          label: 'Edit and re-write tag',
           trailing: Icons.close,
           isRed: true,
           onTap: () {
@@ -743,6 +707,98 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
               tagId: widget.item.id,
               phone: phoneWithCountryCode,
             );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMoreTabContent() {
+    return Column(
+      children: [
+        const SizedBox(height: AppConstants.spacingMedium),
+        // Membership Badge or Get Premium Button
+        if (!_isLoadingPremium) ...[
+          if (_hasPremium)
+            Container(
+              padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
+              decoration: BoxDecoration(
+                color: Colors.purple.shade50,
+                borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+                border: Border.all(
+                  color: Colors.purple.shade200,
+                  width: 2,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.workspace_premium,
+                        size: AppConstants.iconSizeLarge,
+                        color: Colors.purple,
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Premium Member',
+                            style: TextStyle(
+                              fontSize: AppConstants.fontSizeSectionTitle,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.purple,
+                            ),
+                          ),
+                          Text(
+                            'Enjoy exclusive features',
+                            style: TextStyle(
+                              fontSize: AppConstants.fontSizeCardDescription,
+                              color: Colors.purple.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Icon(
+                    Icons.check_circle,
+                    color: Colors.green.shade600,
+                    size: 24,
+                  ),
+                ],
+              ),
+            )
+         
+        ],
+        // ✅ Shows opposite text (Enable when disabled, Disable when enabled)
+        _buildActionButton(
+          icon: _isWhatsappEnabled ? Icons.chat_bubble : Icons.chat_bubble_outline,
+          iconColor: _isWhatsappEnabled ? Colors.green.shade600 : Colors.grey,
+          label: _isWhatsappEnabled ? 'Disable WhatsApp Notifications' : 'Enable WhatsApp Notifications',
+          trailing: _isWhatsappEnabled ? Icons.toggle_on : Icons.toggle_off_outlined,
+          onTap: () {
+            _toggleWhatsapp();
+          },
+        ),
+        _buildActionButton(
+          icon: _isCallMaskingEnabled ? Icons.phone : Icons.phone_disabled,
+          iconColor: _isCallMaskingEnabled ? Colors.green.shade600 : Colors.red.shade600,
+          label: _isCallMaskingEnabled ? 'Disable Call Masking' : 'Enable Call Masking',
+          trailing: _isCallMaskingEnabled ? Icons.toggle_on : Icons.toggle_off_outlined,
+          onTap: () {
+            _toggleCallMasking();
+          },
+        ),
+        _buildActionButton(
+          icon: _isVideoCallEnabled ? Icons.videocam : Icons.videocam_off,
+          iconColor: _isVideoCallEnabled ? Colors.green.shade600 : Colors.grey.shade600,
+          label: _isVideoCallEnabled ? 'Disable Video Call' : 'Enable Video Call',
+          trailing: _isVideoCallEnabled ? Icons.toggle_on : Icons.toggle_off_outlined,
+          onTap: () {
+            _toggleVideoCall();
           },
         ),
       ],
@@ -894,6 +950,120 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
   // ✅ TOGGLE FUNCTIONS
   // ========================
 
+  // ✅ Toggle Calls Function with API call and Loading Overlay
+  void _toggleCalls() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    HapticFeedback.mediumImpact();
+    _showLoadingOverlay();
+
+    try {
+      final userData = await AuthService.getUserData();
+      final phone = userData['phone'] ?? '';
+      final countryCode = userData['countryCode'] ?? '+91';
+      final phoneWithCountryCode = countryCode.replaceFirst('+', '') + phone;
+
+      final newCallsEnabled = !_isCallsEnabled;
+
+      await TagsService.updateTagSettings(
+        tagId: _tagSettings?.data.tagId.toString() ?? '',
+        phone: phoneWithCountryCode,
+        callsEnabled: newCallsEnabled,
+        whatsappEnabled: _isWhatsappEnabled,
+        callMaskingEnabled: _isCallMaskingEnabled,
+        videoCallEnabled: _isVideoCallEnabled,
+        smValue: '67s87s6yys66',
+        dgValue: 'testYU78dII8iiUIPSISJ',
+      );
+
+      setState(() {
+        _isCallsEnabled = newCallsEnabled;
+        _isLoading = false;
+      });
+
+      _hideLoadingOverlay();
+
+      _showSuccessDialog(
+        icon: newCallsEnabled ? Icons.phone_enabled : Icons.phone_disabled,
+        iconColor: newCallsEnabled ? Colors.green : Colors.red,
+        title: newCallsEnabled ? 'Calls Enabled' : 'Calls Disabled',
+        message: newCallsEnabled
+            ? 'You can now receive calls on this tag.'
+            : 'Calls have been disabled for this tag.',
+      );
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      _hideLoadingOverlay();
+      _showErrorDialog('Error', 'Failed to update call settings: $e');
+    }
+  }
+
+  // ✅ Toggle Tag Function with API call and Loading Overlay
+  void _toggleTag() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    HapticFeedback.mediumImpact();
+    _showLoadingOverlay();
+
+    try {
+      final userData = await AuthService.getUserData();
+      final phone = userData['phone'] ?? '';
+      final countryCode = userData['countryCode'] ?? '+91';
+      final phoneWithCountryCode = countryCode.replaceFirst('+', '') + phone;
+
+      final newTagEnabled = !_isTagEnabled;
+      // ✅ Set status based on newTagEnabled (active/pause)
+      final newStatus = newTagEnabled ? 'active' : 'pause';
+
+      await TagsService.updateTagSettings(
+        tagId: _tagSettings?.data.tagId.toString() ?? '',
+        phone: phoneWithCountryCode,
+        callsEnabled: _isCallsEnabled,
+        whatsappEnabled: _isWhatsappEnabled,
+        callMaskingEnabled: _isCallMaskingEnabled,
+        videoCallEnabled: _isVideoCallEnabled,
+        smValue: '67s87s6yys66',
+        dgValue: 'testYU78dII8iiUIPSISJ',
+        status: newStatus,  // ✅ Pass status parameter
+      );
+
+      setState(() {
+        _isTagEnabled = newTagEnabled;
+        _isLoading = false;
+      });
+
+      _hideLoadingOverlay();
+
+      // ✅ Reload tag settings after update
+      await _loadTagSettings();
+
+      _showSuccessDialog(
+        icon: newTagEnabled ? Icons.check_circle : Icons.pause_circle,
+        iconColor: newTagEnabled ? Colors.green : Colors.orange,
+        title: newTagEnabled ? 'Tag Enabled' : 'Tag Paused',
+        message: newTagEnabled
+            ? 'Your tag is now active and can be scanned.'
+            : 'Your tag has been paused temporarily.',
+      );
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      _hideLoadingOverlay();
+      _showErrorDialog('Error', 'Failed to update tag status: $e');
+    }
+  }
+
   // ✅ Toggle WhatsApp
   void _toggleWhatsapp() async {
     if (_isLoading) return;
@@ -916,7 +1086,7 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
       await TagsService.updateTagSettings(
         tagId: _tagSettings?.data.tagId.toString() ?? '',
         phone: phoneWithCountryCode,
-        callsEnabled: true,
+        callsEnabled: _isCallsEnabled,
         whatsappEnabled: newWhatsappEnabled,
         callMaskingEnabled: _isCallMaskingEnabled,
         videoCallEnabled: _isVideoCallEnabled,
@@ -924,7 +1094,14 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
         dgValue: 'testYU78dII8iiUIPSISJ',
       );
 
+      setState(() {
+        _isWhatsappEnabled = newWhatsappEnabled;
+        _isLoading = false;
+      });
+
       _hideLoadingOverlay();
+
+      // ✅ Reload settings
       await _loadTagSettings();
 
       _showSuccessDialog(
@@ -966,7 +1143,7 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
       await TagsService.updateTagSettings(
         tagId: _tagSettings?.data.tagId.toString() ?? '',
         phone: phoneWithCountryCode,
-        callsEnabled: true,
+        callsEnabled: _isCallsEnabled,
         whatsappEnabled: _isWhatsappEnabled,
         callMaskingEnabled: newCallMaskingEnabled,
         videoCallEnabled: _isVideoCallEnabled,
@@ -974,7 +1151,14 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
         dgValue: 'testYU78dII8iiUIPSISJ',
       );
 
+      setState(() {
+        _isCallMaskingEnabled = newCallMaskingEnabled;
+        _isLoading = false;
+      });
+
       _hideLoadingOverlay();
+
+      // ✅ Reload settings
       await _loadTagSettings();
 
       _showSuccessDialog(
@@ -1016,7 +1200,7 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
       await TagsService.updateTagSettings(
         tagId: _tagSettings?.data.tagId.toString() ?? '',
         phone: phoneWithCountryCode,
-        callsEnabled: true,
+        callsEnabled: _isCallsEnabled,
         whatsappEnabled: _isWhatsappEnabled,
         callMaskingEnabled: _isCallMaskingEnabled,
         videoCallEnabled: newVideoCallEnabled,
@@ -1024,7 +1208,14 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
         dgValue: 'testYU78dII8iiUIPSISJ',
       );
 
+      setState(() {
+        _isVideoCallEnabled = newVideoCallEnabled;
+        _isLoading = false;
+      });
+
       _hideLoadingOverlay();
+
+      // ✅ Reload settings
       await _loadTagSettings();
 
       _showSuccessDialog(
@@ -1235,5 +1426,82 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
         phone: _userPhone,
       ),
     );
+  }
+
+  // ✅ Show Add Secondary Number Sheet
+  void _showAddSecondaryNumberSheet() async {
+    HapticFeedback.mediumImpact();
+    final phoneNumber = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => AddSecondaryNumberSheet(
+        tagId: widget.item.id.toString(),
+        existingSecondaryNumber: _tagSettings?.data.secondaryNumber,  // ✅ Pass existing data
+      ),
+    );
+
+    if (phoneNumber != null && phoneNumber.isNotEmpty) {
+      try {
+        final userData = await AuthService.getUserData();
+        final phone = userData['phone'] ?? '';
+        final countryCode = userData['countryCode'] ?? '+91';
+        final phoneWithCountryCode = countryCode.replaceFirst('+', '') + phone;
+
+        await TagsService.updateTagSettings(
+          tagId: _tagSettings?.data.tagId.toString() ?? '',
+          phone: phoneWithCountryCode,
+          secondaryNumber: phoneNumber,
+          callsEnabled: _isCallsEnabled,
+          whatsappEnabled: _isWhatsappEnabled,
+          callMaskingEnabled: _isCallMaskingEnabled,
+          videoCallEnabled: _isVideoCallEnabled,
+          smValue: '67s87s6yys66',
+          dgValue: 'testYU78dII8iiUIPSISJ',
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Secondary number saved successfully!',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          // Refresh tag settings
+          await _loadTagSettings();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+        }
+      }
+    }
   }
 }

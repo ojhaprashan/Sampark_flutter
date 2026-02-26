@@ -3,49 +3,55 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../utils/colors.dart';
 import '../../utils/constants.dart';
-import '../../services/owner_call_service.dart';
+import '../../services/owner_message_service.dart';
 import '../../services/auth_service.dart';
 import '../../providers/location_provider.dart';
 
-import 'masked_call_result_sheet.dart';
-
-class MaskedCallSheet extends StatefulWidget {
-  final String vehicleNumber;
+class MTMessagePreviewSheet extends StatefulWidget {
+  final String tagName;
+  final String reasonText;
   final String? phoneNumber;
   final int? tagId;
+  final int reasonCode; // Numeric code for the reason (1-5)
 
-  const MaskedCallSheet({
+  const MTMessagePreviewSheet({
     super.key,
-    required this.vehicleNumber,
+    required this.tagName,
+    required this.reasonText,
     this.phoneNumber,
     this.tagId,
+    this.reasonCode = 1, // Default to 1 for "I am lost"
   });
 
   @override
-  State<MaskedCallSheet> createState() => _MaskedCallSheetState();
+  State<MTMessagePreviewSheet> createState() => _MTMessagePreviewSheetState();
 
   static void show(
     BuildContext context, {
-    required String vehicleNumber,
+    required String tagName,
+    required String reasonText,
     String? phoneNumber,
     int? tagId,
+    int reasonCode = 1,
   }) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => MaskedCallSheet(
-        vehicleNumber: vehicleNumber,
+      builder: (context) => MTMessagePreviewSheet(
+        tagName: tagName,
+        reasonText: reasonText,
         phoneNumber: phoneNumber,
         tagId: tagId,
+        reasonCode: reasonCode,
       ),
     );
   }
 }
 
-class _MaskedCallSheetState extends State<MaskedCallSheet> {
-  final TextEditingController _last4DigitsController = TextEditingController();
+class _MTMessagePreviewSheetState extends State<MTMessagePreviewSheet> {
   final TextEditingController _yourPhoneController = TextEditingController();
+  final TextEditingController _countryCodeController = TextEditingController(text: '91'); // Default to India
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -65,70 +71,45 @@ class _MaskedCallSheetState extends State<MaskedCallSheet> {
         setState(() {
           _yourPhoneController.text = phoneNumber.toString();
         });
-        print('📞 [MaskedCallSheet] Phone autofilled: $phoneNumber');
+        print('💬 [MTMessagePreviewSheet] Phone autofilled: $phoneNumber');
       }
     } catch (e) {
-      print('❌ [MaskedCallSheet] Error loading user phone: $e');
+      print('❌ [MTMessagePreviewSheet] Error loading user phone: $e');
     }
   }
 
   @override
   void dispose() {
-    _last4DigitsController.dispose();
     _yourPhoneController.dispose();
+    _countryCodeController.dispose();
     super.dispose();
   }
 
-  /// Mask last 4 digits of plate number
-  String _getMaskedPlateNumber(String plateNumber) {
-    if (plateNumber.length <= 4) {
-      return '****';
-    }
-    final unmaskedLength = plateNumber.length - 4;
-    final unmaskedPart = plateNumber.substring(0, unmaskedLength);
-    return '$unmaskedPart****';
-  }
-
-  /// Get title
-  String _getTitleText() {
-    return 'Verify Vehicle Plate';
-  }
-
-  Future<void> _setupMaskedCall() async {
+  Future<void> _sendMessage() async {
     // Clear previous error
     setState(() {
       _errorMessage = null;
     });
 
-    // Validate last 4 digits
-    if (_last4DigitsController.text.trim().isEmpty) {
+    // Validate country code
+    if (_countryCodeController.text.trim().isEmpty) {
       setState(() {
-        _errorMessage = '❌ Please enter the last 4 digits of the plate';
+        _errorMessage = '❌ Please enter country code';
       });
       return;
     }
 
-    if (_last4DigitsController.text.trim().length != 4) {
-      setState(() {
-        _errorMessage = '❌ Please enter exactly 4 digits';
-      });
-      return;
-    }
-
-    // Verify last 4 digits match
-    if (widget.vehicleNumber.length >= 4) {
-      final actualLast4 = widget.vehicleNumber.substring(widget.vehicleNumber.length - 4);
-      if (_last4DigitsController.text.trim() != actualLast4) {
-        setState(() {
-          _errorMessage = '❌ Last 4 digits do not match. Actual: $actualLast4';
-        });
-        return;
-      }
-    }
-
+    // Validate phone number
     if (_yourPhoneController.text.trim().isEmpty) {
       setState(() {
         _errorMessage = '❌ Please enter your phone number';
+      });
+      return;
+    }
+
+    if (_yourPhoneController.text.trim().length < 5) {
+      setState(() {
+        _errorMessage = '❌ Phone number must be at least 5 digits';
       });
       return;
     }
@@ -149,42 +130,37 @@ class _MaskedCallSheetState extends State<MaskedCallSheet> {
     });
 
     try {
-      final last4Digits = _last4DigitsController.text.trim();
+      // Extract local phone (remove + if present)
+      String phoneLocal = _yourPhoneController.text.trim();
+      if (phoneLocal.startsWith('+')) {
+        phoneLocal = phoneLocal.substring(1); // Remove + prefix
+      }
+      // Remove country code prefix if already in the number
+      String countryCode = _countryCodeController.text.trim();
+      if (phoneLocal.startsWith(countryCode)) {
+        phoneLocal = phoneLocal.substring(countryCode.length);
+      }
 
-      final response = await OwnerCallService.makeOwnerCall(
-        plateNumber: widget.vehicleNumber,
-        last4Digits: last4Digits,
-        userPhoneNumber: _yourPhoneController.text.trim(),
+      // Call the multi-owner message API (MT tags)
+      final response = await OwnerMessageService.sendMultiOwnerMessage(
+        tagId: widget.tagId ?? 0,
+        reasonCode: widget.reasonCode, // Use numeric reason code (1-5)
+        phoneLocal: phoneLocal,
         latitude: locationProvider.currentLocation!.latitude,
         longitude: locationProvider.currentLocation!.longitude,
-        tagId: widget.tagId,
       );
 
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
-
+        
         if (response.success) {
-          // Show result sheet with masked number (always available now)
-          if (response.maskedNumber != null && response.maskedNumber!.isNotEmpty) {
-            // Close current sheet and show result sheet
-            Navigator.pop(context);
-            
-            // Show the masked call result sheet with the obtained masked number
-            MaskedCallResultSheet.show(
-              context,
-              vehicleNumber: widget.vehicleNumber,
-              maskedNumber: response.maskedNumber!,
-            );
-          } else {
-            setState(() {
-              _errorMessage = '❌ Could not obtain masked number. Please try again.';
-            });
-          }
+          Navigator.pop(context);
+          _showSuccess('✅ Message sent successfully!\n${response.message ?? ''}');
         } else {
           setState(() {
-            _errorMessage = '❌ ${response.message ?? 'Failed to setup call'}';
+            _errorMessage = '❌ ${response.message ?? 'Failed to send message'}';
           });
         }
       }
@@ -249,7 +225,7 @@ class _MaskedCallSheetState extends State<MaskedCallSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _getTitleText(),
+                      'Send Message',
                       style: TextStyle(
                         fontSize: AppConstants.fontSizePageTitle,
                         fontWeight: FontWeight.w700,
@@ -258,148 +234,59 @@ class _MaskedCallSheetState extends State<MaskedCallSheet> {
                     ),
                     SizedBox(height: AppConstants.spacingMedium),
                     
-                    RichText(
-                      text: TextSpan(
-                        style: TextStyle(
-                          fontSize: AppConstants.fontSizeCardTitle,
-                          color: AppColors.black,
-                        ),
-                        children: [
-                          TextSpan(text: 'Please enter the '),
-                          TextSpan(
-                            text: 'last 4 digits (shown as ****)',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          TextSpan(text: ' of the vehicle plate number to verify.'),
-                        ],
+                    Text(
+                      'Ready to send a message to ${widget.tagName}?',
+                      style: TextStyle(
+                        fontSize: AppConstants.fontSizeCardDescription,
+                        color: AppColors.textGrey,
+                        height: 1.4,
                       ),
                     ),
                     SizedBox(height: AppConstants.spacingLarge),
-                    
-                    // Masked Plate Number Display
+
+                    // Message Preview
                     Container(
                       width: double.infinity,
                       padding: EdgeInsets.all(AppConstants.paddingLarge),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.primaryYellow,
-                            AppColors.activeYellow,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: AppColors.white,
                         borderRadius: BorderRadius.circular(
-                            AppConstants.borderRadiusCard),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.activeYellow.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
+                          AppConstants.borderRadiusCard,
+                        ),
+                        border: Border.all(
+                          color: AppColors.lightGrey,
+                          width: 1.5,
+                        ),
                       ),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.directions_car,
-                                color: AppColors.black,
-                                size: AppConstants.iconSizeMedium,
-                              ),
-                              SizedBox(width: AppConstants.spacingSmall),
-                              Text(
-                                'Vehicle Plate Number',
-                                style: TextStyle(
-                                  fontSize: AppConstants.fontSizeCardTitle,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.black,
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: AppConstants.spacingSmall),
                           Text(
-                            _getMaskedPlateNumber(widget.vehicleNumber),
+                            'Message Preview:',
                             style: TextStyle(
-                              fontSize: AppConstants.fontSizePageTitle + 4,
-                              fontWeight: FontWeight.w900,
+                              fontSize: AppConstants.fontSizeCardDescription,
+                              color: AppColors.textGrey,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: AppConstants.spacingMedium),
+                          Text(
+                            'Hi! ${widget.reasonText}',
+                            style: TextStyle(
+                              fontSize: AppConstants.fontSizeCardTitle,
+                              fontWeight: FontWeight.w500,
                               color: AppColors.black,
-                              letterSpacing: 8,
+                              height: 1.5,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    SizedBox(height: AppConstants.spacingLarge),
-                    
-                    // Verification Input Field
-                    Container(
-                      decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.activeYellow.withOpacity(0.2),
-                            blurRadius: 15,
-                            offset: Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        controller: _last4DigitsController,
-                        keyboardType: TextInputType.number,
-                        maxLength: 4,
-                        textAlign: TextAlign.center,
-                        autofocus: true, // Automatically focus to make it active
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        decoration: InputDecoration(
-                          hintText: 'Enter Last 4 Digits',
-                          hintStyle: TextStyle(
-                            color: AppColors.black.withOpacity(0.4),
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1.0,
-                          ),
-                          filled: true,
-                          fillColor: AppColors.white,
-                          counterText: '',
-                          // Default border
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide(
-                              color: AppColors.activeYellow, // Always yellow
-                              width: 1.5,
-                            ),
-                          ),
-                          // Highlighted/Active border
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide(
-                              color: AppColors.activeYellow,
-                              width: 3.0, // Thicker border when active
-                            ),
-                          ),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: AppConstants.paddingMedium,
-                            vertical: 20, // Taller input area
-                          ),
-                        ),
-                        style: TextStyle(
-                          fontSize: 24, // Larger text
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.black,
-                          letterSpacing: 8,
-                        ),
-                      ),
-                    ),
                     
                     SizedBox(height: AppConstants.spacingLarge),
+                    
                     Text(
-                      'Registered Phone Number:',
+                      'Country Code:',
                       style: TextStyle(
                         fontSize: AppConstants.fontSizeCardTitle,
                         color: AppColors.black,
@@ -408,20 +295,43 @@ class _MaskedCallSheetState extends State<MaskedCallSheet> {
                     ),
                     SizedBox(height: AppConstants.spacingSmall),
                     
-                    // --- DISABLED PHONE INPUT ---
                     TextField(
-                      controller: _yourPhoneController,
-                      readOnly: true, // Makes it uneditable
+                      controller: _countryCodeController,
+                      keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         prefixIcon: Icon(
-                          Icons.phone_locked, // Lock icon to show it's fixed
+                          Icons.public,
                           color: AppColors.textGrey,
                         ),
+                        hintText: 'e.g., 91 (India), 1 (USA), 44 (UK)',
                         filled: true,
-                        fillColor: Colors.grey[200], // Grey background
+                        fillColor: AppColors.white,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-                          borderSide: BorderSide.none,
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.borderRadiusCard,
+                          ),
+                          borderSide: BorderSide(
+                            color: AppColors.lightGrey,
+                            width: 1.5,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.borderRadiusCard,
+                          ),
+                          borderSide: BorderSide(
+                            color: AppColors.lightGrey,
+                            width: 1.5,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.borderRadiusCard,
+                          ),
+                          borderSide: BorderSide(
+                            color: AppColors.activeYellow,
+                            width: 2.5,
+                          ),
                         ),
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: AppConstants.paddingMedium,
@@ -431,7 +341,70 @@ class _MaskedCallSheetState extends State<MaskedCallSheet> {
                       style: TextStyle(
                         fontSize: AppConstants.fontSizeCardTitle,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textGrey, // Grey text
+                        color: AppColors.black,
+                      ),
+                    ),
+                    
+                    SizedBox(height: AppConstants.spacingLarge),
+                    
+                    Text(
+                      'Your Phone Number:',
+                      style: TextStyle(
+                        fontSize: AppConstants.fontSizeCardTitle,
+                        color: AppColors.black,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: AppConstants.spacingSmall),
+                    
+                    // Phone Input Field - Editable
+                    TextField(
+                      controller: _yourPhoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        prefixIcon: Icon(
+                          Icons.phone,
+                          color: AppColors.textGrey,
+                        ),
+                        hintText: 'Enter your phone number',
+                        filled: true,
+                        fillColor: AppColors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.borderRadiusCard,
+                          ),
+                          borderSide: BorderSide(
+                            color: AppColors.lightGrey,
+                            width: 1.5,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.borderRadiusCard,
+                          ),
+                          borderSide: BorderSide(
+                            color: AppColors.lightGrey,
+                            width: 1.5,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.borderRadiusCard,
+                          ),
+                          borderSide: BorderSide(
+                            color: AppColors.activeYellow,
+                            width: 2.5,
+                          ),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: AppConstants.paddingMedium,
+                          vertical: AppConstants.paddingMedium,
+                        ),
+                      ),
+                      style: TextStyle(
+                        fontSize: AppConstants.fontSizeCardTitle,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.black,
                       ),
                     ),
                     
@@ -443,10 +416,8 @@ class _MaskedCallSheetState extends State<MaskedCallSheet> {
                         padding: EdgeInsets.all(AppConstants.paddingMedium),
                         decoration: BoxDecoration(
                           color: Colors.red.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-                          border: Border.all(
-                            color: Colors.red.withOpacity(0.5),
-                            width: 1.5,
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.borderRadiusCard,
                           ),
                         ),
                         child: Row(
@@ -461,10 +432,9 @@ class _MaskedCallSheetState extends State<MaskedCallSheet> {
                               child: Text(
                                 _errorMessage!,
                                 style: TextStyle(
-                                  fontSize: AppConstants.fontSizeCardTitle,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.red.shade700,
-                                  height: 1.3,
+                                  fontSize: AppConstants.fontSizeCardDescription,
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
@@ -474,12 +444,12 @@ class _MaskedCallSheetState extends State<MaskedCallSheet> {
                       SizedBox(height: AppConstants.spacingMedium),
                     ],
                     
-                    // Setup Call Button
+                    // Send Message Button
                     SizedBox(
                       width: double.infinity,
-                      height: 55, // Taller button
+                      height: 55,
                       child: ElevatedButton.icon(
-                        onPressed: _isLoading ? null : _setupMaskedCall,
+                        onPressed: _isLoading ? null : _sendMessage,
                         icon: _isLoading
                             ? SizedBox(
                                 width: 20,
@@ -491,25 +461,18 @@ class _MaskedCallSheetState extends State<MaskedCallSheet> {
                                   ),
                                 ),
                               )
-                            : Icon(
-                                Icons.phone_in_talk,
-                                color: AppColors.black,
-                                size: 24,
-                              ),
+                            : Icon(Icons.send),
                         label: Text(
-                          _isLoading ? 'Processing...' : 'Connect Call',
+                          _isLoading ? 'Sending...' : 'Send Message',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: AppConstants.fontSizeButtonText,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.black,
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.activeYellow,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          elevation: 2,
+                          foregroundColor: AppColors.black,
+                          elevation: 0,
                           shadowColor: AppColors.activeYellow.withOpacity(0.5),
                         ),
                       ),

@@ -4,6 +4,7 @@ import 'package:my_new_app/pages/tags/door/door_tags_list_page.dart';
 import 'package:my_new_app/pages/tags/lost_found/lost_found_list_page.dart';
 import 'package:my_new_app/pages/auth/vehicle_details_page.dart'; // ✅ Import Vehicle Details
 import 'package:my_new_app/pages/auth/login_page.dart'; // ✅ Import Login
+import 'package:my_new_app/pages/tags/widgets/tag_grid_skeleton.dart'; // ✅ Import Skeleton
 import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
 import '../../../services/tags_service.dart';
@@ -28,17 +29,7 @@ class TagGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: AppConstants.paddingLarge,
-          horizontal: AppConstants.paddingLarge,
-        ),
-        child: Center(
-          child: CircularProgressIndicator(
-            color: AppColors.activeYellow,
-          ),
-        ),
-      );
+      return const TagGridSkeleton(itemCount: 6);
     }
 
     if (errorMessage != null) {
@@ -82,7 +73,7 @@ class TagGrid extends StatelessWidget {
       );
     }
 
-    final List<TagItem> tags = [
+    final List<TagItem> allTags = [
       TagItem(
         icon: Icons.directions_car_rounded,
         label: 'Car Sampark',
@@ -181,6 +172,11 @@ class TagGrid extends StatelessWidget {
         },
       ),
     ];
+
+    // ✅ Filter tags: show only those with count >= 1 or action buttons
+    final List<TagItem> tags = allTags
+        .where((tag) => tag.isAction || tag.count >= 1)
+        .toList();
 
     return GridView.builder(
       shrinkWrap: true,

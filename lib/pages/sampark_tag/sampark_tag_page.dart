@@ -513,7 +513,7 @@ final List<MediaSliderItem> _mediaItems = [
                     ),
                   ),
                   Text(
-                    '₹299',
+                    '₹499',
                     style: TextStyle(
                       fontSize: AppConstants.fontSizeButtonPriceText,
                       fontWeight: FontWeight.w900,

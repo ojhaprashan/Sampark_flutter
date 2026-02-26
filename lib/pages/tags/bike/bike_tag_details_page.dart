@@ -5,11 +5,13 @@ import 'package:my_new_app/pages/widgets/file_upload_sheet.dart';
 import 'package:my_new_app/pages/widgets/notification_sheet.dart';
 import 'package:my_new_app/pages/widgets/etag_download_sheet.dart';
 import 'package:my_new_app/pages/widgets/error_dialog.dart';
+import 'package:my_new_app/pages/membership/membership_page.dart';
 import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/tags_service.dart';
 import '../../../services/etag_service.dart';
+import '../../../services/premium_service.dart';
 import '../../widgets/app_header.dart';
 import '../../scan/contact_vehicle_owner_page.dart';
 import '../../widgets/tag_replacement_dialog.dart';
@@ -36,6 +38,8 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
   bool _isLoadingSettings = true;
   String _settingsError = '';
   bool _isLoading = false;
+  bool _hasPremium = false; // ✅ Premium status
+  bool _isLoadingPremium = false; // ✅ Loading premium data
 
   // ✅ State variables with default values (NOT late)
   bool _isCallsEnabled = true;
@@ -56,6 +60,7 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
     );
     _checkLoginStatus();
     _loadTagSettings();
+    _loadPremiumData(); // ✅ Load premium data
   }
 
   @override
@@ -71,6 +76,29 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
       setState(() {
         _isLoggedIn = loggedIn;
       });
+    }
+  }
+
+  // ✅ Load premium data from cache
+  Future<void> _loadPremiumData() async {
+    try {
+      setState(() {
+        _isLoadingPremium = true;
+      });
+      final premiumData = await PremiumService.getCachedPremiumData();
+      if (mounted) {
+        setState(() {
+          _hasPremium = premiumData?.hasPremium ?? false;
+          _isLoadingPremium = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading premium data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingPremium = false;
+        });
+      }
     }
   }
 
@@ -197,7 +225,7 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Tag Header
+                                  // Tag Header (without card)
                                   _buildTagHeader(),
                                   const SizedBox(height: AppConstants.spacingSmall),
                                   // Scan Count
@@ -229,7 +257,11 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
               ],
             ),
           // Bottom Button with animation
-          if (!_isLoadingSettings)
+          // ✅ Show button only in More tab when NOT premium
+          if (!_isLoadingSettings && 
+              !_isLoadingPremium &&
+              _selectedTab == 1 && 
+              !_hasPremium)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
@@ -240,16 +272,10 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
                 child: ElevatedButton(
                   onPressed: () {
                     HapticFeedback.mediumImpact();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _selectedTab == 1 ? 'Get Membership' : 'List your bike',
-                        ),
-                        backgroundColor: AppColors.activeYellow,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MembershipPage(),
                       ),
                     );
                   },
@@ -263,11 +289,10 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
                         AppConstants.buttonBorderRadius,
                       ),
                     ),
-                    elevation: 4,
-                    shadowColor: AppColors.activeYellow.withOpacity(0.3),
+                    elevation: 0,
                   ),
                   child: Text(
-                    _selectedTab == 1 ? 'Get Membership' : 'List your bike',
+                    'Get Membership',
                     style: TextStyle(
                       fontSize: AppConstants.fontSizeButtonPriceText,
                       fontWeight: FontWeight.w700,
@@ -519,75 +544,26 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
   }
 
   Widget _buildTagHeader() {
-    return Container(
-      padding: const EdgeInsets.all(AppConstants.cardPaddingLarge),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '#${widget.tag.displayName}',
+          style: TextStyle(
+            fontSize: AppConstants.fontSizePageTitle,
+            fontWeight: FontWeight.w700,
+            color: AppColors.black,
           ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '#${widget.tag.displayName}',
-                  style: TextStyle(
-                    fontSize: AppConstants.fontSizePageTitle,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.black,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Tag Status: ${widget.tag.status}',
-                  style: TextStyle(
-                    fontSize: AppConstants.fontSizeSubtitle,
-                    color: AppColors.textGrey,
-                  ),
-                ),
-              ],
-            ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Tag Status: ${widget.tag.status}',
+          style: TextStyle(
+            fontSize: AppConstants.fontSizeSubtitle,
+            color: AppColors.textGrey,
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppConstants.paddingMedium,
-              vertical: 6,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.activeYellow,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  'RSA',
-                  style: TextStyle(
-                    fontSize: AppConstants.fontSizeCardTitle,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.black,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.two_wheeler,
-                  size: AppConstants.iconSizeMedium,
-                  color: AppColors.black,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

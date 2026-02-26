@@ -29,7 +29,6 @@ class AddEmergencyContactSheet extends StatefulWidget {
 
 class _AddEmergencyContactSheetState extends State<AddEmergencyContactSheet> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _vehicleController = TextEditingController();
   final TextEditingController _phone1Controller = TextEditingController();
   final TextEditingController _phone2Controller = TextEditingController();
   final TextEditingController _bloodGroupController = TextEditingController();
@@ -67,7 +66,6 @@ class _AddEmergencyContactSheetState extends State<AddEmergencyContactSheet> {
 
   @override
   void dispose() {
-    _vehicleController.dispose();
     _phone1Controller.dispose();
     _phone2Controller.dispose();
     _bloodGroupController.dispose();
@@ -79,15 +77,6 @@ class _AddEmergencyContactSheetState extends State<AddEmergencyContactSheet> {
   Future<void> _saveEmergencyContact() async {
     if (!_formKey.currentState!.validate()) {
       return;
-    }
-
-    // ✅ If status is Inactive, clear all fields
-    if (_status == 'Inactive') {
-      _phone1Controller.clear();
-      _phone2Controller.clear();
-      _bloodGroupController.clear();
-      _insuranceController.clear();
-      _noteController.clear();
     }
 
     setState(() {
@@ -106,15 +95,19 @@ class _AddEmergencyContactSheetState extends State<AddEmergencyContactSheet> {
       // ✅ Parse tagId to int
       final tagIdInt = int.tryParse(widget.tagId) ?? 0;
 
+      // ✅ Determine status: 1 for Active, 0 for Inactive
+      final isActive = _status == 'Active';
+
       // ✅ Call Emergency API to save
       await EmergencyService.updateEmergencyInfo(
         tagId: tagIdInt,
         phone: phoneWithCountryCode,
-        phone1: _status == 'Active' ? _phone1Controller.text : null,
-        phone2: _status == 'Active' ? _phone2Controller.text : null,
-        bloodGroup: _status == 'Active' ? _bloodGroupController.text : null,
-        insurance: _status == 'Active' ? _insuranceController.text : null,
-        note: _status == 'Active' ? _noteController.text : null,
+        status: isActive ? 1 : 0,
+        phone1: isActive ? _phone1Controller.text : null,
+        phone2: isActive ? _phone2Controller.text : null,
+        bloodGroup: isActive ? _bloodGroupController.text : null,
+        insurance: isActive ? _insuranceController.text : null,
+        note: isActive ? _noteController.text : null,
       );
 
       setState(() {
@@ -254,21 +247,6 @@ class _AddEmergencyContactSheetState extends State<AddEmergencyContactSheet> {
                           onChanged: (value) => setState(() => _status = value!),
                           icon: Icons.info_outline,
                           iconColor: Colors.blue.shade600,
-                        ),
-                        const SizedBox(height: 16),
-
-                        _buildLabel('Vehicle Number'),
-                        _buildTextField(
-                          controller: _vehicleController,
-                          hintText: 'e.g., DL8CZ1342',
-                          icon: Icons.directions_car,
-                          iconColor: Colors.orange.shade600,
-                          textCapitalization: TextCapitalization.characters,
-                          enabled: _status == 'Active',
-                          validator: (value) {
-                            if (_status == 'Inactive') return null;
-                            return value?.isEmpty ?? true ? 'Required' : null;
-                          },
                         ),
                         const SizedBox(height: 16),
 

@@ -8,6 +8,8 @@ import '../../utils/constants.dart';
 import '../../services/files_service.dart';
 import '../../services/auth_service.dart';
 
+enum PinStatus { checking, notSet, set }
+
 class FileUploadSheet extends StatefulWidget {
   final int tagId;
 
@@ -27,7 +29,8 @@ class FileUploadSheet extends StatefulWidget {
 }
 
 class _FileUploadSheetState extends State<FileUploadSheet> {
-  bool _isPinSet = false;
+  PinStatus _pinStatus = PinStatus.checking;
+  bool _isPinVerified = false;
   bool _isLoading = false;
   bool _isLoadingFiles = true;
   bool _isUploading = false;
@@ -35,11 +38,10 @@ class _FileUploadSheetState extends State<FileUploadSheet> {
   String? _errorMessage;
   String _uploadStatus = '';
   String _currentFileName = '';
-
   final TextEditingController _pinController = TextEditingController();
   final FocusNode _pinFocusNode = FocusNode();
+  final ScrollController _uploadScrollController = ScrollController();
   String _pinError = '';
-
   List<FileResponse> _uploadedFiles = [];
   String? _userPhoneNumber;
 
@@ -55,13 +57,43 @@ class _FileUploadSheetState extends State<FileUploadSheet> {
       final phone = userData['phone'] ?? '';
       final countryCode = userData['countryCode'] ?? '+91';
       _userPhoneNumber = countryCode.replaceFirst('+', '') + phone;
-      await _fetchFiles();
+      await _checkPinStatus();
     } catch (e) {
       print('Error loading initial data: $e');
       setState(() {
         _isLoadingFiles = false;
         _errorMessage = 'Failed to load data';
+        _pinStatus = PinStatus.notSet;
       });
+    }
+  }
+
+  Future<void> _checkPinStatus() async {
+    if (_userPhoneNumber == null) return;
+    try {
+      print('🔍 Checking PIN status...');
+      final response = await FilesService.checkFilePinSet(
+        tagId: widget.tagId.toString(),
+        phoneNumber: _userPhoneNumber!,
+      );
+      if (mounted) {
+        setState(() {
+          _pinStatus = response.filePinSet ? PinStatus.set : PinStatus.notSet;
+        });
+        if (_pinStatus == PinStatus.notSet) {
+          await _fetchFiles();
+        } else {
+          setState(() => _isLoadingFiles = false);
+        }
+      }
+    } catch (e) {
+      print('❌ Error checking PIN status: $e');
+      if (mounted) {
+        setState(() {
+          _pinStatus = PinStatus.notSet;
+          _isLoadingFiles = false;
+        });
+      }
     }
   }
 
@@ -93,7 +125,26 @@ class _FileUploadSheetState extends State<FileUploadSheet> {
   void dispose() {
     _pinController.dispose();
     _pinFocusNode.dispose();
+    _uploadScrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_uploadScrollController.hasClients) {
+        _uploadScrollController.jumpTo(
+          _uploadScrollController.position.maxScrollExtent,
+        );
+      }
+    });
+  }
+
+  String _extractErrorMessage(dynamic error) {
+    String message = error.toString();
+    while (message.startsWith('Exception: ')) {
+      message = message.substring(11);
+    }
+    return message;
   }
 
   void _handleSetPin() async {
@@ -103,18 +154,104 @@ class _FileUploadSheetState extends State<FileUploadSheet> {
       });
       return;
     }
-
+    if (_userPhoneNumber == null) {
+      setState(() {
+        _pinError = 'Phone number not available';
+      });
+      return;
+    }
     setState(() {
       _isLoading = true;
       _pinError = '';
     });
+    try {
+      final response = await FilesService.setPinAPI(
+        tagId: widget.tagId.toString(),
+        phoneNumber: _userPhoneNumber!,
+        pin: _pinController.text,
+      );
+      if (mounted) {
+        if (response.status == 'success') {
+          setState(() {
+            _isLoading = false;
+            _pinStatus = PinStatus.set;
+            _isPinVerified = true;
+            _pinError = '';
+            _pinController.clear();
+          });
+          _showSuccessSnackBar('✅ PIN set successfully!');
+          await _fetchFiles();
+        } else {
+          setState(() {
+            _isLoading = false;
+            _pinError = response.message.isNotEmpty
+                ? response.message
+                : 'Failed to set PIN';
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _pinError = _extractErrorMessage(e);
+        });
+      }
+      print('❌ PIN Set Error: $e');
+    }
+  }
 
-    await Future.delayed(const Duration(seconds: 1));
-    if (mounted) {
+  void _handleVerifyPin() async {
+    if (_pinController.text.length != 4) {
       setState(() {
-        _isLoading = false;
-        _isPinSet = true;
+        _pinError = 'Please enter a 4-digit PIN';
       });
+      return;
+    }
+    if (_userPhoneNumber == null) {
+      setState(() {
+        _pinError = 'Phone number not available';
+      });
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+      _pinError = '';
+    });
+    try {
+      final response = await FilesService.validateFilePin(
+        tagId: widget.tagId.toString(),
+        phoneNumber: _userPhoneNumber!,
+        pin: _pinController.text,
+      );
+      if (mounted) {
+        if (response.status == 'success') {
+          setState(() {
+            _isLoading = false;
+            _pinStatus = PinStatus.set;
+            _isPinVerified = true;
+            _pinError = '';
+            _pinController.clear();
+          });
+          _showSuccessSnackBar('✅ PIN verified! Access granted.');
+          await _fetchFiles();
+        } else {
+          setState(() {
+            _isLoading = false;
+            _pinError = response.message.isNotEmpty
+                ? response.message
+                : 'Incorrect PIN';
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _pinError = _extractErrorMessage(e);
+        });
+      }
+      print('❌ PIN Verification Error: $e');
     }
   }
 
@@ -221,13 +358,13 @@ class _FileUploadSheetState extends State<FileUploadSheet> {
     );
   }
 
+  // ✅ FIX 1: Show error inside sheet instead of snackbar
   Future<void> _captureAndUpload(bool isCamera) async {
     try {
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(
         source: isCamera ? ImageSource.camera : ImageSource.gallery,
       );
-
       if (pickedFile != null) {
         await _uploadFileToAPI(
           filePath: pickedFile.path,
@@ -236,17 +373,22 @@ class _FileUploadSheetState extends State<FileUploadSheet> {
         );
       }
     } catch (e) {
-      _showErrorSnackBar('Failed to select image');
+      if (mounted) {
+        setState(() {
+          _errorMessage =
+              '❌ Failed to select image\n\n${_extractErrorMessage(e)}';
+        });
+      }
     }
   }
 
+  // ✅ FIX 2: Show error inside sheet instead of snackbar
   Future<void> _pickLocalFile() async {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['jpg', 'jpeg', 'png', 'gif'],
       );
-
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.single;
         await _uploadFileToAPI(
@@ -256,178 +398,164 @@ class _FileUploadSheetState extends State<FileUploadSheet> {
         );
       }
     } catch (e) {
-      _showErrorSnackBar('Failed to pick file');
-    }
-  }
-
- Future<void> _uploadFileToAPI({
-  required String filePath,
-  required String fileName,
-  required String fileDescription,
-}) async {
-  if (_userPhoneNumber == null) {
-    _showErrorSnackBar('Phone number not available');
-    return;
-  }
-
-  setState(() {
-    _isUploading = true;
-    _uploadProgress = 0.0;
-    _uploadStatus = 'Preparing upload...';
-    _currentFileName = fileName;
-    _errorMessage = null;
-  });
-
-  try {
-    // Simulate progress steps
-    await Future.delayed(const Duration(milliseconds: 300));
-    setState(() {
-      _uploadProgress = 0.2;
-      _uploadStatus = 'Validating file...';
-    });
-
-    await Future.delayed(const Duration(milliseconds: 300));
-    setState(() {
-      _uploadProgress = 0.4;
-      _uploadStatus = 'Uploading to server...';
-    });
-
-    final response = await FilesService.uploadFile(
-      tagId: widget.tagId.toString(),
-      phoneNumber: _userPhoneNumber!,
-      fileName: fileName,
-      filePath: filePath,
-      fileDescription: fileDescription,
-    );
-
-    setState(() {
-      _uploadProgress = 0.8;
-      _uploadStatus = 'Processing...';
-    });
-
-    if (response.status == 'success') {
-      await _fetchFiles();
-      
       if (mounted) {
         setState(() {
-          _uploadProgress = 1.0;
-          _uploadStatus = 'Upload complete!';
+          _errorMessage =
+              '❌ Failed to pick file\n\n${_extractErrorMessage(e)}';
         });
-
-        await Future.delayed(const Duration(milliseconds: 800));
-        
-        if (mounted) {
-          setState(() {
-            _isUploading = false;
-            _uploadProgress = 0.0;
-            _uploadStatus = '';
-            _currentFileName = '';
-          });
-          _showSuccessSnackBar('✅ File uploaded successfully!');
-        }
       }
-    } else {
-      throw Exception(response.message);
-    }
-  } catch (e) {
-    // Extract and format error message
-    String errorMessage = e.toString();
-    String displayError = '';
-    String technicalDetails = '';
-    
-    print('❌ Upload Error: $errorMessage'); // Log full error
-    
-    // Remove "Exception: " prefix if present
-    if (errorMessage.startsWith('Exception: ')) {
-      errorMessage = errorMessage.substring(11);
-    }
-    
-    // Check for specific error types and format accordingly
-    if (errorMessage.contains('Unsupported')) {
-      displayError = '❌ File Format Not Supported';
-      technicalDetails = 'The API does not accept this file type.\n\n'
-          'Supported formats: JPG, JPEG, PNG, GIF\n\n'
-          'File: $fileName';
-    } else if (errorMessage.contains('timeout') || errorMessage.contains('Timeout')) {
-      displayError = '⏱️ Upload Timed Out';
-      technicalDetails = 'The server took too long to respond.\n\n'
-          'Try uploading a smaller file or check your internet connection.';
-    } else if (errorMessage.contains('SocketException') || errorMessage.contains('NetworkException')) {
-      displayError = '🌐 Network Error';
-      technicalDetails = 'Unable to connect to the server.\n\n'
-          'Please check your internet connection and try again.';
-    } else if (errorMessage.contains('Failed to upload file:')) {
-      // Extract the actual API error
-      displayError = '❌ Upload Failed';
-      technicalDetails = errorMessage.replaceAll('Failed to upload file: ', '');
-    } else if (errorMessage.contains('API Error:')) {
-      // Extract API status code and message
-      displayError = '🔴 Server Error';
-      technicalDetails = errorMessage.replaceAll('API Error: ', '');
-    } else if (errorMessage.contains('File not found')) {
-      displayError = '📁 File Not Found';
-      technicalDetails = 'The selected file could not be accessed.\n\n'
-          'Please try selecting the file again.';
-    } else if (errorMessage.contains('Failed to parse')) {
-      displayError = '🔧 Server Response Error';
-      technicalDetails = 'The server returned an unexpected response.\n\n'
-          'This might be a temporary issue. Please try again.';
-    } else {
-      // Generic error - show the actual error message
-      displayError = '❌ Upload Failed';
-      technicalDetails = errorMessage.length > 200 
-          ? errorMessage.substring(0, 200) + '...' 
-          : errorMessage;
-    }
-
-    // Combine for full error display
-    String fullErrorMessage = '$displayError\n\n$technicalDetails';
-
-    if (mounted) {
-      setState(() {
-        _isUploading = false;
-        _uploadProgress = 0.0;
-        _uploadStatus = '';
-        _errorMessage = fullErrorMessage;
-      });
-      _showErrorSnackBar(displayError); // Show short error in snackbar
     }
   }
-}
+
+  Future<void> _uploadFileToAPI({
+    required String filePath,
+    required String fileName,
+    required String fileDescription,
+  }) async {
+    if (_userPhoneNumber == null) {
+      // ✅ FIX: Show error inside sheet instead of snackbar
+      setState(() {
+        _errorMessage = '❌ Phone number not available';
+      });
+      return;
+    }
+
+    setState(() {
+      _isUploading = true;
+      _uploadProgress = 0.0;
+      _uploadStatus = 'Preparing upload...';
+      _currentFileName = fileName;
+      _errorMessage = null;
+    });
+
+    try {
+      await Future.delayed(const Duration(milliseconds: 300));
+      setState(() {
+        _uploadProgress = 0.2;
+        _uploadStatus = 'Validating file...';
+      });
+      await Future.delayed(const Duration(milliseconds: 300));
+      setState(() {
+        _uploadProgress = 0.4;
+        _uploadStatus = 'Uploading to server...';
+      });
+
+      final response = await FilesService.uploadFile(
+        tagId: widget.tagId.toString(),
+        phoneNumber: _userPhoneNumber!,
+        fileName: fileName,
+        filePath: filePath,
+        fileDescription: fileDescription,
+      );
+
+      setState(() {
+        _uploadProgress = 0.8;
+        _uploadStatus = 'Processing...';
+      });
+
+      if (response.status == 'success') {
+        await _fetchFiles();
+        if (mounted) {
+          setState(() {
+            _uploadProgress = 1.0;
+            _uploadStatus = 'Upload complete!';
+          });
+          await Future.delayed(const Duration(milliseconds: 800));
+          if (mounted) {
+            setState(() {
+              _isUploading = false;
+              _uploadProgress = 0.0;
+              _uploadStatus = '';
+              _currentFileName = '';
+            });
+            _showSuccessSnackBar('✅ File uploaded successfully!');
+          }
+        }
+      } else {
+        throw Exception(response.message);
+      }
+    } catch (e) {
+      String errorMessage = _extractErrorMessage(e);
+      String displayError = '';
+      String technicalDetails = '';
+      print('❌ Upload Error: $errorMessage');
+
+      if (errorMessage.contains('Unsupported') ||
+          errorMessage.contains('does not accept') ||
+          errorMessage.contains('file type')) {
+        displayError = '❌ File Format Not Supported';
+        technicalDetails = errorMessage;
+      } else if (errorMessage.contains('timeout') ||
+          errorMessage.contains('Timeout')) {
+        displayError = '⏱️ Upload Timed Out';
+        technicalDetails =
+            'The server took too long to respond.\n\nTry uploading a smaller file or check your internet connection.';
+      } else if (errorMessage.contains('SocketException') ||
+          errorMessage.contains('NetworkException')) {
+        displayError = '🌐 Network Error';
+        technicalDetails =
+            'Unable to connect to the server.\n\nPlease check your internet connection and try again.';
+      } else if (errorMessage.contains('File not found')) {
+        displayError = '📁 File Not Found';
+        technicalDetails =
+            'The selected file could not be accessed.\n\nPlease try selecting the file again.';
+      } else if (errorMessage.contains('Failed to parse')) {
+        displayError = '🔧 Server Response Error';
+        technicalDetails =
+            'The server returned an unexpected response.\n\nThis might be a temporary issue. Please try again.';
+      } else {
+        displayError = '❌ Upload Failed';
+        technicalDetails = errorMessage.length > 200
+            ? '${errorMessage.substring(0, 200)}...'
+            : errorMessage;
+      }
+
+      String fullErrorMessage = '$displayError\n\n$technicalDetails';
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+          _uploadProgress = 0.0;
+          _uploadStatus = '';
+          _errorMessage = fullErrorMessage;
+        });
+        _scrollToBottom();
+      }
+    }
+  }
 
   Future<void> _deleteFile(String fileId) async {
     if (_userPhoneNumber == null) return;
-
     final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete File'),
-        content: const Text('Are you sure you want to delete this file?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16)),
+            title: const Text('Delete File'),
+            content:
+                const Text('Are you sure you want to delete this file?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
 
     if (!confirmed) return;
 
     setState(() => _isLoading = true);
-
     try {
       final response = await FilesService.deleteFile(
         fileId: fileId,
         phoneNumber: _userPhoneNumber!,
       );
-
       if (response.status == 'success') {
         await _fetchFiles();
         if (mounted) {
@@ -438,9 +566,13 @@ class _FileUploadSheetState extends State<FileUploadSheet> {
         throw Exception(response.message);
       }
     } catch (e) {
+      // ✅ FIX 3: Show delete error inside sheet instead of snackbar
       if (mounted) {
-        setState(() => _isLoading = false);
-        _showErrorSnackBar('Failed to delete file');
+        setState(() {
+          _isLoading = false;
+          _errorMessage =
+              '❌ Failed to delete file\n\n${_extractErrorMessage(e)}';
+        });
       }
     }
   }
@@ -475,11 +607,13 @@ class _FileUploadSheetState extends State<FileUploadSheet> {
               ),
             ),
             Flexible(
-              child: _isUploading 
-                  ? _buildUploadProgressView() 
-                  : !_isPinSet
-                      ? _buildSetPinView()
-                      : _buildUploadFilesView(),
+              child: _isUploading
+                  ? _buildUploadProgressView()
+                  : _pinStatus == PinStatus.checking
+                      ? _buildCheckingPinView()
+                      : !_isPinVerified
+                          ? _buildSetPinView()
+                          : _buildUploadFilesView(),
             ),
           ],
         ),
@@ -487,225 +621,259 @@ class _FileUploadSheetState extends State<FileUploadSheet> {
     );
   }
 
-  Widget _buildUploadProgressView() {
-    return Container(
-      padding: const EdgeInsets.all(32),
+  Widget _buildCheckingPinView() {
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Animated Circle Progress
-          SizedBox(
-            width: 140,
-            height: 140,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 140,
-                  height: 140,
-                  child: CircularProgressIndicator(
-                    value: _uploadProgress,
-                    strokeWidth: 10,
-                    valueColor: AlwaysStoppedAnimation(AppColors.activeYellow),
-                    backgroundColor: Colors.grey.shade200,
-                  ),
-                ),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '${(_uploadProgress * 100).toInt()}%',
-                      style: const TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.black,
-                      ),
-                    ),
-                    if (_uploadProgress < 1.0)
-                      const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation(Colors.grey),
-                        ),
-                      ),
-                    if (_uploadProgress >= 1.0)
-                      const Icon(
-                        Icons.check_circle,
-                        color: Colors.green,
-                        size: 24,
-                      ),
-                  ],
-                ),
-              ],
-            ),
+          CircularProgressIndicator(
+            valueColor:
+                AlwaysStoppedAnimation<Color>(AppColors.activeYellow),
           ),
-          const SizedBox(height: 32),
-          
-          // File name
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.insert_drive_file, size: 20, color: Colors.grey.shade600),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    _currentFileName,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade800,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Status text
-          Text(
-            _uploadStatus,
-            style: const TextStyle(
+          const SizedBox(height: 16),
+          const Text(
+            'Checking PIN status...',
+            style: TextStyle(
               fontSize: 16,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
               color: AppColors.black,
             ),
-            textAlign: TextAlign.center,
           ),
-          
-          const SizedBox(height: 16),
-          
-          // Progress bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: _uploadProgress,
-              minHeight: 8,
-              valueColor: AlwaysStoppedAnimation(AppColors.activeYellow),
-              backgroundColor: Colors.grey.shade200,
-            ),
-          ),
-
-          // Error message
-          // Error message section in _buildUploadProgressView
-if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
-  const SizedBox(height: 24),
-  Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.red.shade50,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.red.shade200),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
-            const SizedBox(width: 8),
-            const Text(
-              'Error Details',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Colors.red,
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        // Error message with better formatting
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.red.shade200),
-          ),
-          child: SelectableText(
-            _errorMessage!,
-            style: TextStyle(
-              color: Colors.red.shade900,
-              fontSize: 13,
-              height: 1.5,
-              fontFamily: 'monospace', // Better for technical text
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  // Copy error to clipboard
-                  Clipboard.setData(ClipboardData(text: _errorMessage!));
-                  _showSuccessSnackBar('Error copied to clipboard');
-                },
-                icon: const Icon(Icons.copy, size: 18),
-                label: const Text('Copy Error'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red.shade700,
-                  side: BorderSide(color: Colors.red.shade300),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _isUploading = false;
-                    _errorMessage = null;
-                    _uploadProgress = 0.0;
-                    _uploadStatus = '';
-                  });
-                },
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Try Again'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade700,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  ),
-],
-
         ],
       ),
     );
   }
 
+  Widget _buildUploadProgressView() {
+    return SingleChildScrollView(
+      controller: _uploadScrollController,
+      physics: const BouncingScrollPhysics(),
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Animated Circle Progress
+            SizedBox(
+              width: 140,
+              height: 140,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 140,
+                    height: 140,
+                    child: CircularProgressIndicator(
+                      value: _uploadProgress,
+                      strokeWidth: 10,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.activeYellow),
+                      backgroundColor: Colors.grey.shade200,
+                    ),
+                  ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '${(_uploadProgress * 100).toInt()}%',
+                        style: const TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.black,
+                        ),
+                      ),
+                      if (_uploadProgress < 1.0)
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.grey),
+                          ),
+                        ),
+                      if (_uploadProgress >= 1.0)
+                        const Icon(
+                          Icons.check_circle,
+                          color: Colors.green,
+                          size: 24,
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            // File name
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.insert_drive_file,
+                      size: 20, color: Colors.grey.shade600),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      _currentFileName,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade800,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Status text
+            Text(
+              _uploadStatus,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.black,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            // Progress bar
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: _uploadProgress,
+                minHeight: 8,
+                valueColor:
+                    AlwaysStoppedAnimation<Color>(AppColors.activeYellow),
+                backgroundColor: Colors.grey.shade200,
+              ),
+            ),
+            // Error message inside progress view
+            if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.error_outline,
+                            color: Colors.red.shade700, size: 20),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Error Details',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.red,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: SelectableText(
+                        _errorMessage!,
+                        style: TextStyle(
+                          color: Colors.red.shade900,
+                          fontSize: 13,
+                          height: 1.5,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Clipboard.setData(
+                                  ClipboardData(text: _errorMessage!));
+                              _showSuccessSnackBar(
+                                  'Error copied to clipboard');
+                            },
+                            icon: const Icon(Icons.copy, size: 18),
+                            label: const Text('Copy Error'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red.shade700,
+                              side: BorderSide(color: Colors.red.shade300),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _isUploading = false;
+                                _errorMessage = null;
+                                _uploadProgress = 0.0;
+                                _uploadStatus = '';
+                              });
+                            },
+                            icon: const Icon(Icons.refresh, size: 18),
+                            label: const Text('Try Again'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSetPinView() {
+    final isCreatingPin = _pinStatus == PinStatus.notSet;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Center(
-            child: Icon(Icons.lock_outline_rounded, size: 48, color: AppColors.black),
+          Center(
+            child: Icon(
+              isCreatingPin
+                  ? Icons.lock_outline_rounded
+                  : Icons.lock_open_rounded,
+              size: 48,
+              color: AppColors.black,
+            ),
           ),
           const SizedBox(height: 16),
-          const Center(
+          Center(
             child: Text(
-              'Secure your Documents',
-              style: TextStyle(
+              isCreatingPin
+                  ? 'Secure your Documents'
+                  : 'Enter PIN to Access',
+              style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
                 color: AppColors.black,
@@ -713,11 +881,13 @@ if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
             ),
           ),
           const SizedBox(height: 8),
-          const Center(
+          Center(
             child: Text(
-              'Set a 4-digit PIN to keep your files safe',
+              isCreatingPin
+                  ? 'Set a 4-digit PIN to keep your files safe'
+                  : 'Enter the PIN to access your documents',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 color: Colors.grey,
               ),
@@ -725,7 +895,7 @@ if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
           ),
           const SizedBox(height: 32),
           Text(
-            'Create PIN',
+            isCreatingPin ? 'Create PIN' : 'Enter PIN',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -771,7 +941,11 @@ if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _isLoading ? null : _handleSetPin,
+              onPressed: _isLoading
+                  ? null
+                  : isCreatingPin
+                      ? _handleSetPin
+                      : _handleVerifyPin,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.activeYellow,
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -788,9 +962,9 @@ if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
                         color: Colors.black,
                       ),
                     )
-                  : const Text(
-                      'Set PIN & Continue',
-                      style: TextStyle(
+                  : Text(
+                      isCreatingPin ? 'Set PIN & Continue' : 'Verify PIN',
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: AppColors.black,
@@ -803,6 +977,7 @@ if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
     );
   }
 
+  // ✅ FIX 4: Error banner added inside the files view
   Widget _buildUploadFilesView() {
     return Column(
       children: [
@@ -826,13 +1001,85 @@ if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
             ],
           ),
         ),
-        
+
+        // ✅ Error banner visible inside the sheet
+        if (_errorMessage != null && _errorMessage!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.error_outline,
+                          color: Colors.red.shade700, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Error',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.red.shade700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () =>
+                            setState(() => _errorMessage = null),
+                        child: Icon(Icons.close,
+                            size: 18, color: Colors.red.shade400),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _errorMessage!,
+                    style: TextStyle(
+                      color: Colors.red.shade900,
+                      fontSize: 12,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        setState(() => _errorMessage = null);
+                        _showUploadOptions();
+                      },
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text('Try Again'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red.shade700,
+                        side: BorderSide(color: Colors.red.shade300),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
         // File count badge
         if (_uploadedFiles.isNotEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: AppColors.activeYellow.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(20),
@@ -847,20 +1094,22 @@ if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
               ),
             ),
           ),
-        
+
         const SizedBox(height: 16),
-        
+
         Expanded(
           child: _isLoadingFiles
               ? Center(
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation(AppColors.activeYellow),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.activeYellow),
                   ),
                 )
               : _uploadedFiles.isEmpty
                   ? _buildEmptyState()
                   : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 24),
                       itemCount: _uploadedFiles.length,
                       itemBuilder: (context, index) {
                         final file = _uploadedFiles[index];
@@ -868,7 +1117,7 @@ if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
                       },
                     ),
         ),
-        
+
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
@@ -883,7 +1132,8 @@ if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
           ),
           child: ElevatedButton.icon(
             onPressed: _isLoading ? null : _showUploadOptions,
-            icon: const Icon(Icons.add_circle_outline, color: AppColors.black),
+            icon: const Icon(Icons.add_circle_outline,
+                color: AppColors.black),
             label: const Text(
               'Upload New File',
               style: TextStyle(
@@ -981,7 +1231,8 @@ if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.access_time, size: 14, color: Colors.grey.shade600),
+                          Icon(Icons.access_time,
+                              size: 14, color: Colors.grey.shade600),
                           const SizedBox(width: 4),
                           Text(
                             file.uploadedAt,
@@ -996,7 +1247,7 @@ if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
                     ],
                   ),
                 ),
-                PopupMenuButton(
+                PopupMenuButton<String>(
                   icon: Icon(Icons.more_vert, color: Colors.grey.shade600),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -1025,7 +1276,8 @@ if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
                         children: [
                           Icon(Icons.delete, size: 20, color: Colors.red),
                           SizedBox(width: 12),
-                          Text('Delete', style: TextStyle(color: Colors.red)),
+                          Text('Delete',
+                              style: TextStyle(color: Colors.red)),
                         ],
                       ),
                     ),
@@ -1090,7 +1342,8 @@ if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
         ),
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -1107,7 +1360,8 @@ if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
         ),
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -1116,15 +1370,18 @@ if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Download File'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('File: ${file.name}', style: const TextStyle(fontWeight: FontWeight.w600)),
+            Text('File: ${file.name}',
+                style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            Text('Uploaded: ${file.uploadedAt}', style: const TextStyle(fontSize: 12)),
+            Text('Uploaded: ${file.uploadedAt}',
+                style: const TextStyle(fontSize: 12)),
           ],
         ),
         actions: [
@@ -1137,7 +1394,8 @@ if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
               Navigator.pop(context);
               final uri = Uri.parse(file.downloadUrl);
               if (await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                await launchUrl(uri,
+                    mode: LaunchMode.externalApplication);
               } else {
                 _showErrorSnackBar('Cannot open download link');
               }

@@ -380,61 +380,48 @@ final List<MediaSliderItem> _productImages = [
   }
 
 Widget _buildImageSlider() {
-  // 1. Get the screen width
-  double screenWidth = MediaQuery.of(context).size.width;
+    // 1. Get the screen width
+    double screenWidth = MediaQuery.of(context).size.width;
 
-  // 2. Define your "little space" (Padding)
-  double sidePadding = 6.0; 
+    // 2. Define "little space" (Matched to 14.0 like the Tags page)
+    double sidePadding = 14.0; 
 
-  // 3. Calculate the slider width (Screen width - padding)
-  double sliderWidth = screenWidth - (sidePadding * 2);
+    // 3. Calculate the slider width (Screen width - padding)
+    double sliderWidth = screenWidth - (sidePadding * 2);
 
-  // 4. Calculate Height dynamically based on Aspect Ratio (16:9)
-  // This ensures it's never "too large" or "too small" on different phones.
-  // Change 1.78 to 2.0 if you want it even shorter (more banner-like).
-  double sliderHeight = sliderWidth / 2.1; 
+    // 4. Calculate Height dynamically based on Aspect Ratio
+    double sliderHeight = sliderWidth / 2.1; 
 
-  return Container(
-    decoration: const BoxDecoration(
-      color: AppColors.white,
-      borderRadius: BorderRadius.only(
-        topLeft: Radius.circular(30),
-        topRight: Radius.circular(30),
+    return Container(
+      // Keep the white background and outer curve for the product page layout
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(30),
+          topRight: Radius.circular(30),
+        ),
       ),
-    ),
-    child: ClipRRect(
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(30),
-        topRight: Radius.circular(30),
+      // ✅ Apply the Top, Left, and Right padding here
+      padding: EdgeInsets.only(
+        top: 10.0,         // Spacing from the top curve
+        left: sidePadding, // Spacing from the left
+        right: sidePadding, // Spacing from the right
+        bottom: 12.0,      // Spacing before the Product Title begins
       ),
-      child: Column(
-        children: [
-          const SizedBox(height: 12),
-          
-          Padding(
-            // ✅ FIX 1: "Little space" consistent on both sides
-            padding: EdgeInsets.symmetric(horizontal: sidePadding), 
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: MediaSlider(
-                items: _productImages,
-                // ✅ FIX 2: Height is now calculated, not fixed.
-                // It will be ~200 on average phones, which is perfect for products.
-                height: sliderHeight, 
-                autoScroll: false,
-                show3DEffect: false,
-                viewportFraction: 1.0,
-                showIndicators: true,
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 12),
-        ],
+      child: ClipRRect(
+        // ✅ Radius 24 perfectly matches the Container's Radius 30 curve
+        borderRadius: BorderRadius.circular(24),
+        child: MediaSlider(
+          items: _productImages,
+          height: sliderHeight, 
+          autoScroll: false,
+          show3DEffect: false,
+          viewportFraction: 1.0,
+          showIndicators: true, // Kept true for the product page
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildProductHeader() {
     return Padding(

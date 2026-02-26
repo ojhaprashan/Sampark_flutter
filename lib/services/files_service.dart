@@ -95,6 +95,68 @@ class DeleteFileResponse {
   }
 }
 
+class SetPinResponse {
+  final String status;
+  final String message;
+
+  SetPinResponse({
+    required this.status,
+    required this.message,
+  });
+
+  factory SetPinResponse.fromJson(Map<String, dynamic> json) {
+    return SetPinResponse(
+      status: json['status'] ?? '',
+      message: json['message'] ?? '',
+    );
+  }
+}
+
+class CheckFilePinSetResponse {
+  final String status;
+  final String message;
+  final bool filePinSet;
+
+  CheckFilePinSetResponse({
+    required this.status,
+    required this.message,
+    required this.filePinSet,
+  });
+
+  factory CheckFilePinSetResponse.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>? ?? {};
+    return CheckFilePinSetResponse(
+      status: json['status'] ?? '',
+      message: json['message'] ?? '',
+      filePinSet: data['file_pin_set'] ?? false,
+    );
+  }
+}
+
+class ValidateFilePinResponse {
+  final String status;
+  final String message;
+  final bool valid;
+  final String? result;
+
+  ValidateFilePinResponse({
+    required this.status,
+    required this.message,
+    required this.valid,
+    this.result,
+  });
+
+  factory ValidateFilePinResponse.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>? ?? {};
+    return ValidateFilePinResponse(
+      status: json['status'] ?? '',
+      message: json['message'] ?? '',
+      valid: data['valid'] ?? false,
+      result: data['result'],
+    );
+  }
+}
+
 // ==================
 // Files Service
 // ==================
@@ -253,12 +315,24 @@ class FilesService {
           throw Exception('Failed to parse upload response: $e\nServer returned: ${responseBody.substring(0, min(200, responseBody.length))}');
         }
       } else {
+        // Try to extract error message from JSON response
+        try {
+          final jsonResponse = jsonDecode(responseBody);
+          if (jsonResponse is Map<String, dynamic>) {
+            final errorMessage = jsonResponse['message'] ?? 'Upload failed';
+            throw Exception(errorMessage);
+          }
+        } catch (e) {
+          if (e is Exception) rethrow;
+        }
+        
+        // Fallback to generic error
         throw Exception(
           'Upload API Error: ${response.statusCode}\nServer response: ${responseBody.substring(0, min(300, responseBody.length))}',
         );
       }
     } catch (e) {
-      throw Exception('Failed to upload file: $e');
+      rethrow;
     }
   }
 
@@ -304,6 +378,210 @@ class FilesService {
       }
     } catch (e) {
       throw Exception('Failed to delete file: $e');
+    }
+  }
+
+  /// Set PIN for file manager
+  /// Params: tag_id (required), ph (required - phone number), passpin (required - 4-digit PIN)
+  static Future<SetPinResponse> setPinAPI({
+    required String tagId,
+    required String phoneNumber,
+    required String pin,
+  }) async {
+    try {
+      print('🔐 Setting PIN for tag ID: $tagId, Phone: $phoneNumber');
+
+      final url = Uri.parse('$baseUrl/pinset_api');
+
+      final Map<String, String> body = {
+        'sm': smValue,
+        '6s888iop': sixs888iopValue,
+        'dg': dgValue,
+        'tag_id': tagId,
+        'ph': phoneNumber,
+        'passpin': pin,
+      };
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+        },
+        body: body,
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception('Request timeout'),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        print('✅ Set PIN response: $jsonResponse');
+        return SetPinResponse.fromJson(jsonResponse);
+      } else {
+        throw Exception(
+          'API Error: ${response.statusCode} - ${response.body}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Failed to set PIN: $e');
+    }
+  }
+
+  /// Verify PIN for file manager access
+  /// Params: tag_id (required), ph (required - phone number), passpin (required - 4-digit PIN)
+  static Future<SetPinResponse> verifyPinAPI({
+    required String tagId,
+    required String phoneNumber,
+    required String pin,
+  }) async {
+    try {
+      print('🔑 Verifying PIN for tag ID: $tagId, Phone: $phoneNumber');
+
+      final url = Uri.parse('$baseUrl/pinset_api');
+
+      final Map<String, String> body = {
+        'sm': smValue,
+        '6s888iop': sixs888iopValue,
+        'dg': dgValue,
+        'tag_id': tagId,
+        'ph': phoneNumber,
+        'passpin': pin,
+      };
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+        },
+        body: body,
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception('Request timeout'),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        print('✅ PIN verification response: $jsonResponse');
+        return SetPinResponse.fromJson(jsonResponse);
+      } else {
+        throw Exception(
+          'API Error: ${response.statusCode} - ${response.body}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Failed to verify PIN: $e');
+    }
+  }
+
+  /// Check if PIN is set for a tag
+  /// Params: tag_id (required), ph (required - phone number)
+  /// Returns: file_pin_set (true if PIN is set, false otherwise)
+  static Future<CheckFilePinSetResponse> checkFilePinSet({
+    required String tagId,
+    required String phoneNumber,
+  }) async {
+    try {
+      print('🔍 Checking if PIN is set for tag ID: $tagId, Phone: $phoneNumber');
+
+      final url = Uri.parse('$baseUrl/check_file_pin_set_api');
+
+      final Map<String, String> body = {
+        'sm': smValue,
+        '6s888iop': sixs888iopValue,
+        'dg': dgValue,
+        'tag_id': tagId,
+        'ph': phoneNumber,
+      };
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+        },
+        body: body,
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception('Request timeout'),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        print('✅ Check PIN set response: $jsonResponse');
+        return CheckFilePinSetResponse.fromJson(jsonResponse);
+      } else {
+        throw Exception(
+          'API Error: ${response.statusCode} - ${response.body}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Failed to check PIN status: $e');
+    }
+  }
+
+  /// Validate file access PIN for a tag
+  /// Params: tag_id (required), ph (required - phone number), passpin (required - PIN to validate)
+  /// Returns: success with valid flag or error if invalid
+  static Future<ValidateFilePinResponse> validateFilePin({
+    required String tagId,
+    required String phoneNumber,
+    required String pin,
+  }) async {
+    try {
+      print('🔑 Validating file PIN for tag ID: $tagId, Phone: $phoneNumber');
+
+      final url = Uri.parse('$baseUrl/validate_file_pin_api');
+
+      final Map<String, String> body = {
+        'sm': smValue,
+        '6s888iop': sixs888iopValue,
+        'dg': dgValue,
+        'tag_id': tagId,
+        'ph': phoneNumber,
+        'passpin': pin,
+      };
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+        },
+        body: body,
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception('Request timeout'),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        print('✅ Validate PIN response: $jsonResponse');
+        final validateResponse = ValidateFilePinResponse.fromJson(jsonResponse);
+        
+        // Check the status field first
+        if (validateResponse.status == 'error') {
+          throw Exception(validateResponse.message);
+        }
+        
+        // Check if PIN validation was successful
+        if (!validateResponse.valid) {
+          throw Exception(validateResponse.message.isNotEmpty 
+              ? validateResponse.message 
+              : 'Invalid PIN - Access denied');
+        }
+        
+        return validateResponse;
+      } else if (response.statusCode == 403) {
+        throw Exception('Invalid PIN - Access denied');
+      } else {
+        throw Exception(
+          'API Error: ${response.statusCode} - ${response.body}',
+        );
+      }
+    } catch (e) {
+      rethrow;
     }
   }
 }

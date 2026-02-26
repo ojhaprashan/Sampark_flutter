@@ -64,6 +64,12 @@ class _ManageTagTabState extends State<ManageTagTab> {
     }
   }
 
+  // ✅ Check if vehicle is from specific state codes
+  bool _isVehicleFromStateCode(List<String> stateCodes) {
+    final vehicleNumber = widget.tag.displayName.toUpperCase();
+    return stateCodes.any((code) => vehicleNumber.startsWith(code));
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -154,6 +160,8 @@ class _ManageTagTabState extends State<ManageTagTab> {
                 _showEmergencyContactSheet(context);
               },
             ),
+            // ✅ Show "List your car" only for DL and UP state codes
+           
             // ✅ Show India-specific features only for India
             if (_countryCode == '+91') ...[
               _buildActionButton(

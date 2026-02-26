@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:my_new_app/pages/widgets/notification_sheet.dart';
 import 'package:my_new_app/pages/widgets/edit_tag_sheet.dart';
+import 'package:my_new_app/pages/membership/membership_page.dart';
+import 'package:my_new_app/pages/tags/car/add_secondary_number_sheet.dart';
 import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/tags_service.dart';
+import '../../../services/premium_service.dart';
 import '../../widgets/app_header.dart';
 import '../../scan/contact_vehicle_owner_page.dart';
 
@@ -37,6 +40,8 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
   bool _isVideoCallEnabled = false;
   String _userPhone = '';
   String _countryCode = '+91'; // ✅ Default to India
+  bool _hasPremium = false; // ✅ Premium status
+  bool _isLoadingPremium = false; // ✅ Loading premium data
 
   @override
   void initState() {
@@ -48,6 +53,7 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
     );
     _checkLoginStatus();
     _loadTagSettings();
+    _loadPremiumData(); // ✅ Load premium data
   }
 
   @override
@@ -63,6 +69,29 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
       setState(() {
         _isLoggedIn = loggedIn;
       });
+    }
+  }
+
+  // ✅ Load premium data from cache
+  Future<void> _loadPremiumData() async {
+    try {
+      setState(() {
+        _isLoadingPremium = true;
+      });
+      final premiumData = await PremiumService.getCachedPremiumData();
+      if (mounted) {
+        setState(() {
+          _hasPremium = premiumData?.hasPremium ?? false;
+          _isLoadingPremium = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading premium data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingPremium = false;
+        });
+      }
     }
   }
 
@@ -234,7 +263,11 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
               ],
             ),
           // Bottom Button
-          if (!_isLoadingSettings && _selectedTab == 1)
+          // ✅ Show button only in More tab when NOT premium
+          if (!_isLoadingSettings && 
+              !_isLoadingPremium &&
+              _selectedTab == 1 && 
+              !_hasPremium)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
@@ -245,14 +278,10 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
                 child: ElevatedButton(
                   onPressed: () {
                     HapticFeedback.mediumImpact();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Subscribe Premium'),
-                        backgroundColor: AppColors.activeYellow,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MembershipPage(),
                       ),
                     );
                   },
@@ -263,14 +292,13 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(
-                        AppConstants.buttonBorderRadius * 2,
+                        AppConstants.buttonBorderRadius,
                       ),
                     ),
-                    elevation: 4,
-                    shadowColor: AppColors.activeYellow.withOpacity(0.3),
+                    elevation: 0,
                   ),
                   child: Text(
-                    'Subscribe Premium',
+                    'Get Membership',
                     style: TextStyle(
                       fontSize: AppConstants.fontSizeButtonPriceText,
                       fontWeight: FontWeight.w700,
@@ -655,7 +683,7 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
           iconColor: Colors.teal.shade600,
           label: 'Add secondary number',
           trailing: Icons.phone,
-          onTap: () {},
+          onTap: () => _addSecondaryNumber(),
         ),
         _buildActionButton(
           icon: Icons.delete_outline,
@@ -663,7 +691,15 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
           label: 'Delete and re-write tag',
           trailing: Icons.close,
           isRed: true,
-          onTap: () {},
+          onTap: () {
+            final phoneWithCountryCode = _countryCode.replaceFirst('+', '') + _userPhone;
+            EditTagSheet.show(
+              context,
+              vehicleNumber: widget.tag.displayName,
+              tagId: widget.tag.tagInternalId,
+              phone: phoneWithCountryCode,
+            );
+          },
         ),
       ],
     );
@@ -933,6 +969,10 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
 
       _hideLoadingOverlay();
       await _loadTagSettings();
+      
+      setState(() {
+        _isLoading = false;
+      });
 
       _showSuccessDialog(
         icon: newCallsEnabled ? Icons.phone_enabled : Icons.phone_disabled,
@@ -985,6 +1025,10 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
 
       _hideLoadingOverlay();
       await _loadTagSettings();
+      
+      setState(() {
+        _isLoading = false;
+      });
 
       _showSuccessDialog(
         icon: newTagEnabled ? Icons.check_circle : Icons.pause_circle,
@@ -1039,6 +1083,10 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
 
       _hideLoadingOverlay();
       await _loadTagSettings();
+      
+      setState(() {
+        _isLoading = false;
+      });
 
       _showSuccessDialog(
         icon: newWhatsappEnabled ? Icons.chat_bubble : Icons.chat_bubble_outline,
@@ -1089,6 +1137,10 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
 
       _hideLoadingOverlay();
       await _loadTagSettings();
+      
+      setState(() {
+        _isLoading = false;
+      });
 
       _showSuccessDialog(
         icon: newCallMaskingEnabled ? Icons.phone : Icons.phone_disabled,
@@ -1139,6 +1191,10 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
 
       _hideLoadingOverlay();
       await _loadTagSettings();
+      
+      setState(() {
+        _isLoading = false;
+      });
 
       _showSuccessDialog(
         icon: newVideoCallEnabled ? Icons.videocam : Icons.videocam_off,
@@ -1161,7 +1217,82 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
   // ✅ DIALOG FUNCTIONS
   // ===================
 
-  // ✅ Success Dialog with Animation
+  // ✅ Show Add Secondary Number Sheet
+  void _addSecondaryNumber() async {
+    HapticFeedback.mediumImpact();
+    final phoneNumber = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => AddSecondaryNumberSheet(
+        tagId: widget.tag.tagInternalId.toString(),
+        existingSecondaryNumber: _tagSettings?.data.secondaryNumber,  // ✅ Pass existing data
+      ),
+    );
+
+    if (phoneNumber != null && phoneNumber.isNotEmpty) {
+      try {
+        final userData = await AuthService.getUserData();
+        final phone = userData['phone'] ?? '';
+        final countryCode = userData['countryCode'] ?? '+91';
+        final phoneWithCountryCode = countryCode.replaceFirst('+', '') + phone;
+
+        await TagsService.updateTagSettings(
+          tagId: widget.tag.tagInternalId,
+          phone: phoneWithCountryCode,
+          secondaryNumber: phoneNumber,
+          callsEnabled: _isCallsEnabled,
+          whatsappEnabled: _isWhatsappEnabled,
+          callMaskingEnabled: _isCallMaskingEnabled,
+          videoCallEnabled: _isVideoCallEnabled,
+          smValue: '67s87s6yys66',
+          dgValue: 'testYU78dII8iiUIPSISJ',
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Secondary number saved successfully!',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          // Refresh tag settings
+          await _loadTagSettings();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+        }
+      }
+    }
+  }
   void _showSuccessDialog({
     required IconData icon,
     required Color iconColor,

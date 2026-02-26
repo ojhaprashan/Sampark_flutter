@@ -6,6 +6,7 @@ import 'package:my_new_app/pages/widgets/app_header.dart';
 import 'package:my_new_app/services/auth_service.dart';
 import 'package:my_new_app/services/tags_service.dart';
 import 'package:my_new_app/services/etag_service.dart';
+import 'package:my_new_app/services/premium_service.dart';
 import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
 import 'manage_tag_tab.dart';
@@ -29,6 +30,8 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
   TagSettings? _tagSettings;
   bool _isLoadingSettings = true;
   String _settingsError = '';
+  bool _hasPremium = false; // ✅ Premium status
+  bool _isLoadingPremium = false; // ✅ Loading premium data
 
   @override
   void initState() {
@@ -40,6 +43,7 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
     );
     _checkLoginStatus();
     _loadTagSettings();
+    _loadPremiumData(); // ✅ Load premium data
   }
 
   @override
@@ -56,6 +60,36 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
         _isLoggedIn = loggedIn;
       });
     }
+  }
+
+  // ✅ Load premium data from cache
+  Future<void> _loadPremiumData() async {
+    try {
+      setState(() {
+        _isLoadingPremium = true;
+      });
+      final premiumData = await PremiumService.getCachedPremiumData();
+      if (mounted) {
+        setState(() {
+          _hasPremium = premiumData?.hasPremium ?? false;
+          _isLoadingPremium = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading premium data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingPremium = false;
+        });
+      }
+    }
+  }
+
+  // ✅ Check if vehicle is from DL or UP state
+  bool _isVehicleFromStateCode(List<String> stateCodes) {
+    final vehicleNumber = widget.tag.displayName.toUpperCase();
+    print('Checking vehicle number: $vehicleNumber against state codes: $stateCodes');
+    return stateCodes.any((code) => vehicleNumber.startsWith(code));
   }
 
   Future<void> _loadTagSettings() async {
@@ -231,7 +265,11 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
               ],
             ),
           // Bottom Button with animation
-          if (!_isLoadingSettings)
+          // ✅ Show button if: (Manage tab + DL/UP) OR (More tab + no premium)
+          if (!_isLoadingSettings && 
+              !_isLoadingPremium &&
+              ((_selectedTab == 0 && _isVehicleFromStateCode(['DL', 'UP'])) || 
+               (_selectedTab == 1 && !_hasPremium)))
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
