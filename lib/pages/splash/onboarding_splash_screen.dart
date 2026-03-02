@@ -17,19 +17,19 @@ class _OnboardingSplashScreenState extends State<OnboardingSplashScreen> {
 
   final List<Map<String, String>> _onboardingPages = [
     {
-      'title': 'Track Your Tags',
-      'description': 'Easily manage and track all your vehicle tags in one place. Stay updated with real-time notifications.',
-      'icon': 'assets/icons/main.png',
+      'title': 'Masked call using\nCar sampark tag',
+      'description': 'your phone number is not shared with the caller or with the car owner.',
+      'icon': 'https://sampark.me/assets/app/onboarding_2.png',
     },
     {
-      'title': 'Smart Management',
-      'description': 'Add multiple vehicles and manage their tags efficiently. Keep all your vehicle information organized.',
-      'icon': 'assets/icons/main.png',
+      'title': ' Manage your tags',
+      'description': 'Enable disable calls, whatsApp, SMS and More from the APP.',
+      'icon': 'https://sampark.me/assets/app/onboarding_3.png',
     },
     {
-      'title': 'Quick Access',
-      'description': 'Access your tag information anytime, anywhere. Get quick support and manage everything on the go.',
-      'icon': 'assets/icons/main.png',
+      'title': ' Emergency help',
+      'description': 'Add your emergency details in the Tag from your account manager.',
+      'icon': 'https://sampark.me/assets/app/onboarding_1.png',
     },
   ];
 

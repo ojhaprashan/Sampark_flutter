@@ -229,8 +229,8 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
                                   if (_tagSettings?.data.isDemoTag ?? false)
                                     const SizedBox(height: AppConstants.spacingSmall),
                                   // Scan Count
-                                  _buildScanCount(),
-                                  const SizedBox(height: AppConstants.spacingMedium),
+                                  // _buildScanCount(),
+                                  // const SizedBox(height: AppConstants.spacingMedium),
                                   // Tabs
                                   _buildTabs(),
                                 ],
@@ -541,10 +541,11 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Tag Status: ${widget.tag.status}',
+                  'Tag id: ${widget.tag.tagPublicId}',
                   style: TextStyle(
                     fontSize: AppConstants.fontSizeSubtitle,
                     color: AppColors.textGrey,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -633,19 +634,19 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
     );
   }
 
-  Widget _buildScanCount() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Text(
-        'Tag id: ${widget.tag.tagPublicId}',
-        style: TextStyle(
-          fontSize: AppConstants.fontSizeSubtitle,
-          color: AppColors.textGrey,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
+  // Widget _buildScanCount() {
+  //   return Padding(
+  //     padding: const EdgeInsets.symmetric(horizontal: 4),
+  //     // child: Text(
+  //     //   'Tag id: ${widget.tag.tagPublicId}',
+  //     //   style: TextStyle(
+  //     //     fontSize: AppConstants.fontSizeSubtitle,
+  //     //     color: AppColors.textGrey,
+  //     //     fontWeight: FontWeight.w500,
+  //     //   ),
+  //     // ),
+  //   );
+  // }
 
   Widget _buildTabs() {
     return Container(

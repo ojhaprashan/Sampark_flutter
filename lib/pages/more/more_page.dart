@@ -370,7 +370,7 @@ Future<void> launchURL(String url) async {
           _buildCompactShopBanner(),
 
     
-               _buildImageSlider(),
+               _buildImageSlider(context),
           // Support Card (Always visible)
         
           _buildCompactSupportCard(),
@@ -429,7 +429,7 @@ Future<void> launchURL(String url) async {
             badge: 'New',
             iconColor: const Color(0xFF4A9FFF),
             onTap: () {
-              _launchURL('https://app.ngf132.com/refer-signup');
+              launchURL('https://app.ngf132.com/refer-signup');
             },
           ),
           const SizedBox(height: AppConstants.spacingSmall),
@@ -448,7 +448,7 @@ Future<void> launchURL(String url) async {
           ),
           
           const SizedBox(height: AppConstants.spacingTooSmall),
-              _buildImageSlider(),
+              _buildImageSlider(context),
           // Support Card (Always visible)
           _buildCompactSupportCard(),
 
@@ -503,7 +503,7 @@ Future<void> launchURL(String url) async {
           const SizedBox(height: AppConstants.spacingTooSmall),
     // ✅ Media Slider
           // ✅ Media Slider
-          _buildImageSlider(),
+          _buildImageSlider(context),
           // Support Card (Always visible)
           _buildCompactSupportCard(),
 
@@ -1148,32 +1148,48 @@ Future<void> launchURL(String url) async {
     );
   }
 }
- Widget _buildImageSlider() {
-  return Padding(
-     padding: const EdgeInsets.symmetric(horizontal: 0), // ✅ Reduced from 12 to 8
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: MediaSlider(
-       items: [
-          MediaSliderItem.networkImage(
-            url: 'https://sampark.me/assets/app/more_1.png', 
-            title: 'Tag Feature 1',
+// ✅ Update this function to accept (BuildContext context)
+Widget _buildImageSlider(BuildContext context) {
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      // 1. Calculate height dynamically based on the PARENT width (not screen width)
+      // This ensures it exactly matches the width of the Shop button above it.
+      double sliderHeight = constraints.maxWidth / 3.6;
+
+      return Padding(
+        padding: const EdgeInsets.only(
+          top: 10.0,    // Spacing from top
+          bottom: 16.0, // ✅ GAP: Spacing after the slider
+        ),
+        child: ClipRRect(
+          // ✅ RADIUS: Matches the Shop button and other cards (usually 12 or 16)
+          borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+          child: MediaSlider(
+            height: sliderHeight,
+            items: [
+              MediaSliderItem.networkImage(
+                url: 'https://sampark.me/assets/app/more_1.png',
+                title: 'Tag Feature 1',
+                boxFit: BoxFit.fill,
+              ),
+              MediaSliderItem.networkImage(
+                url: 'https://sampark.me/assets/app/more_2.png',
+                title: 'Tag Feature 2',
+                boxFit: BoxFit.fill,
+              ),
+              MediaSliderItem.networkImage(
+                url: 'https://sampark.me/assets/app/more_3.png',
+                title: 'Tag Feature 3',
+                boxFit: BoxFit.fill,
+              ),
+            ],
+            autoScroll: true,
+            show3DEffect: false,
+            viewportFraction: 1.0,
+            showIndicators: false,
           ),
-          MediaSliderItem.networkImage(
-            url: 'https://sampark.me/assets/app/more_2.png', 
-            title: 'Tag Feature 2',
-          ),
-          MediaSliderItem.networkImage(
-            url: 'https://sampark.me/assets/app/more_3.png', 
-            title: 'Tag Feature 3',
-          ),
-        ],
-        height: 110,
-        autoScroll: true,
-        show3DEffect: false,
-        viewportFraction: 1.0,
-        showIndicators: false,
-      ),
-    ),
+        ),
+      );
+    },
   );
 }

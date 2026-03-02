@@ -5,7 +5,8 @@ import '../../widgets/app_header.dart';
 import '../../../services/auth_service.dart';
 // Import your shop service file
 import '../../../services/shop_service.dart';
-import 'product_details_page.dart'; 
+import 'product_details_page.dart';
+import 'shop_skeleton.dart'; 
 
 class ShopPage extends StatefulWidget {
   const ShopPage({super.key, this.showBackButton = false});
@@ -135,11 +136,7 @@ class _ShopPageState extends State<ShopPage> {
   // ✅ Helper to switch between Loading, Error, and Grid
   Widget _buildBodyContent() {
     if (_isLoading) {
-      return Center(
-        child: CircularProgressIndicator(
-          color: AppColors.primaryYellow,
-        ),
-      );
+      return ShopSkeleton(itemCount: 6, scale: _scale);
     }
 
     if (_errorMessage != null) {

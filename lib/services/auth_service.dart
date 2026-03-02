@@ -192,4 +192,14 @@ class AuthService {
       'vehicles': vehicles,
     };
   }
+
+  // ✅ Update username locally (called after profile update)
+  static Future<void> updateUserName(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyName, name.trim());
+    print('✅ Username updated locally: $name');
+    
+    // ✅ Notify listeners that user data changed
+    userDataNotifier.value++;
+  }
 }

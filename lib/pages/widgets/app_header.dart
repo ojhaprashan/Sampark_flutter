@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:my_new_app/pages/widgets/notification_sheet.dart';
 import '../../utils/colors.dart';
 import '../../services/auth_service.dart';
-import '../../services/wallet_service.dart';
 import '../../services/premium_service.dart';
+import '../../providers/wallet_provider.dart';
 import '../auth/login_page.dart';
 import '../auth/edit_profile_page.dart';
 import '../auth/login_pin_page.dart';
@@ -43,8 +44,6 @@ class AppHeader extends StatefulWidget {
 
 class _AppHeaderState extends State<AppHeader> {
   Map<String, dynamic> _userData = {};
-  double _walletBalance = 0.0;
-  bool _isLoadingWallet = true;
   PremiumData? _premiumData;
   bool _isLoadingPremium = true;
 
@@ -94,7 +93,8 @@ class _AppHeaderState extends State<AppHeader> {
           
           final phone = data['phone'] as String? ?? '';
           if (phone.isNotEmpty) {
-            _loadWalletData(phone);
+            final walletProvider = Provider.of<WalletProvider>(context, listen: false);
+            walletProvider.fetchWallet(phone);
           }
           
           _loadPremiumData();
@@ -110,8 +110,6 @@ class _AppHeaderState extends State<AppHeader> {
     } else {
       setState(() {
         _userData = {};
-        _walletBalance = 0.0;
-        _isLoadingWallet = false;
         _premiumData = null;
         _isLoadingPremium = false;
       });
@@ -119,36 +117,6 @@ class _AppHeaderState extends State<AppHeader> {
   }
 
 
-
-  void _loadWalletData(String phone) async {
-    if (phone.isEmpty) {
-      setState(() {
-        _isLoadingWallet = false;
-      });
-      return;
-    }
-
-
-
-    try {
-      final walletData = await WalletService.fetchWallet(phone: phone);
-      if (mounted) {
-        setState(() {
-          _walletBalance = walletData.balance;
-          _isLoadingWallet = false;
-        });
-        print('✅ Wallet balance fetched: ₹${walletData.balance}');
-      }
-    } catch (e) {
-      print('❌ Error fetching wallet: $e');
-      if (mounted) {
-        setState(() {
-          _walletBalance = 0.0;
-          _isLoadingWallet = false;
-        });
-      }
-    }
-  }
 
 
   void _loadPremiumData() async {
@@ -311,6 +279,8 @@ class _AppHeaderState extends State<AppHeader> {
                   label: 'Logout',
                   isDestructive: true,
                   onTap: () async {
+                    final walletProvider = Provider.of<WalletProvider>(context, listen: false);
+                    walletProvider.reset();
                     await AuthService.logout();
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(builder: (_) => const MainNavigation()),
@@ -604,65 +574,84 @@ class _AppHeaderState extends State<AppHeader> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: _isLoadingWallet
-                      ? Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Wallet: ',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textGrey,
-                              ),
+                Consumer<WalletProvider>(
+                  builder: (context, wallet, _) {
+                    return GestureDetector(
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Coming Soon 🚀'),
+                            backgroundColor: AppColors.activeYellow,
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 2),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            const SizedBox(width: 4),
-                            SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.activeYellow,
-                                ),
-                              ),
-                            ),
-                          ],
-                        )
-                      : Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Wallet: ',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textGrey,
-                              ),
-                            ),
-                            Text(
-                              '₹${_walletBalance.toStringAsFixed(2)}',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.black,
-                              ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
+                        child: wallet.isLoading
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Wallet: ',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.textGrey,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        AppColors.activeYellow,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Wallet: ',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.textGrey,
+                                    ),
+                                  ),
+                                  Text(
+                                    '₹${wallet.balance.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

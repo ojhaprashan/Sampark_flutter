@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../utils/colors.dart';
 import '../../utils/constants.dart';
 import 'login_page.dart';
 import '../../services/auth_service.dart';
 import '../../services/tags_service.dart';
+import '../../providers/wallet_provider.dart';
 import '../main_navigation.dart';
 import 'vehicle_details_page.dart';
 
@@ -153,6 +155,11 @@ class _SignupPageState extends State<SignupPage> {
       print('   │  └─ Door Tags: ${userTagsStats.summary.doorTags}');
 
       if (mounted) {
+        // Trigger wallet fetch for newly signed-up user
+        final walletProvider = Provider.of<WalletProvider>(context, listen: false);
+        walletProvider.reset(); // Clear any previous user's data first
+        walletProvider.fetchWallet(phoneNumber); // Fetch for the newly signed-up user
+
         if (userTagsStats.hasActiveTags) {
           // ✅ Old user - has existing tags, navigate to MainNavigation
           print('✅ [SignupPage] Old user with existing tags detected - navigating to tags page');

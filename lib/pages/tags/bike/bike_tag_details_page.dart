@@ -6,6 +6,7 @@ import 'package:my_new_app/pages/widgets/notification_sheet.dart';
 import 'package:my_new_app/pages/widgets/etag_download_sheet.dart';
 import 'package:my_new_app/pages/widgets/error_dialog.dart';
 import 'package:my_new_app/pages/membership/membership_page.dart';
+import 'package:my_new_app/pages/tags/scan_locations_page.dart';
 import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
 import '../../../services/auth_service.dart';
@@ -229,8 +230,8 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
                                   _buildTagHeader(),
                                   const SizedBox(height: AppConstants.spacingSmall),
                                   // Scan Count
-                                  _buildScanCount(),
-                                  const SizedBox(height: AppConstants.spacingMedium),
+                                  // _buildScanCount(),
+                                  // const SizedBox(height: AppConstants.spacingMedium),
                                   // Tabs
                                   _buildTabs(),
                                 ],
@@ -557,29 +558,30 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
         ),
         const SizedBox(height: 4),
         Text(
-          'Tag Status: ${widget.tag.status}',
+          'Tag id: ${widget.tag.tagPublicId}',
           style: TextStyle(
             fontSize: AppConstants.fontSizeSubtitle,
             color: AppColors.textGrey,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildScanCount() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Text(
-        'Tag id: ${widget.tag.tagPublicId}',
-        style: TextStyle(
-          fontSize: AppConstants.fontSizeSubtitle,
-          color: AppColors.textGrey,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
+  // Widget _buildScanCount() {
+  //   return Padding(
+  //     padding: const EdgeInsets.symmetric(horizontal: 4),
+  //     child: Text(
+  //       'Tag id: ${widget.tag.tagPublicId}',
+  //       style: TextStyle(
+  //         fontSize: AppConstants.fontSizeSubtitle,
+  //         color: AppColors.textGrey,
+  //         fontWeight: FontWeight.w500,
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildTabs() {
     return Container(
@@ -693,7 +695,20 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
           iconColor: Colors.red.shade600,
           label: 'Check scan locations',
           trailing: Icons.location_on_outlined,
-          onTap: () {},
+          onTap: () {
+            HapticFeedback.mediumImpact();
+            final phoneWithCountryCode = _countryCode.replaceFirst('+', '') + _userPhone;
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ScanLocationsPage(
+                  tagId: _tagSettings?.data.tagId ?? 0,
+                  phoneWithCountryCode: phoneWithCountryCode,
+                  tagName: widget.tag.displayName,
+                ),
+              ),
+            );
+          },
         ),
         // ✅ Dynamic Disable/Enable Calls Button (shows opposite action)
         _buildActionButton(
@@ -771,11 +786,11 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
   },
         ),
         _buildActionButton(
-          icon: _isVideoCallEnabled ? Icons.videocam : Icons.videocam_off,
-          iconColor: _isVideoCallEnabled ? Colors.green.shade600 : Colors.grey.shade600,
-          label: _isVideoCallEnabled ? 'Disable Video Call' : 'Enable Video Call',
-          trailing: _isVideoCallEnabled ? Icons.toggle_on : Icons.toggle_off_outlined,
-          onTap: () => _toggleVideoCall(),
+          icon: Icons.videocam,
+          iconColor: Colors.grey.shade600,
+          label: 'Enable Video Call',
+          trailing: Icons.toggle_off_outlined,
+          onTap: () => _showComingSoonDialog(),
         ),
         // ✅ Show Offline QR Download only for India
         if (_countryCode == '+91')
@@ -819,37 +834,94 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
           },
         ),
         const SizedBox(height: AppConstants.spacingMedium),
-        // Membership Badge
-        Container(
-          padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-            border: Border.all(
-              color: AppColors.lightGrey,
-              width: 1,
+        // ✅ Show premium UI based on state
+        if (_isLoadingPremium)
+          // Loading state
+          Container(
+            padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
+            decoration: BoxDecoration(
+              color: Colors.purple.shade50,
+              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+              border: Border.all(
+                color: Colors.purple.shade200,
+                width: 2,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.purple),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Loading membership status...',
+                  style: TextStyle(
+                    fontSize: AppConstants.fontSizeCardDescription,
+                    color: Colors.purple.shade600,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else if (_hasPremium)
+          // ✅ Show Membership Badge if user has premium
+          Container(
+            padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
+            decoration: BoxDecoration(
+              color: Colors.purple.shade50,
+              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+              border: Border.all(
+                color: Colors.purple.shade200,
+                width: 2,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.workspace_premium,
+                      size: AppConstants.iconSizeLarge,
+                      color: Colors.purple,
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Premium Member',
+                          style: TextStyle(
+                            fontSize: AppConstants.fontSizeSectionTitle,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.purple,
+                          ),
+                        ),
+                        Text(
+                          'Enjoy exclusive features',
+                          style: TextStyle(
+                            fontSize: AppConstants.fontSizeCardDescription,
+                            color: Colors.purple.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Icon(
+                  Icons.check_circle,
+                  color: Colors.green.shade600,
+                  size: 24,
+                ),
+              ],
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.workspace_premium,
-                size: AppConstants.iconSizeLarge,
-                color: Colors.purple,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Membership*',
-                style: TextStyle(
-                  fontSize: AppConstants.fontSizeSectionTitle,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.black,
-                ),
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }
@@ -1102,6 +1174,11 @@ void _showLoadingOverlay() {
       // ✅ Reload data from API to get fresh data
       await _loadTagSettings();
 
+      // ✅ Reset loading flag so user can toggle again
+      setState(() {
+        _isLoading = false;
+      });
+
       // Show success dialog with opposite text
       _showSuccessDialog(
         icon: newCallsEnabled ? Icons.phone_enabled : Icons.phone_disabled,
@@ -1159,6 +1236,11 @@ void _showLoadingOverlay() {
 
       // ✅ Reload data from API to get fresh data
       await _loadTagSettings();
+
+      // ✅ Reset loading flag so user can toggle again
+      setState(() {
+        _isLoading = false;
+      });
 
       // Show success dialog
       _showSuccessDialog(
@@ -1218,6 +1300,11 @@ void _showLoadingOverlay() {
       // ✅ Reload data from API to get fresh data
       await _loadTagSettings();
 
+      // ✅ Reset loading flag so user can toggle again
+      setState(() {
+        _isLoading = false;
+      });
+
       _showSuccessDialog(
         icon: newWhatsappEnabled ? Icons.chat_bubble : Icons.chat_bubble_outline,
         iconColor: newWhatsappEnabled ? Colors.green : Colors.grey,
@@ -1271,6 +1358,11 @@ void _showLoadingOverlay() {
       // ✅ Reload data from API to get fresh data
       await _loadTagSettings();
 
+      // ✅ Reset loading flag so user can toggle again
+      setState(() {
+        _isLoading = false;
+      });
+
       _showSuccessDialog(
         icon: newCallMaskingEnabled ? Icons.phone : Icons.phone_disabled,
         iconColor: newCallMaskingEnabled ? Colors.green : Colors.red,
@@ -1323,6 +1415,11 @@ void _showLoadingOverlay() {
 
       // ✅ Reload data from API to get fresh data
       await _loadTagSettings();
+
+      // ✅ Reset loading flag so user can toggle again
+      setState(() {
+        _isLoading = false;
+      });
 
       _showSuccessDialog(
         icon: newVideoCallEnabled ? Icons.videocam : Icons.videocam_off,
@@ -1650,6 +1747,10 @@ void _showLoadingOverlay() {
           );
           // Refresh tag settings
           await _loadTagSettings();
+          // ✅ Reset loading flag so user can toggle again
+          setState(() {
+            _isLoading = false;
+          });
         }
       } catch (e) {
         if (mounted) {
@@ -1713,5 +1814,85 @@ void _showLoadingOverlay() {
         await _loadTagSettings();
       }
     }
+  }
+
+  // ✅ Show Coming Soon Dialog for Video Call
+  void _showComingSoonDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(AppConstants.paddingLarge),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.videocam,
+                    size: 32,
+                    color: Colors.blue.shade600,
+                  ),
+                ),
+                const SizedBox(height: AppConstants.spacingMedium),
+                Text(
+                  'Coming Soon!',
+                  style: TextStyle(
+                    fontSize: AppConstants.fontSizeCardTitle,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.black,
+                  ),
+                ),
+                const SizedBox(height: AppConstants.spacingSmall),
+                Text(
+                  'Video call feature will be available soon.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: AppConstants.fontSizeCardDescription,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textGrey,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: AppConstants.spacingMedium),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: AppConstants.paddingMedium),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryYellow,
+                      borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Got it',
+                        style: TextStyle(
+                          fontSize: AppConstants.fontSizeCardDescription,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.black,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }

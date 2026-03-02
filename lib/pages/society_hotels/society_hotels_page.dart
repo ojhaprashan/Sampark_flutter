@@ -197,6 +197,75 @@ class _SocietyHotelsPageState extends State<SocietyHotelsPage> {
                                 // Yellow Banner
                                 _buildYellowBanner(),
 
+                                const SizedBox(height: 24),
+
+                                // How It Works Section
+                                _buildSectionTitle('How It Works'),
+                                const SizedBox(height: 12),
+                                _buildStepCard(
+                                  step: '1',
+                                  title: 'Register Your Society',
+                                  description: 'Sign up your society or hotel with us and get approved.',
+                                ),
+                                const SizedBox(height: 10),
+                                _buildStepCard(
+                                  step: '2',
+                                  title: 'Order Custom Tags',
+                                  description: 'Order tags with your society logo and branding.',
+                                ),
+                                const SizedBox(height: 10),
+                                _buildStepCard(
+                                  step: '3',
+                                  title: 'Distribute to Residents',
+                                  description: 'Distribute tags to all vehicle owners in your society.',
+                                ),
+                                const SizedBox(height: 10),
+                                _buildStepCard(
+                                  step: '4',
+                                  title: 'Monitor & Manage',
+                                  description: 'Track vehicle movement and manage parking easily.',
+                                ),
+
+                                const SizedBox(height: 24),
+
+                                // Benefits Section
+                                _buildSectionTitle('Key Benefits'),
+                                const SizedBox(height: 12),
+                                _buildBenefitItem('🎯 Enhanced Security', 'Better vehicle identification and access control'),
+                                const SizedBox(height: 10),
+                                _buildBenefitItem('📊 Real-time Data', 'Get instant vehicle logs and reports'),
+                                const SizedBox(height: 10),
+                                _buildBenefitItem('👥 Resident Safety', 'Emergency contact system with privacy protection'),
+                                const SizedBox(height: 10),
+                                _buildBenefitItem('💼 Professional Image', 'Branded tags enhance your society\'s profile'),
+
+                                const SizedBox(height: 24),
+
+                                // Investment Section
+                                _buildInvestmentCard(),
+
+                                const SizedBox(height: 24),
+
+                                // FAQ Section
+                                _buildSectionTitle('Frequently Asked Questions'),
+                                const SizedBox(height: 12),
+                                _buildFAQItem(
+                                  question: 'What is the minimum investment?',
+                                  answer: 'Minimum investment starts from Rs 51,000 for a complete setup.',
+                                ),
+                                const SizedBox(height: 10),
+                                _buildFAQItem(
+                                  question: 'How long does registration take?',
+                                  answer: 'Usually 3-5 business days after document verification.',
+                                ),
+                                const SizedBox(height: 10),
+                                _buildFAQItem(
+                                  question: 'Can we customize the tag design?',
+                                  answer: 'Yes, we can print your society logo on every tag.',
+                                ),
+
+                                const SizedBox(height: 24),
+
                                 const SizedBox(height: 80),
                               ],
                             ),
@@ -212,6 +281,272 @@ class _SocietyHotelsPageState extends State<SocietyHotelsPage> {
 
           // Bottom Apply Now Button
           _buildBottomApplyButton(),
+        ],
+      ),
+    );
+  }
+
+  // Section Title Widget
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: AppConstants.fontSizeCardTitle,
+        fontWeight: FontWeight.w800,
+        color: AppColors.black,
+      ),
+    );
+  }
+
+  // Step Card for How It Works
+  Widget _buildStepCard({
+    required String step,
+    required String title,
+    required String description,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(AppConstants.paddingMedium),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+        border: Border.all(
+          color: AppColors.primaryYellow.withOpacity(0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primaryYellow,
+                  AppColors.activeYellow,
+                ],
+              ),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                step,
+                style: TextStyle(
+                  fontSize: AppConstants.fontSizeCardTitle,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.black,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: AppConstants.fontSizeCardTitle,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.black,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: AppConstants.fontSizeCardDescription - 1,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textGrey,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Benefit Item
+  Widget _buildBenefitItem(String title, String description) {
+    return Container(
+      padding: const EdgeInsets.all(AppConstants.paddingMedium),
+      decoration: BoxDecoration(
+        color: AppColors.activeYellow.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+        border: Border.all(
+          color: AppColors.activeYellow.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: AppConstants.fontSizeCardTitle,
+              fontWeight: FontWeight.w700,
+              color: AppColors.black,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            description,
+            style: TextStyle(
+              fontSize: AppConstants.fontSizeCardDescription - 1,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textGrey,
+              height: 1.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Investment Card
+  Widget _buildInvestmentCard() {
+    return Container(
+      padding: const EdgeInsets.all(AppConstants.paddingMedium),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primaryYellow.withOpacity(0.1),
+            AppColors.activeYellow.withOpacity(0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+        border: Border.all(
+          color: AppColors.primaryYellow.withOpacity(0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.attach_money_rounded,
+                size: AppConstants.iconSizeMedium,
+                color: AppColors.black,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Investment Details',
+                style: TextStyle(
+                  fontSize: AppConstants.fontSizeCardTitle,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.black,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildInvestmentRow('Minimum Investment', 'Rs 51,000'),
+          const SizedBox(height: 10),
+          _buildInvestmentRow('Tags (250 units)', 'Included'),
+          const SizedBox(height: 10),
+          _buildInvestmentRow('Setup & Training', 'Included'),
+          const SizedBox(height: 10),
+          _buildInvestmentRow('Annual Support', 'Available'),
+        ],
+      ),
+    );
+  }
+
+  // Investment Row
+  Widget _buildInvestmentRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: AppConstants.fontSizeCardDescription,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textGrey,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: AppConstants.fontSizeCardDescription,
+            fontWeight: FontWeight.w700,
+            color: AppColors.black,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // FAQ Item
+  Widget _buildFAQItem({
+    required String question,
+    required String answer,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(AppConstants.paddingMedium),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+        border: Border.all(
+          color: AppColors.lightGrey,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.activeYellow.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  Icons.help_outline_rounded,
+                  size: 16,
+                  color: AppColors.black,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  question,
+                  style: TextStyle(
+                    fontSize: AppConstants.fontSizeCardTitle,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.black,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.only(left: 26),
+            child: Text(
+              answer,
+              style: TextStyle(
+                fontSize: AppConstants.fontSizeCardDescription - 1,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textGrey,
+                height: 1.4,
+              ),
+            ),
+          ),
         ],
       ),
     );

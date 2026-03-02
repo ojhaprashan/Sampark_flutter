@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
 import '../../../services/auth_service.dart';
@@ -8,6 +9,7 @@ import '../../../services/offline_qr_service.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/offline_qr_download_sheet.dart';
 import '../../widgets/edit_tag_sheet.dart';
+import '../../AppWebView/appweb.dart';
 
 class BusinessTagDetailsPage extends StatefulWidget {
   final Tag tag;
@@ -232,33 +234,34 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 300),
                 opacity: _selectedTab == 2 ? 1.0 : 0.0,
-                child: ElevatedButton.icon(
-                  onPressed: _selectedTab == 2 ? _shareBusinessOnWhatsApp : null,
-                  icon: const Icon(
-                    Icons.share,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  label: Text(
-                    'Share business on WhatsApp',
-                    style: TextStyle(
-                      fontSize: AppConstants.fontSizeButtonPriceText,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _selectedTab == 2 ? _shareBusinessOnWhatsApp : null,
+                    icon: Image.asset(
+                      'assets/icons/whatsapp.png',
+                      width: 20,
+                      height: 20,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.share, size: 20);
+                      },
                     ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppConstants.buttonPaddingVertical,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppConstants.buttonBorderRadius * 2,
+                    label: Text(
+                      'Share business on WhatsApp',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    elevation: 4,
-                    shadowColor: Colors.green.withOpacity(0.3),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.activeYellow,
+                      foregroundColor: AppColors.black,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -440,7 +443,7 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
           iconColor: Colors.blue.shade600, // ✅ Colorful icon
           label: 'View Business',
           trailing: Icons.remove_red_eye,
-          onTap: _showComingSoonDialog,
+          onTap: _openViewBusiness,
         ),
 
         _buildActionButton(
@@ -1253,6 +1256,34 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
   // ==========================
   // ✅ WHATSAPP SHARING
   // ==========================
+  Future<void> _openWhatsApp(String message) async {
+    final phoneNumber = '919876543210'; // Replace with your WhatsApp business number
+    final encodedMessage = Uri.encodeComponent(message);
+    final whatsappUrl = 'https://wa.me/$phoneNumber?text=$encodedMessage';
+    
+    final Uri url = Uri.parse(whatsappUrl);
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        _showErrorSnackBar('WhatsApp is not installed on your device');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Failed to open WhatsApp: $e');
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
   void _shareBusinessOnWhatsApp() async {
     try {
       final userData = await AuthService.getUserData();
@@ -1284,10 +1315,17 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.check_circle,
-                    size: 48,
-                    color: Colors.green.shade600,
+                  Image.asset(
+                    'assets/icons/whatsapp.png',
+                    width: 56,
+                    height: 56,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(
+                        Icons.chat_bubble,
+                        size: 56,
+                        color: Colors.green.shade600,
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
                   Text(
@@ -1357,12 +1395,13 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
                             Navigator.pop(context);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey.shade300,
+                            backgroundColor: AppColors.white,
+                            foregroundColor: AppColors.black,
+                            elevation: 0,
                             padding: const EdgeInsets.symmetric(vertical: 12),
+                            side: BorderSide(color: AppColors.black, width: 1.5),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                AppConstants.buttonBorderRadius,
-                              ),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                           ),
                           child: Text(
@@ -1376,35 +1415,29 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: ElevatedButton(
+                        child: ElevatedButton.icon(
                           onPressed: () {
                             HapticFeedback.mediumImpact();
                             Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text('Opening WhatsApp...'),
-                                backgroundColor: Colors.green,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                            );
+                            _openWhatsApp(message);
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                AppConstants.buttonBorderRadius,
-                              ),
-                            ),
+                          icon: Image.asset(
+                            'assets/icons/whatsapp.png',
+                            width: 20,
+                            height: 20,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(Icons.chat, size: 20);
+                            },
                           ),
-                          child: const Text(
-                            'Share',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
+                          label: const Text('Share'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.white,
+                            foregroundColor: AppColors.black,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            side: BorderSide(color: AppColors.black, width: 1.5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
                           ),
                         ),
@@ -1422,9 +1455,26 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
     }
   }
 
-  // ===================
+  // ==========================
   // ✅ WHATSAPP FUNCTIONS
-  // ===================
+  // ==========================
+  // ✅ Open View Business in WebView
+  void _openViewBusiness() {
+    HapticFeedback.lightImpact();
+    
+    final url = 'https://app.ngf132.com/mybusiness/${widget.tag.tagInternalId}';
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => InAppWebViewPage(
+          url: url,
+          title: 'View Business',
+        ),
+      ),
+    );
+  }
+
   // ✅ Toggle WhatsApp
   void _toggleWhatsapp() async {
     HapticFeedback.lightImpact();

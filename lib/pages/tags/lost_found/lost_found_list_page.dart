@@ -5,6 +5,7 @@ import '../../../utils/constants.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/tags_service.dart';
 import '../../widgets/app_header.dart';
+import '../widgets/tag_list_skeleton.dart';
 import 'lost_found_details_page.dart';
 
 class LostFoundItem {
@@ -166,13 +167,7 @@ class _LostFoundListPageState extends State<LostFoundListPage> {
 
                         Expanded(
                           child: _isLoading
-                              ? const Center(
-                                  child: CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      AppColors.primaryYellow,
-                                    ),
-                                  ),
-                                )
+                              ? const TagListSkeleton(itemCount: 5)
                               : _errorMessage.isNotEmpty
                                   ? Center(
                                       child: Text(

@@ -99,8 +99,14 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
       return;
     }
 
+    // Check if calls are enabled - if not, all call types are disabled
+    if (_tagProfileData == null || !_tagProfileData!.callFlags.callsEnabled) {
+      _showErrorSnackBar('Calls are not enabled for this tag');
+      return;
+    }
+
     // Check if call masking is enabled
-    if (_tagProfileData != null && _tagProfileData!.callFlags.callMaskingEnabled) {
+    if (_tagProfileData!.callFlags.callMaskingEnabled) {
       // Open appropriate masked call sheet based on tag type
       if (_tagProfileData!.tagTypeCode.toUpperCase() == 'DR') {
         // Use door sheet for Door tags
@@ -126,11 +132,9 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
           tagId: widget.tagId,
         );
       }
-    } else if (_tagProfileData != null && _tagProfileData!.callFlags.callsEnabled) {
+    } else {
       // Direct call without masking
       _makeDirectCall();
-    } else {
-      _showErrorSnackBar('Calls are not enabled for this tag');
     }
   }
 
@@ -564,30 +568,33 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                               Row(
                                 children: [
                                   // Call Options - Show either Masked Call or Direct Call
-                                  if (_tagProfileData!.callFlags.callMaskingEnabled) ...[
-                                    // Show Masked Call button
-                                    Expanded(
-                                      child: _buildActionCard(
-                                        icon: Icons.phone,
-                                        label: 'Masked Call',
-                                        color: Colors.orange,
-                                        isEnabled: true,
-                                        onTap: _makeCall,
+                                  if (_tagProfileData!.callFlags.callsEnabled) ...[
+                                    // calls_enabled is true, check for masking
+                                    if (_tagProfileData!.callFlags.callMaskingEnabled) ...[
+                                      // Show Masked Call button
+                                      Expanded(
+                                        child: _buildActionCard(
+                                          icon: Icons.phone,
+                                          label: 'Masked Call',
+                                          color: Colors.orange,
+                                          isEnabled: true,
+                                          onTap: _makeCall,
+                                        ),
                                       ),
-                                    ),
-                                  ] else if (_tagProfileData!.callFlags.callsEnabled) ...[
-                                    // Show Direct Call button (opens phone dialer)
-                                    Expanded(
-                                      child: _buildActionCard(
-                                        icon: Icons.phone,
-                                        label: 'Call',
-                                        color: Colors.orange,
-                                        isEnabled: true,
-                                        onTap: _makeCall,
+                                    ] else ...[
+                                      // Show Direct Call button (opens phone dialer)
+                                      Expanded(
+                                        child: _buildActionCard(
+                                          icon: Icons.phone,
+                                          label: 'Call',
+                                          color: Colors.orange,
+                                          isEnabled: true,
+                                          onTap: _makeCall,
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ] else ...[
-                                    // No call option available
+                                    // calls_enabled is false - No call option available
                                     Expanded(
                                       child: Opacity(
                                         opacity: 0.5,

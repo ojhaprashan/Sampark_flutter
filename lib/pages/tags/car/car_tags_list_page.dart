@@ -5,6 +5,7 @@ import '../../../utils/constants.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/tags_service.dart';
 import '../../widgets/app_header.dart';
+import '../widgets/tag_list_skeleton.dart';
 import 'car_tag_details_page.dart';
 
 class CarTagsListPage extends StatefulWidget {
@@ -149,13 +150,7 @@ class _CarTagsListPageState extends State<CarTagsListPage> {
 
                         Expanded(
                           child: _isLoading
-                              ? const Center(
-                                  child: CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      AppColors.primaryYellow,
-                                    ),
-                                  ),
-                                )
+                              ? const TagListSkeleton(itemCount: 5)
                               // ✅ Show message for non-India users
                               : _countryCode != '+91'
                                   ? Center(

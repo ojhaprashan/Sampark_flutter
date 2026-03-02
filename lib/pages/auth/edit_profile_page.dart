@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:my_new_app/pages/widgets/app_header.dart';
+import 'package:my_new_app/pages/auth/edit_profile_skeleton.dart';
 import '../../utils/colors.dart';
 import '../../utils/constants.dart';
 import '../../services/auth_service.dart';
@@ -16,6 +17,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   bool _isLoggedIn = false;
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  bool _isLoadingSettings = true; // ✅ For skeleton loading
   String? _userPhone; // Store phone for API calls
 
   // Form Controllers
@@ -121,13 +123,34 @@ class _EditProfilePageState extends State<EditProfilePage> {
             if (profileData['gender'] != null && profileData['gender'].toString().isNotEmpty) {
               _selectedGender = profileData['gender'];
             }
+            
+            // ✅ Set loading to false when data is loaded
+            _isLoadingSettings = false;
           });
         } else {
           print('❌ Failed to load profile: ${profileResponse['message']}');
+          if (mounted) {
+            // ✅ Set loading to false on error too
+            setState(() {
+              _isLoadingSettings = false;
+            });
+          }
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoadingSettings = false;
+          });
         }
       }
     } catch (e) {
       print('❌ Error loading user data: $e');
+      if (mounted) {
+        // ✅ Set loading to false on exception
+        setState(() {
+          _isLoadingSettings = false;
+        });
+      }
     }
   }
 
@@ -176,6 +199,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
           if (response['success'] == true) {
             print('✅ Profile updated successfully');
+            
+            // ✅ Update username locally immediately
+            await AuthService.updateUserName(_nameController.text);
+            
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: const Text('Profile updated successfully!'),
@@ -295,8 +322,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                             const SizedBox(height: 24),
 
-                            // Form
-                            _buildForm(),
+                            // ✅ Show skeleton while loading, form when loaded
+                            _isLoadingSettings
+                                ? const EditProfileSkeleton()
+                                : _buildForm(),
 
                             const SizedBox(height: 20),
                           ],

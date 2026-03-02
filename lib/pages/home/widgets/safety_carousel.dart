@@ -30,17 +30,19 @@ class _SafetyCarouselState extends State<SafetyCarousel> {
 
   void _startAutoScroll() {
     _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (_currentPage < bannerImages.length - 1) {
-        _currentPage++;
-      } else {
-        _currentPage = 0;
-      }
+      if (_pageController.hasClients) {
+        if (_currentPage < bannerImages.length - 1) {
+          _currentPage++;
+        } else {
+          _currentPage = 0;
+        }
 
-      _pageController.animateToPage(
-        _currentPage,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
+        _pageController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+        );
+      }
     });
   }
 
@@ -67,13 +69,13 @@ class _SafetyCarouselState extends State<SafetyCarousel> {
             itemCount: bannerImages.length,
             itemBuilder: (context, index) {
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: _buildBannerCard(bannerImages[index]),
               );
             },
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
@@ -86,38 +88,41 @@ class _SafetyCarouselState extends State<SafetyCarousel> {
   }
 
   Widget _buildBannerCard(String imageUrl) {
-    return Image.network(
-      imageUrl,
-      fit: BoxFit.fitWidth,
-      width: double.infinity,
-      height: double.infinity,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Container(
-          color: const Color(0xFFFFF9E6),
-          child: Center(
-            child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded /
-                      loadingProgress.expectedTotalBytes!
-                  : null,
-              color: AppColors.activeYellow,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20), // Matches the header curve
+      child: Image.network(
+        imageUrl,
+        fit: BoxFit.fill, // ✅ FIXED: changed to fill so the whole image shows
+        width: double.infinity,
+        height: double.infinity,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            color: const Color(0xFFFFF9E6),
+            child: Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
+                color: AppColors.activeYellow,
+              ),
             ),
-          ),
-        );
-      },
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          color: const Color(0xFFFFF9E6),
-          child: Center(
-            child: Icon(
-              Icons.image,
-              size: 50,
-              color: AppColors.activeYellow,
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: const Color(0xFFFFF9E6),
+            child: Center(
+              child: Icon(
+                Icons.image,
+                size: 50,
+                color: AppColors.activeYellow,
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 

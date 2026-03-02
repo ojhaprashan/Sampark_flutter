@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:my_new_app/pages/widgets/app_header.dart';
 import '../../utils/colors.dart';
 import '../../utils/constants.dart';
 import '../../services/auth_service.dart';
 import '../../services/login_pin_service.dart';
+import '../../providers/wallet_provider.dart';
 import '../main_navigation.dart';
 
 class LoginPinPage extends StatefulWidget {
@@ -250,6 +252,8 @@ class _LoginPinPageState extends State<LoginPinPage> {
 
               if (mounted) {
                 Navigator.pop(context); // Close loading dialog
+                final walletProvider = Provider.of<WalletProvider>(context, listen: false);
+                walletProvider.reset();
                 await AuthService.logout();
 
                 if (mounted) {
@@ -277,86 +281,6 @@ class _LoginPinPageState extends State<LoginPinPage> {
             ),
             child: const Text(
               'Logout All',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _logout() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        title: const Text('Logout?'),
-        content: const Text('Are you sure you want to logout from this device?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: AppColors.black,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-
-              // Show loading
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.activeYellow,
-                    ),
-                  ),
-                ),
-              );
-
-              // Simulate API call
-              await Future.delayed(const Duration(seconds: 1));
-
-              if (mounted) {
-                Navigator.pop(context); // Close loading dialog
-                await AuthService.logout();
-
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Logged out successfully'),
-                      backgroundColor: Colors.green,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
-                      ),
-                    ),
-                  );
-
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const MainNavigation()),
-                    (route) => false,
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              elevation: 0,
-            ),
-            child: const Text(
-              'Logout',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
@@ -634,26 +558,8 @@ class _LoginPinPageState extends State<LoginPinPage> {
               icon: const Icon(Icons.devices),
               label: const Text('Logout from All Devices'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Logout from This Device Button
-          SizedBox(
-            width: double.infinity,
-            height: AppConstants.buttonHeightMedium,
-            child: ElevatedButton.icon(
-              onPressed: _logout,
-              icon: const Icon(Icons.logout),
-              label: const Text('Logout from This Device'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
+                backgroundColor: AppColors.activeYellow,
+                foregroundColor: AppColors.black,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
@@ -665,39 +571,7 @@ class _LoginPinPageState extends State<LoginPinPage> {
           const SizedBox(height: 16),
 
           // Info Box
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: Colors.blue.shade200,
-                width: 1,
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.info,
-                  color: Colors.blue.shade700,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'You are currently logged in on 2 devices',
-                    style: TextStyle(
-                      fontSize: AppConstants.fontSizeCardDescription,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.blue.shade700,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+        
         ],
       ),
     );

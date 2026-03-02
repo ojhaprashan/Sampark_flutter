@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:my_new_app/pages/main_navigation.dart';
 import 'package:my_new_app/pages/AppWebView/appweb.dart';
 // import 'package:my_new_app/pages/auth/vehicle_details_page.dart'; // Removed as button is gone
@@ -7,6 +8,7 @@ import 'package:my_new_app/pages/shop/widgets/shop.dart';
 import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
 import '../../../services/auth_service.dart';
+import '../../../providers/wallet_provider.dart';
 import '../../auth/login_page.dart';
 import '../../demo/widgets/demo.dart';
 import '../../support/widgets/support.dart';
@@ -334,6 +336,8 @@ class _ActionGridState extends State<ActionGrid> {
           ),
           TextButton(
             onPressed: () async {
+              final walletProvider = Provider.of<WalletProvider>(context, listen: false);
+              walletProvider.reset();
               await AuthService.logout();
               if (mounted) {
                 Navigator.pop(context);

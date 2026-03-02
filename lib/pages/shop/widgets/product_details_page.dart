@@ -25,66 +25,91 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   bool _showAllFeatures = false;
   bool _isLoading = true;
   String? _errorMessage;
-  
+
   // Dynamic data from API
   ProductDetails? _productDetails;
-  
-  // Variant management
-  String _selectedVariantId = '18'; // Default to Bike
-  final Map<String, String> _variants = {
-    'Car': '17',
-    'CA/Doc': '39',
-    'Bike': '18',
+
+  // ---------------------------------------------------------------------------
+  // 1. CONFIGURATION AREA
+  // Manage your Variants, IDs, and Buy Links here.
+  // Add new items to this list manually as needed.
+  // ---------------------------------------------------------------------------
+  final List<Map<String, String>> _variantConfigs = [
+    {
+      'name': 'Bike',
+      'id': '18',
+      'url': 'https://app.ngf132.com/qr-for-car',
+    },
+    {
+      'name': 'Car',
+      'id': '17',
+      'url': 'https://app.ngf132.com/qr-for-car',
+    },
+    {
+      'name': 'CA/Doc',
+      'id': '39',
+      'url': 'https://app.ngf132.com/qr-for-doc',
+    },
+  ];
+
+  late String _selectedVariantId;
+
+  // Buy Now URL map: productId → URL
+  final Map<String, String> _buyNowLinks = {
+    '18': 'https://app.ngf132.com/qr-for-car',   // Bike
+    '17': 'https://app.ngf132.com/qr-for-car',   // Car
+    '39': 'https://app.ngf132.com/qr-for-doc',   // CA/Doc
+    '21': 'https://app.ngf132.com/order-business',   // CA/Doc
+
+    // Add more productId → URL mappings here as needed
   };
-  
+
   // Static data (not from API)
   final double _rating = 4.5;
   final int _totalRatings = 1234;
   final int _totalReviews = 456;
-  
+
   // Static images for product slider
-final List<MediaSliderItem> _productImages = [
+  final List<MediaSliderItem> _productImages = [
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/shop_1.png', 
+      url: 'https://sampark.me/assets/app/shop_1.png',
       boxFit: BoxFit.fill,
     ),
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/shop_2.png', 
+      url: 'https://sampark.me/assets/app/shop_2.png',
       boxFit: BoxFit.fill,
     ),
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/shop_3.png', 
+      url: 'https://sampark.me/assets/app/shop_3.png',
       boxFit: BoxFit.fill,
     ),
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/shop_4.png', 
+      url: 'https://sampark.me/assets/app/shop_4.png',
       boxFit: BoxFit.fill,
     ),
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/shop_5.png', 
+      url: 'https://sampark.me/assets/app/shop_5.png',
       boxFit: BoxFit.fill,
     ),
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/shop_6.png', 
+      url: 'https://sampark.me/assets/app/shop_6.png',
       boxFit: BoxFit.fill,
     ),
   ];
 
   final List<String> _staticOffers = [
-    'Bank Offer: 10% instant discount on HDFC Bank Credit Cards',
-    'Special Price: Get extra 5% off (price inclusive of discount)',
-    'No Cost EMI: Avail No Cost EMI on select cards',
-    'Partner Offers: Purchase now & get 1 surprise cashback coupon',
+    'Masked Audio and Video Call',
+    'SMS And WhatsApp',
+    'Manage your tag from the APP',
+    'One time purchase, COD Available',
   ];
-  
 
-  
   final List<SpecItem> _staticSpecs = [
     SpecItem(label: 'Material', value: 'Premium Waterproof PVC'),
     SpecItem(label: 'Size', value: 'Standard (fits all vehicles)'),
     SpecItem(label: 'Warranty', value: '1 Year Replacement'),
   ];
-  
+
   final List<String> _staticFeatures = [
     'Weather resistant and durable',
     'Easy to install and remove',
@@ -92,19 +117,21 @@ final List<MediaSliderItem> _productImages = [
     'Works in all lighting conditions',
     'Comes with installation guide',
   ];
-  
+
   final List<ReviewItem> _staticReviews = [
     ReviewItem(
       name: 'Pulkit K.',
       rating: 5,
       title: 'Great and responsive Product',
-      review: 'Nice and easy to install/setup. People keep asking me where did you get it. Everyone finds it helpful.',
+      review:
+          'Nice and easy to install/setup. People keep asking me where did you get it. Everyone finds it helpful.',
     ),
     ReviewItem(
       name: 'Suresh',
       rating: 5,
       title: 'Sampark is perfect name',
-      review: 'Sampark item is very good and useful to car owners. I like this item',
+      review:
+          'Sampark item is very good and useful to car owners. I like this item',
     ),
     ReviewItem(
       name: 'Mahadev Mathapati',
@@ -122,14 +149,19 @@ final List<MediaSliderItem> _productImages = [
       name: 'Suman Roy',
       rating: 3,
       title: 'Good Concept',
-      review: 'The complete application lifecycle seems to be still being worked upon. Product concept is GOOD but NOT FINISHED.',
+      review:
+          'The complete application lifecycle seems to be still being worked upon. Product concept is GOOD but NOT FINISHED.',
     ),
   ];
 
   @override
   void initState() {
     super.initState();
-    _selectedVariantId = widget.productId ?? '18';
+    // Check if productId is in the variant config
+    final bool _idInConfig = _variantConfigs.any((c) => c['id'] == widget.productId);
+    // If found in config, use it; otherwise set to empty string
+    _selectedVariantId = _idInConfig ? widget.productId! : '';
+
     _checkLoginStatus();
     _loadProductDetails();
   }
@@ -150,11 +182,14 @@ final List<MediaSliderItem> _productImages = [
         _errorMessage = null;
       });
 
+      // Use _selectedVariantId if available, otherwise fall back to widget.productId
+      final String idToFetch = _selectedVariantId.isNotEmpty ? _selectedVariantId : (widget.productId ?? '');
+
       const String smValue = '67s87s6yys66';
       const String dgValue = 'testYU78dII8iiUIPSISJ';
 
       final productDetails = await ShopService.fetchProductDetails(
-        productId: _selectedVariantId,
+        productId: idToFetch,
         smValue: smValue,
         dgValue: dgValue,
       );
@@ -175,39 +210,41 @@ final List<MediaSliderItem> _productImages = [
     }
   }
 
-  void _selectVariant(String variantName) {
-    final newVariantId = _variants[variantName];
-    if (newVariantId != null && newVariantId != _selectedVariantId) {
+  void _selectVariant(String variantId) {
+    if (variantId != _selectedVariantId) {
       setState(() {
-        _selectedVariantId = newVariantId;
+        _selectedVariantId = variantId;
       });
       _loadProductDetails();
     }
   }
 
-  String _getSelectedVariantName() {
-    return _variants.entries
-        .firstWhere(
-          (entry) => entry.value == _selectedVariantId,
-          orElse: () => MapEntry('Bike', '18'),
-        )
-        .key;
-  }
-
   void _buyNow() {
-    final selectedVariant = _getSelectedVariantName();
-    
-    if (selectedVariant == 'Car' || selectedVariant == 'Bike') {
+    // Determine which ID to use for URL lookup
+    final String idToUse = _selectedVariantId.isNotEmpty
+        ? _selectedVariantId
+        : (widget.productId ?? '');
+
+    // Look up the URL from the _buyNowLinks map
+    final String? url = _buyNowLinks[idToUse];
+
+    if (url != null && url.isNotEmpty) {
+      // Find the variant name from config (for display purposes)
+      final config = _variantConfigs.firstWhere(
+        (c) => c['id'] == idToUse,
+        orElse: () => {'name': 'Product'},
+      );
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const InAppWebViewPage(
-            url: 'https://app.ngf132.com/qr-for-car',
-            title: 'QR Tag',
+          builder: (context) => InAppWebViewPage(
+            url: url,
+            title: config['name'] ?? 'Product',
           ),
         ),
       );
     } else {
+      // Fallback if no URL is found
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Proceeding to checkout...'),
@@ -241,7 +278,6 @@ final List<MediaSliderItem> _productImages = [
               ),
             ),
           ),
-          
           SafeArea(
             child: Column(
               children: [
@@ -249,8 +285,6 @@ final List<MediaSliderItem> _productImages = [
                   isLoggedIn: _isLoggedIn,
                   showBackButton: true,
                   showUserInfo: false,
-                  // showCartIcon: true,
-                  // cartItemCount: _cartItemCount,
                   onCartTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -258,13 +292,13 @@ final List<MediaSliderItem> _productImages = [
                         backgroundColor: AppColors.activeYellow,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+                          borderRadius: BorderRadius.circular(
+                              AppConstants.buttonBorderRadius),
                         ),
                       ),
                     );
                   },
                 ),
-                
                 Expanded(
                   child: Container(
                     decoration: const BoxDecoration(
@@ -288,7 +322,6 @@ final List<MediaSliderItem> _productImages = [
               ],
             ),
           ),
-          
           if (!_isLoading && _errorMessage == null)
             Positioned(
               bottom: 0,
@@ -364,6 +397,7 @@ final List<MediaSliderItem> _productImages = [
           const SizedBox(height: 8),
           _buildPriceSection(),
           const SizedBox(height: 12),
+          // Only show variant section if there are variants to pick from
           _buildVariantSection(),
           const SizedBox(height: 8),
           _buildOffersSection(),
@@ -379,21 +413,13 @@ final List<MediaSliderItem> _productImages = [
     );
   }
 
-Widget _buildImageSlider() {
-    // 1. Get the screen width
+  Widget _buildImageSlider() {
     double screenWidth = MediaQuery.of(context).size.width;
-
-    // 2. Define "little space" (Matched to 14.0 like the Tags page)
-    double sidePadding = 14.0; 
-
-    // 3. Calculate the slider width (Screen width - padding)
+    double sidePadding = 14.0;
     double sliderWidth = screenWidth - (sidePadding * 2);
-
-    // 4. Calculate Height dynamically based on Aspect Ratio
-    double sliderHeight = sliderWidth / 2.1; 
+    double sliderHeight = sliderWidth / 2.1;
 
     return Container(
-      // Keep the white background and outer curve for the product page layout
       decoration: const BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.only(
@@ -401,23 +427,21 @@ Widget _buildImageSlider() {
           topRight: Radius.circular(30),
         ),
       ),
-      // ✅ Apply the Top, Left, and Right padding here
       padding: EdgeInsets.only(
-        top: 10.0,         // Spacing from the top curve
-        left: sidePadding, // Spacing from the left
-        right: sidePadding, // Spacing from the right
-        bottom: 12.0,      // Spacing before the Product Title begins
+        top: 10.0,
+        left: sidePadding,
+        right: sidePadding,
+        bottom: 12.0,
       ),
       child: ClipRRect(
-        // ✅ Radius 24 perfectly matches the Container's Radius 30 curve
         borderRadius: BorderRadius.circular(24),
         child: MediaSlider(
           items: _productImages,
-          height: sliderHeight, 
+          height: sliderHeight,
           autoScroll: false,
           show3DEffect: false,
           viewportFraction: 1.0,
-          showIndicators: true, // Kept true for the product page
+          showIndicators: true,
         ),
       ),
     );
@@ -532,6 +556,9 @@ Widget _buildImageSlider() {
   }
 
   Widget _buildVariantSection() {
+    // If the current product ID isn't in our configured list, 
+    // we might want to hide this section or show it differently.
+    // For now, we still show the list to allow switching.
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppConstants.paddingPage),
       child: Column(
@@ -549,20 +576,20 @@ Widget _buildImageSlider() {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _variants.keys
-                .map((variantName) => _buildVariantChip(variantName))
-                .toList(),
+            children: _variantConfigs.map((config) {
+              return _buildVariantChip(config['name']!, config['id']!);
+            }).toList(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildVariantChip(String variantName) {
-    final isSelected = variantName == _getSelectedVariantName();
-    
+  Widget _buildVariantChip(String variantName, String variantId) {
+    final isSelected = variantId == _selectedVariantId;
+
     return GestureDetector(
-      onTap: () => _selectVariant(variantName),
+      onTap: () => _selectVariant(variantId),
       child: Container(
         padding: const EdgeInsets.symmetric(
           horizontal: 14,
@@ -655,7 +682,6 @@ Widget _buildImageSlider() {
   Widget _buildServicesSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppConstants.paddingPage),
-      // Removed the Column and Title text
       child: Container(
         padding: const EdgeInsets.all(AppConstants.paddingLarge),
         decoration: BoxDecoration(
@@ -665,11 +691,9 @@ Widget _buildImageSlider() {
             color: AppColors.lightGrey,
             width: 1.5,
           ),
-          // ✅ REMOVED boxShadow
         ),
         child: Column(
           children: [
-            // Row 1
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -677,7 +701,7 @@ Widget _buildImageSlider() {
                   child: _buildServiceItem(
                     Icons.phone_in_talk,
                     'Masked Audio\nCalls',
-                    const Color(0xFF2196F3), // Blue
+                    const Color(0xFF2196F3),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -692,14 +716,12 @@ Widget _buildImageSlider() {
                   child: _buildServiceItem(
                     Icons.picture_as_pdf,
                     'PDF Tag\n(Offline)',
-                    const Color(0xFFE91E63), // Pink
+                    const Color(0xFFE91E63),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            
-            // Row 2
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -707,7 +729,7 @@ Widget _buildImageSlider() {
                   child: _buildServiceItem(
                     Icons.videocam,
                     'Masked Video\nCalls',
-                    const Color(0xFF9C27B0), // Purple
+                    const Color(0xFF9C27B0),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -715,7 +737,7 @@ Widget _buildImageSlider() {
                   child: _buildServiceItem(
                     Icons.phone_callback,
                     'Call Back\nCaller',
-                    const Color(0xFF00BCD4), // Cyan
+                    const Color(0xFF00BCD4),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -723,14 +745,12 @@ Widget _buildImageSlider() {
                   child: _buildServiceItem(
                     Icons.location_on,
                     'Check\nLocation',
-                    const Color(0xFF4CAF50), // Green
+                    const Color(0xFF4CAF50),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            
-            // Row 3
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -738,7 +758,7 @@ Widget _buildImageSlider() {
                   child: _buildServiceItem(
                     Icons.sms,
                     'Offline SMS\nAvailable',
-                    const Color(0xFFFF9800), // Orange
+                    const Color(0xFFFF9800),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -746,17 +766,15 @@ Widget _buildImageSlider() {
                   child: _buildServiceItem(
                     Icons.headset_mic,
                     'Live Support\nAlways',
-                    const Color(0xFFF44336), // Red
+                    const Color(0xFFF44336),
                   ),
                 ),
                 const SizedBox(width: 16),
-                
-                // New Service
                 Expanded(
                   child: _buildServiceItem(
                     Icons.notification_important_rounded,
                     'Emergency\nAlerts',
-                    const Color(0xFFFF5722), // Deep Orange
+                    const Color(0xFFFF5722),
                   ),
                 ),
               ],
@@ -824,77 +842,68 @@ Widget _buildImageSlider() {
     );
   }
 
-Widget _buildSpecificationsSection() {
-  // Combine description with static features
-  List<String> allFeatures = [];
-  
-  // Add description as first feature if available
-  if (_productDetails!.description.isNotEmpty) {
-    allFeatures.add(_productDetails!.description);
-  }
-  
-  // Add static features
-  allFeatures.addAll(_staticFeatures);
-  
-  final featuresToShow = _showAllFeatures 
-      ? allFeatures 
-      : allFeatures.take(3).toList();
-  
-  return Container(
-    padding: const EdgeInsets.all(AppConstants.paddingPage),
-    color: AppColors.white,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Specifications',
-          style: TextStyle(
-            fontSize: AppConstants.fontSizeSectionTitle,
-            fontWeight: FontWeight.w700,
-            color: AppColors.black,
-          ),
-        ),
-        const SizedBox(height: 12),
-        ..._staticSpecs.map((spec) => 
-          _buildSpecRow(spec.label, spec.value)),
-        const SizedBox(height: 12),
-        ...featuresToShow.map((feature) => _buildFullLineSpec(feature)),
-        
-        if (allFeatures.length > 3)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _showAllFeatures = !_showAllFeatures;
-                });
-              },
-              child: Row(
-                children: [
-                  Text(
-                    _showAllFeatures ? 'Show Less' : 'Show More',
-                    style: const TextStyle(
-                      fontSize: AppConstants.fontSizeCardTitle,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.activeYellow,
-                    ),
-                  ),
-                  Icon(
-                    _showAllFeatures 
-                        ? Icons.keyboard_arrow_up 
-                        : Icons.keyboard_arrow_down,
-                    size: AppConstants.iconSizeMedium,
-                    color: AppColors.activeYellow,
-                  ),
-                ],
-              ),
+  Widget _buildSpecificationsSection() {
+    List<String> allFeatures = [];
+    if (_productDetails!.description.isNotEmpty) {
+      allFeatures.add(_productDetails!.description);
+    }
+    allFeatures.addAll(_staticFeatures);
+
+    final featuresToShow =
+        _showAllFeatures ? allFeatures : allFeatures.take(3).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(AppConstants.paddingPage),
+      color: AppColors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Specifications',
+            style: TextStyle(
+              fontSize: AppConstants.fontSizeSectionTitle,
+              fontWeight: FontWeight.w700,
+              color: AppColors.black,
             ),
           ),
-      ],
-    ),
-  );
-}
-
+          const SizedBox(height: 12),
+          ..._staticSpecs.map((spec) => _buildSpecRow(spec.label, spec.value)),
+          const SizedBox(height: 12),
+          ...featuresToShow.map((feature) => _buildFullLineSpec(feature)),
+          if (allFeatures.length > 3)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _showAllFeatures = !_showAllFeatures;
+                  });
+                },
+                child: Row(
+                  children: [
+                    Text(
+                      _showAllFeatures ? 'Show Less' : 'Show More',
+                      style: const TextStyle(
+                        fontSize: AppConstants.fontSizeCardTitle,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.activeYellow,
+                      ),
+                    ),
+                    Icon(
+                      _showAllFeatures
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      size: AppConstants.iconSizeMedium,
+                      color: AppColors.activeYellow,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildSpecRow(String label, String value) {
     return Padding(
@@ -978,22 +987,6 @@ Widget _buildSpecificationsSection() {
                   color: AppColors.black,
                 ),
               ),
-              // TextButton(
-              //   onPressed: () {},
-              //   style: TextButton.styleFrom(
-              //     padding: EdgeInsets.zero,
-              //     minimumSize: Size.zero,
-              //     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              //   ),
-              //   child: const Text(
-              //     'See All',
-              //     style: TextStyle(
-              //       fontSize: AppConstants.fontSizeCardTitle,
-              //       fontWeight: FontWeight.w600,
-              //       color: AppColors.activeYellow,
-              //     ),
-              //   ),
-              // ),
             ],
           ),
           const SizedBox(height: 10),
@@ -1051,7 +1044,9 @@ Widget _buildSpecificationsSection() {
                       children: List.generate(
                         5,
                         (index) => Icon(
-                          index < review.rating ? Icons.star : Icons.star_border,
+                          index < review.rating
+                              ? Icons.star
+                              : Icons.star_border,
                           size: AppConstants.fontSizeCardTitle,
                           color: AppColors.activeYellow,
                         ),

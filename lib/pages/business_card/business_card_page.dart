@@ -493,7 +493,7 @@ Widget _buildBottomBuyButton() {
                   ),
                 ),
                 Text(
-                  '₹799',
+                  '₹599',
                   style: TextStyle(
                     fontSize: AppConstants.fontSizeButtonPriceText,
                     fontWeight: FontWeight.w900,

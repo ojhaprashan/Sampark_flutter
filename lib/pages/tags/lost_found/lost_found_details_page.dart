@@ -7,6 +7,7 @@ import 'package:my_new_app/services/premium_service.dart';
 import 'package:my_new_app/pages/tags/car/add_secondary_number_sheet.dart';
 import 'package:my_new_app/pages/tags/car/add_emergency_contact_sheet.dart';
 import 'package:my_new_app/pages/membership/membership_page.dart';
+import 'package:my_new_app/pages/tags/scan_locations_page.dart';
 import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
 import '../../../services/auth_service.dart';
@@ -237,12 +238,13 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
                                   // Tabs
                                   _buildTabs(),
                                   const SizedBox(height: AppConstants.spacingSmall),
-                                  // Scan Count
+                                  // Tag ID
                                   Text(
-                                    'Hey, Your Tag got scanned $scanCount times',
+                                    'Tag id: ${widget.item.fullTagId}',
                                     style: TextStyle(
                                       fontSize: AppConstants.fontSizeSubtitle,
                                       color: AppColors.textGrey,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ],
@@ -662,7 +664,20 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
           iconColor: Colors.red.shade600,
           label: 'Check scan locations',
           trailing: Icons.location_on_outlined,
-          onTap: () {},
+          onTap: () {
+            HapticFeedback.mediumImpact();
+            final phoneWithCountryCode = _countryCode.replaceFirst('+', '') + _userPhone;
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ScanLocationsPage(
+                  tagId: _tagSettings?.data.tagId ?? 0,
+                  phoneWithCountryCode: phoneWithCountryCode,
+                  tagName: widget.item.tagId,
+                ),
+              ),
+            );
+          },
         ),
         // ✅ Dynamic Disable/Enable Calls Button (shows opposite action)
         _buildActionButton(
@@ -717,62 +732,6 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
     return Column(
       children: [
         const SizedBox(height: AppConstants.spacingMedium),
-        // Membership Badge or Get Premium Button
-        if (!_isLoadingPremium) ...[
-          if (_hasPremium)
-            Container(
-              padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
-              decoration: BoxDecoration(
-                color: Colors.purple.shade50,
-                borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-                border: Border.all(
-                  color: Colors.purple.shade200,
-                  width: 2,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.workspace_premium,
-                        size: AppConstants.iconSizeLarge,
-                        color: Colors.purple,
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Premium Member',
-                            style: TextStyle(
-                              fontSize: AppConstants.fontSizeSectionTitle,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.purple,
-                            ),
-                          ),
-                          Text(
-                            'Enjoy exclusive features',
-                            style: TextStyle(
-                              fontSize: AppConstants.fontSizeCardDescription,
-                              color: Colors.purple.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Icon(
-                    Icons.check_circle,
-                    color: Colors.green.shade600,
-                    size: 24,
-                  ),
-                ],
-              ),
-            )
-         
-        ],
         // ✅ Shows opposite text (Enable when disabled, Disable when enabled)
         _buildActionButton(
           icon: _isWhatsappEnabled ? Icons.chat_bubble : Icons.chat_bubble_outline,
@@ -793,14 +752,103 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
           },
         ),
         _buildActionButton(
-          icon: _isVideoCallEnabled ? Icons.videocam : Icons.videocam_off,
-          iconColor: _isVideoCallEnabled ? Colors.green.shade600 : Colors.grey.shade600,
-          label: _isVideoCallEnabled ? 'Disable Video Call' : 'Enable Video Call',
-          trailing: _isVideoCallEnabled ? Icons.toggle_on : Icons.toggle_off_outlined,
+          icon: Icons.videocam,
+          iconColor: Colors.grey.shade600,
+          label: 'Enable Video Call',
+          trailing: Icons.toggle_off_outlined,
           onTap: () {
-            _toggleVideoCall();
+            _showComingSoonDialog();
           },
         ),
+        const SizedBox(height: AppConstants.spacingMedium),
+        // ✅ Show premium UI based on state
+        if (_isLoadingPremium)
+          // Loading state
+          Container(
+            padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
+            decoration: BoxDecoration(
+              color: Colors.purple.shade50,
+              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+              border: Border.all(
+                color: Colors.purple.shade200,
+                width: 2,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.purple),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Loading membership status...',
+                  style: TextStyle(
+                    fontSize: AppConstants.fontSizeCardDescription,
+                    color: Colors.purple.shade600,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else if (_hasPremium)
+          // ✅ Show Membership Badge if user has premium
+          Container(
+            padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
+            decoration: BoxDecoration(
+              color: Colors.purple.shade50,
+              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+              border: Border.all(
+                color: Colors.purple.shade200,
+                width: 2,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.workspace_premium,
+                      size: AppConstants.iconSizeLarge,
+                      color: Colors.purple,
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Premium Member',
+                          style: TextStyle(
+                            fontSize: AppConstants.fontSizeSectionTitle,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.purple,
+                          ),
+                        ),
+                        Text(
+                          'Enjoy exclusive features',
+                          style: TextStyle(
+                            fontSize: AppConstants.fontSizeCardDescription,
+                            color: Colors.purple.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Icon(
+                  Icons.check_circle,
+                  color: Colors.green.shade600,
+                  size: 24,
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -1503,5 +1551,85 @@ class _LostFoundDetailsPageState extends State<LostFoundDetailsPage>
         }
       }
     }
+  }
+
+  // ✅ Show Coming Soon Dialog for Video Call
+  void _showComingSoonDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(AppConstants.paddingLarge),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.videocam,
+                    size: 32,
+                    color: Colors.blue.shade600,
+                  ),
+                ),
+                const SizedBox(height: AppConstants.spacingMedium),
+                Text(
+                  'Coming Soon!',
+                  style: TextStyle(
+                    fontSize: AppConstants.fontSizeCardTitle,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.black,
+                  ),
+                ),
+                const SizedBox(height: AppConstants.spacingSmall),
+                Text(
+                  'Video call feature will be available soon.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: AppConstants.fontSizeCardDescription,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textGrey,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: AppConstants.spacingMedium),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: AppConstants.paddingMedium),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryYellow,
+                      borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Got it',
+                        style: TextStyle(
+                          fontSize: AppConstants.fontSizeCardDescription,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.black,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }

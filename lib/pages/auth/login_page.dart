@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/colors.dart';
 import '../../utils/constants.dart';
 import '../../services/auth_service.dart';
 import '../../services/auth_api_service.dart';
 import '../../services/firebase_notification_service.dart';
+import '../../providers/wallet_provider.dart';
 import '../main_navigation.dart';
 import 'signup_page.dart';
 
@@ -254,6 +256,11 @@ class _LoginPageState extends State<LoginPage> {
           await Future.delayed(const Duration(milliseconds: 1000));
 
           if (mounted) {
+            // Trigger wallet fetch for newly logged-in user
+            final walletProvider = Provider.of<WalletProvider>(context, listen: false);
+            walletProvider.reset(); // Clear any previous user's data first
+            walletProvider.fetchWallet(phoneLocal); // Fetch for the newly logged-in user
+
             // Navigate to main app
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(

@@ -18,6 +18,62 @@ class OnboardingPageOne extends StatelessWidget {
     required this.totalPages,
   });
 
+  /// Checks if the provided path is a network URL
+  bool _isNetworkUrl(String path) {
+    return path.startsWith('http://') || path.startsWith('https://');
+  }
+
+  /// Builds the image widget based on whether it's a network URL or local asset
+  Widget _buildIconImage() {
+    if (_isNetworkUrl(iconPath)) {
+      // Network image with loading and error handling
+      return Image.network(
+        iconPath,
+        width: 100,
+        height: 100,
+        fit: BoxFit.cover,
+        loadingBuilder: (BuildContext context, Widget child,
+            ImageChunkEvent? loadingProgress) {
+          if (loadingProgress == null) {
+            return child;
+          }
+          return Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                      loadingProgress.expectedTotalBytes!
+                  : null,
+              color: AppColors.black.withOpacity(0.5),
+              strokeWidth: 2,
+            ),
+          );
+        },
+        errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) {
+          return Container(
+            width: 100,
+            height: 100,
+            color: AppColors.black.withOpacity(0.1),
+            child: Center(
+              child: Icon(
+                Icons.image_not_supported_outlined,
+                size: 40,
+                color: AppColors.black.withOpacity(0.3),
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      // Local asset image
+      return Image.asset(
+        iconPath,
+        width: 100,
+        height: 100,
+        fit: BoxFit.cover,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -52,12 +108,7 @@ class OnboardingPageOne extends StatelessWidget {
               ),
               child: Center(
                 child: ClipOval(
-                  child: Image.asset(
-                    iconPath,
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.cover,
-                  ),
+                  child: _buildIconImage(),
                 ),
               ),
             ),

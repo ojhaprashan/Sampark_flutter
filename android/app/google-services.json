@@ -1,38 +1,65 @@
 {
   "project_info": {
-    "project_number": "123456789012",
-    "firebase_url": "https://sampark-messaging.firebaseio.com",
-    "project_id": "sampark-messaging",
-    "storage_bucket": "sampark-messaging.appspot.com"
+    "project_number": "16498129643",
+    "firebase_url": "https://ngf132.firebaseio.com",
+    "project_id": "ngf132",
+    "storage_bucket": "ngf132.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789012:android:abcdef1234567890",
+        "mobilesdk_app_id": "1:16498129643:android:c10f55011982a939229cae",
         "android_client_info": {
           "package_name": "com.myapp.ngf132"
         }
       },
       "oauth_client": [
         {
-          "client_id": "123456789012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com",
-          "client_type": 3
+          "client_id": "16498129643-79ial209c66eut6rgruirtpln3f9jp4q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.myapp.ngf132",
+            "certificate_hash": "8ebeaae78043e89d791a946ad9d6af2796a763db"
+          }
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDummyKeyForDevelopmentOnly1234567890ABC"
+          "current_key": "AIzaSyBEyJlBob7UgDiTLAI6l7vVP1-MiGiFqKE"
         }
       ],
       "services": {
-        "analytics_service": {
-          "analytics_status": 2
-        },
         "appinvite_service": {
-          "other_platform_oauth_client": []
-        },
-        "ads_service": {
-          "status": 2
+          "other_platform_oauth_client": [
+            {
+              "client_id": "16498129643-rnrgccpj0mvn1s5i3rsiu2il5litf6ek.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:16498129643:android:664054eb0d457513229cae",
+        "android_client_info": {
+          "package_name": "com.myapp.parksalamat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEyJlBob7UgDiTLAI6l7vVP1-MiGiFqKE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "16498129643-rnrgccpj0mvn1s5i3rsiu2il5litf6ek.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

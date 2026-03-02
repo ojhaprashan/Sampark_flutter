@@ -11,6 +11,7 @@ import 'package:my_new_app/services/auth_service.dart';
 import 'package:my_new_app/services/etag_service.dart';
 import 'package:my_new_app/services/emergency_service.dart';
 import 'package:my_new_app/pages/scan/contact_vehicle_owner_page.dart';
+import 'package:my_new_app/pages/tags/scan_locations_page.dart';
 import 'add_secondary_number_sheet.dart';
 import 'add_emergency_contact_sheet.dart';
 
@@ -34,6 +35,9 @@ class _ManageTagTabState extends State<ManageTagTab> {
   // ✅ State variables for toggling
   bool _isCallsEnabled = true;
   bool _isTagEnabled = true;
+  bool _isWhatsappEnabled = false;
+  bool _isCallMaskingEnabled = false;
+  bool _isVideoCallEnabled = false;
   bool _isLoading = false;
   String _userPhone = '';
   String _countryCode = '+91'; // Track country code for India-specific features
@@ -44,7 +48,25 @@ class _ManageTagTabState extends State<ManageTagTab> {
     // Initialize from tagSettings if available
     _isCallsEnabled = widget.tagSettings?.data.callStatus.callsEnabled ?? true;
     _isTagEnabled = widget.tagSettings?.data.status == 'Active';
+    _isWhatsappEnabled = widget.tagSettings?.data.callStatus.whatsappEnabled ?? false;
+    _isCallMaskingEnabled = widget.tagSettings?.data.callStatus.callMaskingEnabled ?? false;
+    _isVideoCallEnabled = widget.tagSettings?.data.callStatus.videoCallEnabled ?? false;
     _loadUserPhone();
+  }
+
+  // ✅ Sync local state when parent refreshes tagSettings
+  @override
+  void didUpdateWidget(ManageTagTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.tagSettings != null && oldWidget.tagSettings != widget.tagSettings) {
+      setState(() {
+        _isCallsEnabled = widget.tagSettings!.data.callStatus.callsEnabled;
+        _isTagEnabled = widget.tagSettings!.data.status == 'Active';
+        _isWhatsappEnabled = widget.tagSettings!.data.callStatus.whatsappEnabled;
+        _isCallMaskingEnabled = widget.tagSettings!.data.callStatus.callMaskingEnabled;
+        _isVideoCallEnabled = widget.tagSettings!.data.callStatus.videoCallEnabled;
+      });
+    }
   }
 
   // ✅ Load user phone from AuthService
@@ -115,7 +137,18 @@ class _ManageTagTabState extends State<ManageTagTab> {
               iconColor: Colors.red.shade600,
               label: 'Check scan locations',
               onTap: () {
-                // Add your logic
+                HapticFeedback.mediumImpact();
+                final phoneWithCountryCode = _countryCode.replaceFirst('+', '') + _userPhone;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ScanLocationsPage(
+                      tagId: widget.tag.tagInternalId.isNotEmpty ? int.tryParse(widget.tag.tagInternalId) ?? 0 : 0,
+                      phoneWithCountryCode: phoneWithCountryCode,
+                      tagName: widget.tag.displayName,
+                    ),
+                  ),
+                );
               },
             ),
             // ✅ Dynamic Disable/Enable Calls Button (shows opposite action)
@@ -266,9 +299,9 @@ class _ManageTagTabState extends State<ManageTagTab> {
         tagId: widget.tag.tagInternalId,
         phone: phoneWithCountryCode,
         callsEnabled: newCallsEnabled,
-        whatsappEnabled: widget.tagSettings?.data.callStatus.whatsappEnabled ?? false,
-        callMaskingEnabled: widget.tagSettings?.data.callStatus.callMaskingEnabled ?? false,
-        videoCallEnabled: widget.tagSettings?.data.callStatus.videoCallEnabled ?? false,
+        whatsappEnabled: _isWhatsappEnabled,
+        callMaskingEnabled: _isCallMaskingEnabled,
+        videoCallEnabled: _isVideoCallEnabled,
         smValue: '67s87s6yys66',
         dgValue: 'testYU78dII8iiUIPSISJ',
       );
@@ -279,6 +312,9 @@ class _ManageTagTabState extends State<ManageTagTab> {
       });
 
       _hideLoadingOverlay(context);
+
+      // ✅ Refresh data after successful toggle
+      widget.onDataUpdated?.call();
 
       _showSuccessDialog(
         context,
@@ -322,10 +358,10 @@ class _ManageTagTabState extends State<ManageTagTab> {
       await TagsService.updateTagSettings(
         tagId: widget.tag.tagInternalId,
         phone: phoneWithCountryCode,
-        callsEnabled: widget.tagSettings?.data.callStatus.callsEnabled ?? true,
-        whatsappEnabled: widget.tagSettings?.data.callStatus.whatsappEnabled ?? false,
-        callMaskingEnabled: widget.tagSettings?.data.callStatus.callMaskingEnabled ?? false,
-        videoCallEnabled: widget.tagSettings?.data.callStatus.videoCallEnabled ?? false,
+        callsEnabled: _isCallsEnabled,
+        whatsappEnabled: _isWhatsappEnabled,
+        callMaskingEnabled: _isCallMaskingEnabled,
+        videoCallEnabled: _isVideoCallEnabled,
         smValue: '67s87s6yys66',
         dgValue: 'testYU78dII8iiUIPSISJ',
         status: newStatus,  // ✅ Pass status parameter
@@ -582,10 +618,10 @@ class _ManageTagTabState extends State<ManageTagTab> {
           tagId: widget.tag.tagInternalId,
           phone: phoneWithCountryCode,
           secondaryNumber: phoneNumber,
-          callsEnabled: widget.tagSettings?.data.callStatus.callsEnabled ?? true,
-          whatsappEnabled: widget.tagSettings?.data.callStatus.whatsappEnabled ?? false,
-          callMaskingEnabled: widget.tagSettings?.data.callStatus.callMaskingEnabled ?? false,
-          videoCallEnabled: widget.tagSettings?.data.callStatus.videoCallEnabled ?? false,
+          callsEnabled: _isCallsEnabled,
+          whatsappEnabled: _isWhatsappEnabled,
+          callMaskingEnabled: _isCallMaskingEnabled,
+          videoCallEnabled: _isVideoCallEnabled,
           smValue: '67s87s6yys66',
           dgValue: 'testYU78dII8iiUIPSISJ',
         );
