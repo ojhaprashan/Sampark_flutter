@@ -2,7 +2,7 @@ name: my_new_app
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+67
 
 environment:
   sdk: ^3.9.2
@@ -75,9 +75,6 @@ flutter:
   # Add your assets here
   assets:
     - assets/icons/
-    - assets/Banner/Home/
-    - assets/Banner/shop/
-    - assets/Banner/other/
     - assets/images/
     - assets/images/sampark_black.png
     - assets/icons/whatsapp.png

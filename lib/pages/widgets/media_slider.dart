@@ -3,7 +3,6 @@ import 'package:video_player/video_player.dart';
 import 'dart:async';
 import '../../utils/colors.dart';
 
-
 class MediaSlider extends StatefulWidget {
   final List<MediaSliderItem> items;
   final double height;
@@ -12,7 +11,10 @@ class MediaSlider extends StatefulWidget {
   final Duration autoScrollDuration;
   final double viewportFraction;
   final bool show3DEffect;
-
+  final ValueChanged<int>? onPageChanged;
+  
+  // ✨ NEW: Add this to accept border radius
+  final BorderRadius? borderRadius; 
 
   const MediaSlider({
     super.key,
@@ -20,16 +22,16 @@ class MediaSlider extends StatefulWidget {
     this.height = 400,
     this.showIndicators = true,
     this.autoScroll = true,
-    this.autoScrollDuration = const Duration(seconds: 3),
+    this.autoScrollDuration = const Duration(seconds: 10),
     this.viewportFraction = 0.9,
     this.show3DEffect = true,
+    this.onPageChanged,
+    this.borderRadius, // ✨ Add this
   });
-
 
   @override
   State<MediaSlider> createState() => _MediaSliderState();
 }
-
 
 class _MediaSliderState extends State<MediaSlider> {
   int _currentIndex = 0;
@@ -39,7 +41,6 @@ class _MediaSliderState extends State<MediaSlider> {
   
   final Map<int, VideoPlayerController?> _videoControllers = {};
   bool _isVideoPlaying = false;
-
 
   @override
   void initState() {
@@ -52,7 +53,6 @@ class _MediaSliderState extends State<MediaSlider> {
     }
   }
 
-
   @override
   void dispose() {
     _autoScrollTimer?.cancel();
@@ -62,7 +62,6 @@ class _MediaSliderState extends State<MediaSlider> {
     });
     super.dispose();
   }
-
 
   void _startAutoScroll() {
     if (!widget.autoScroll) return;
@@ -83,14 +82,12 @@ class _MediaSliderState extends State<MediaSlider> {
     });
   }
 
-
   void _stopAutoScroll() {
     setState(() {
       _isUserInteracting = true;
     });
     _autoScrollTimer?.cancel();
   }
-
 
   void _resumeAutoScroll() {
     setState(() {
@@ -103,11 +100,12 @@ class _MediaSliderState extends State<MediaSlider> {
     }
   }
 
-
   void _onPageChanged(int index) {
     setState(() {
       _currentIndex = index;
     });
+
+    widget.onPageChanged?.call(index);
 
     _videoControllers.forEach((key, controller) {
       if (key != index) {
@@ -123,7 +121,6 @@ class _MediaSliderState extends State<MediaSlider> {
       });
     }
   }
-
 
   Future<void> _initializeAndPlayVideo(int index) async {
     if (_videoControllers[index] == null) {
@@ -161,28 +158,32 @@ class _MediaSliderState extends State<MediaSlider> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          height: widget.height,
-          child: GestureDetector(
-            onPanDown: (_) => _stopAutoScroll(),
-            onPanCancel: () => _resumeAutoScroll(),
-            onPanEnd: (_) => _resumeAutoScroll(),
-            child: PageView.builder(
-              controller: _pageController,
-              onPageChanged: _onPageChanged,
-              itemCount: widget.items.length,
-              padEnds: false,
-              itemBuilder: (context, index) {
-                return widget.show3DEffect
-                    ? _build3DSlideItem(index)
-                    : _buildSimpleSlideItem(index);
-              },
+        // ✅ CHANGED: We apply ClipRRect ONLY to the slider part
+        // This ensures the image gets rounded, even if dots are below it.
+        ClipRRect(
+          borderRadius: widget.borderRadius ?? BorderRadius.zero,
+          child: SizedBox(
+            height: widget.height,
+            child: GestureDetector(
+              onPanDown: (_) => _stopAutoScroll(),
+              onPanCancel: () => _resumeAutoScroll(),
+              onPanEnd: (_) => _resumeAutoScroll(),
+              child: PageView.builder(
+                controller: _pageController,
+                onPageChanged: _onPageChanged,
+                itemCount: widget.items.length,
+                padEnds: false,
+                itemBuilder: (context, index) {
+                  return widget.show3DEffect
+                      ? _build3DSlideItem(index)
+                      : _buildSimpleSlideItem(index);
+                },
+              ),
             ),
           ),
         ),
@@ -195,7 +196,8 @@ class _MediaSliderState extends State<MediaSlider> {
     );
   }
 
-
+  // ... (Rest of the file remains exactly the same: _build3DSlideItem, _buildSimpleSlideItem, etc.)
+  
   Widget _build3DSlideItem(int index) {
     return AnimatedBuilder(
       animation: _pageController,
@@ -216,16 +218,13 @@ class _MediaSliderState extends State<MediaSlider> {
     );
   }
 
-
   Widget _buildSimpleSlideItem(int index) {
     return _buildSlideContent(index);
   }
 
-
  Widget _buildSlideContent(int index) {
   final item = widget.items[index];
 
-  // ✅ Only add horizontal padding when 3D effect is enabled
   return widget.show3DEffect
       ? Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -240,21 +239,18 @@ class _MediaSliderState extends State<MediaSlider> {
           ),
         )
       : Container(
-          color: Colors.white, // ✅ White background
+          color: Colors.white,
           child: item.type == MediaSliderType.image
               ? _buildImageSlide(item)
               : _buildVideoSlide(index, item),
         );
 }
 
-
-
-  // ✅ CORRECT - Shows FULL image, uses item's boxFit setting
   Widget _buildImageSlide(MediaSliderItem item) {
     return item.isNetworkImage
         ? Image.network(
             item.path,
-            fit: item.boxFit, // ✅ Uses the boxFit from MediaSliderItem
+            fit: item.boxFit,
             width: double.infinity,
             height: double.infinity,
             loadingBuilder: (context, child, loadingProgress) {
@@ -282,7 +278,7 @@ class _MediaSliderState extends State<MediaSlider> {
           )
         : Image.asset(
             item.path,
-            fit: item.boxFit, // ✅ Uses the boxFit from MediaSliderItem
+            fit: item.boxFit,
             width: double.infinity,
             height: double.infinity,
             errorBuilder: (context, error, stackTrace) {
@@ -296,7 +292,6 @@ class _MediaSliderState extends State<MediaSlider> {
             },
           );
   }
-
 
   Widget _buildVideoSlide(int index, MediaSliderItem item) {
     final controller = _videoControllers[index];
@@ -355,7 +350,6 @@ class _MediaSliderState extends State<MediaSlider> {
     );
   }
 
-
   Widget _buildIndicators() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -378,9 +372,7 @@ class _MediaSliderState extends State<MediaSlider> {
   }
 }
 
-
 enum MediaSliderType { image, video }
-
 
 class MediaSliderItem {
   final MediaSliderType type;
@@ -389,20 +381,18 @@ class MediaSliderItem {
   final bool isNetworkImage;
   final BoxFit boxFit;
 
-
   MediaSliderItem({
     required this.type,
     required this.path,
     this.title = '',
     this.isNetworkImage = false,
-    this.boxFit = BoxFit.contain, // ✅ Default back to contain
+    this.boxFit = BoxFit.contain,
   });
-
 
   factory MediaSliderItem.networkImage({
     required String url,
     String title = '',
-    BoxFit boxFit = BoxFit.contain, // ✅ Default to contain
+    BoxFit boxFit = BoxFit.contain,
   }) {
     return MediaSliderItem(
       type: MediaSliderType.image,
@@ -413,11 +403,10 @@ class MediaSliderItem {
     );
   }
 
-
   factory MediaSliderItem.assetImage({
     required String assetPath,
     String title = '',
-    BoxFit boxFit = BoxFit.contain, // ✅ Default to contain
+    BoxFit boxFit = BoxFit.contain,
   }) {
     return MediaSliderItem(
       type: MediaSliderType.image,
@@ -427,7 +416,6 @@ class MediaSliderItem {
       boxFit: boxFit,
     );
   }
-
 
   factory MediaSliderItem.video({
     required String assetPath,

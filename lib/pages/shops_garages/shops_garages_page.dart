@@ -6,48 +6,45 @@ import '../../utils/colors.dart';
 import '../../utils/constants.dart';
 import '../../services/auth_service.dart';
 
-
 class ShopsGaragesPage extends StatefulWidget {
   const ShopsGaragesPage({super.key});
-
 
   @override
   State<ShopsGaragesPage> createState() => _ShopsGaragesPageState();
 }
 
-
 class _ShopsGaragesPageState extends State<ShopsGaragesPage> {
   bool _isLoggedIn = false;
 
-
-  // Media Slider Items
- final List<MediaSliderItem> _sliderItems = [
-
+  // ✅ UPDATED: Added boxFit: BoxFit.cover
+  final List<MediaSliderItem> _sliderItems = [
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/shops_1.png',
+      url: 'https://sampark.me/assets/app/shops_garages_1.png',
+      boxFit: BoxFit.cover,
     ),
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/shops_2.png',
+      url: 'https://sampark.me/assets/app/shops_garages_2.png',
+      boxFit: BoxFit.cover,
     ),
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/shops_3.png',
+      url: 'https://sampark.me/assets/app/shops_garages_3.png',
+      boxFit: BoxFit.cover,
     ),
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/shops_4.png',
+      url: 'https://sampark.me/assets/app/shops_garages _4.png',
+      boxFit: BoxFit.cover,
     ),
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/shops_5.png',
+      url: 'https://sampark.me/assets/app/shops_garages_5.png',
+      boxFit: BoxFit.cover,
     ),
   ];
-
-
 
   @override
   void initState() {
     super.initState();
     _checkLoginStatus();
   }
-
 
   Future<void> _checkLoginStatus() async {
     final loggedIn = await AuthService.isLoggedIn();
@@ -58,19 +55,17 @@ class _ShopsGaragesPageState extends State<ShopsGaragesPage> {
     }
   }
 
-
- void _applyNow() {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => const InAppWebViewPage(
-        url: 'https://payments.cashfree.com/forms/sampark_starter_pack',
-        title: 'Payment',
+  void _applyNow() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const InAppWebViewPage(
+          url: 'https://payments.cashfree.com/forms/sampark_starter_pack',
+          title: 'Payment',
+        ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +89,6 @@ class _ShopsGaragesPageState extends State<ShopsGaragesPage> {
             ),
           ),
 
-
           SafeArea(
             child: Column(
               children: [
@@ -105,7 +99,6 @@ class _ShopsGaragesPageState extends State<ShopsGaragesPage> {
                   showUserInfo: false,
                   showCartIcon: false,
                 ),
-
 
                 // Main Content
                 Expanded(
@@ -123,7 +116,7 @@ class _ShopsGaragesPageState extends State<ShopsGaragesPage> {
                         children: [
                           const SizedBox(height: AppConstants.spacingMedium),
 
-                          // ✅ Page Title ABOVE slider
+                          // Page Title ABOVE slider
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: AppConstants.paddingPage),
                             child: Column(
@@ -151,13 +144,12 @@ class _ShopsGaragesPageState extends State<ShopsGaragesPage> {
                             ),
                           ),
 
-                          const SizedBox(height: 12), // ✅ Minimal gap
+                          const SizedBox(height: 12),
 
-                          // ✅ Media Slider - Compact version
+                          // ✅ Media Slider - Updated with Aspect Ratio
                           _buildImageSlider(),
 
                           const SizedBox(height: 16),
-
 
                           // Content Container
                           Padding(
@@ -168,41 +160,30 @@ class _ShopsGaragesPageState extends State<ShopsGaragesPage> {
                                 // Yellow Price Banner
                                 _buildPriceBanner(),
 
-
                                 const SizedBox(height: 16),
-
 
                                 // Starter Pack Info
                                 _buildStarterPackInfo(),
 
-
                                 const SizedBox(height: 16),
-
 
                                 // Garage Option
                                 _buildGarageOption(),
 
-
                                 const SizedBox(height: 16),
-
 
                                 // Your Logo Section
                                 _buildYourLogoSection(),
 
-
                                 const SizedBox(height: 16),
-
 
                                 // Co-Branded Tags Section
                                 _buildCoBrandedSection(),
 
-
                                 const SizedBox(height: 16),
-
 
                                 // Free Marketing Materials
                                 _buildMarketingMaterialsSection(),
-
 
                                 const SizedBox(height: 80),
                               ],
@@ -217,7 +198,6 @@ class _ShopsGaragesPageState extends State<ShopsGaragesPage> {
             ),
           ),
 
-
           // Bottom Apply Now Button
           _buildBottomApplyButton(),
         ],
@@ -225,26 +205,29 @@ class _ShopsGaragesPageState extends State<ShopsGaragesPage> {
     );
   }
 
-
-  // ✅ Compact Image Slider - Minimal spacing
+  // ✅ Image Slider with 1024/500 Aspect Ratio
   Widget _buildImageSlider() {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double sidePadding = 16.0; 
+    double sliderWidth = screenWidth - (sidePadding * 2);
+    
+    // ✅ Aspect Ratio Calculation
+    double sliderHeight = sliderWidth / (1024 / 500);
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 1),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: MediaSlider(
-          items: _sliderItems,
-          height: 120, // ✅ Reduced height
-          autoScroll: true,
-          show3DEffect: false,
-          autoScrollDuration: const Duration(seconds: 4),
-          viewportFraction: 1.0,
-          showIndicators: true,
-        ),
+      padding: EdgeInsets.symmetric(horizontal: sidePadding),
+      child: MediaSlider(
+        items: _sliderItems,
+        height: sliderHeight, // ✅ Dynamic height
+        borderRadius: BorderRadius.circular(20), // ✅ Rounded corners
+        autoScroll: true,
+        show3DEffect: false,
+        autoScrollDuration: const Duration(seconds: 4),
+        viewportFraction: 1.0,
+        showIndicators: true,
       ),
     );
   }
-
 
   Widget _buildPriceBanner() {
     return Container(
@@ -272,7 +255,6 @@ class _ShopsGaragesPageState extends State<ShopsGaragesPage> {
       ),
     );
   }
-
 
   Widget _buildStarterPackInfo() {
     return Container(
@@ -313,60 +295,56 @@ class _ShopsGaragesPageState extends State<ShopsGaragesPage> {
     );
   }
 
-
   Widget _buildGarageOption() {
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(AppConstants.paddingMedium),
-    decoration: BoxDecoration(
-      color: AppColors.white,
-      borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-      border: Border.all(
-        color: AppColors.lightGrey,
-        width: 1,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppConstants.paddingMedium),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+        border: Border.all(
+          color: AppColors.lightGrey,
+          width: 1,
+        ),
       ),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(
-              Icons.garage_outlined,
-              size: AppConstants.iconSizeMedium,
-              color: AppColors.activeYellow, // ✅ Changed to yellow
-            ),
-            const SizedBox(width: AppConstants.spacingSmall),
-            Expanded(
-              child: Text(
-                'Do you have a garage ?',
-                style: TextStyle(
-                  fontSize: AppConstants.fontSizeCardTitle,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.black,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.garage_outlined,
+                size: AppConstants.iconSizeMedium,
+                color: AppColors.activeYellow,
+              ),
+              const SizedBox(width: AppConstants.spacingSmall),
+              Expanded(
+                child: Text(
+                  'Do you have a garage ?',
+                  style: TextStyle(
+                    fontSize: AppConstants.fontSizeCardTitle,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.black,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppConstants.spacingSmall),
-        Text(
-          'Get car sampark tag with your logo on it. Build happy customers.',
-          style: TextStyle(
-            fontSize: AppConstants.fontSizeCardDescription,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textGrey,
-            height: 1.5,
+            ],
           ),
-        ),
-      ],
-    ),
-  );
-}
+          const SizedBox(height: AppConstants.spacingSmall),
+          Text(
+            'Get car sampark tag with your logo on it. Build happy customers.',
+            style: TextStyle(
+              fontSize: AppConstants.fontSizeCardDescription,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textGrey,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-
-
-  // ✅ NEW: Your Logo Section
   Widget _buildYourLogoSection() {
     return Container(
       width: double.infinity,
@@ -415,8 +393,6 @@ class _ShopsGaragesPageState extends State<ShopsGaragesPage> {
     );
   }
 
-
-  // ✅ NEW: Co-Branded Tags Section
   Widget _buildCoBrandedSection() {
     return Container(
       width: double.infinity,
@@ -468,8 +444,6 @@ class _ShopsGaragesPageState extends State<ShopsGaragesPage> {
     );
   }
 
-
-  // ✅ NEW: Free Marketing Materials Section
   Widget _buildMarketingMaterialsSection() {
     return Container(
       width: double.infinity,
@@ -516,7 +490,6 @@ class _ShopsGaragesPageState extends State<ShopsGaragesPage> {
     );
   }
 
-
   Widget _buildChecklistItem(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -544,7 +517,6 @@ class _ShopsGaragesPageState extends State<ShopsGaragesPage> {
       ),
     );
   }
-
 
   // Bottom Apply Now Button
   Widget _buildBottomApplyButton() {
@@ -593,15 +565,13 @@ class _ShopsGaragesPageState extends State<ShopsGaragesPage> {
   }
 }
 
-
-// Custom Painter for Dashed Border
+// Custom Painter for Dashed Border (Preserved)
 class DashedBorderPainter extends CustomPainter {
   final Color color;
   final double strokeWidth;
   final double dashWidth;
   final double dashSpace;
   final double borderRadius;
-
 
   DashedBorderPainter({
     required this.color,
@@ -611,14 +581,12 @@ class DashedBorderPainter extends CustomPainter {
     required this.borderRadius,
   });
 
-
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
-
 
     final path = Path()
       ..addRRect(
@@ -628,11 +596,9 @@ class DashedBorderPainter extends CustomPainter {
         ),
       );
 
-
     final dashPath = _createDashedPath(path, dashWidth, dashSpace);
     canvas.drawPath(dashPath, paint);
   }
-
 
   Path _createDashedPath(Path source, double dashWidth, double dashSpace) {
     final Path dashedPath = Path();
@@ -662,7 +628,6 @@ class DashedBorderPainter extends CustomPainter {
     }
     return dashedPath;
   }
-
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;

@@ -16,26 +16,19 @@ class BusinessCardPage extends StatefulWidget {
 class _BusinessCardPageState extends State<BusinessCardPage> {
   bool _isLoggedIn = false;
 
-  // Media items - using MediaSliderItem
-final List<MediaSliderItem> _mediaItems = [
-
+  // ✅ UPDATED: Added boxFit: BoxFit.cover
+  final List<MediaSliderItem> _mediaItems = [
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/business_1.png',
+      url: 'https://sampark.me/assets/app/pr_bc_1.png',
+      boxFit: BoxFit.cover,
     ),
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/business_2.png',
+      url: 'https://sampark.me/assets/app/pr_bc_2.png',
+      boxFit: BoxFit.cover,
     ),
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/business_3.png',
-    ),
-    MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/business_4.png',
-    ),
-    MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/business_5.png',
-    ),
-    MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/business_6.png',
+      url: 'https://sampark.me/assets/app/pr_bc_3.png',
+      boxFit: BoxFit.cover,
     ),
   ];
 
@@ -56,6 +49,12 @@ final List<MediaSliderItem> _mediaItems = [
 
   @override
   Widget build(BuildContext context) {
+    // ✅ CALCULATION: Setup dimensions for 1024x500 Aspect Ratio
+    double screenWidth = MediaQuery.of(context).size.width;
+    double sidePadding = 16.0; 
+    double sliderWidth = screenWidth - (sidePadding * 2);
+    double sliderHeight = sliderWidth / (1024 / 500);
+
     return Scaffold(
       backgroundColor: AppColors.white,
       body: Stack(
@@ -133,14 +132,19 @@ final List<MediaSliderItem> _mediaItems = [
 
                           const SizedBox(height: 12),
 
-                          // Media Slider Component
-                          MediaSlider(
-                            items: _mediaItems,
-                            height: 280,
-                            autoScroll: true,
-                            show3DEffect: false,
-                            autoScrollDuration: const Duration(seconds: 4),
-                            viewportFraction: 1.0,
+                          // ✅ Media Slider Component with Aspect Ratio
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: sidePadding),
+                            child: MediaSlider(
+                              items: _mediaItems,
+                              height: sliderHeight, // Dynamic height
+                              borderRadius: BorderRadius.circular(20), // Rounded corners
+                              autoScroll: true,
+                              show3DEffect: false,
+                              autoScrollDuration: const Duration(seconds: 4),
+                              viewportFraction: 1.0,
+                              showIndicators: true,
+                            ),
                           ),
 
                           const SizedBox(height: 16),
@@ -440,73 +444,71 @@ final List<MediaSliderItem> _mediaItems = [
   }
 
   // Bottom Buy Button
- // Bottom Buy Button
-Widget _buildBottomBuyButton() {
-  return Positioned(
-    bottom: 0,
-    left: 0,
-    right: 0,
-    child: Container(
-      padding: const EdgeInsets.all(AppConstants.buttonPaddingVertical),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 16,
-            offset: const Offset(0, -4),
+  Widget _buildBottomBuyButton() {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: const EdgeInsets.all(AppConstants.buttonPaddingVertical),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: AppConstants.buttonHeightMedium,
+            child: ElevatedButton(
+              onPressed: () {
+                 Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const InAppWebViewPage(
+                      url: 'https://app.ngf132.com/order-business',
+                      title: 'Buy Business Card',
+                    ),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.activeYellow,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'CREATE A BUSINESS CARD - ',
+                    style: TextStyle(
+                      fontSize: AppConstants.fontSizeButtonText,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.black,
+                    ),
+                  ),
+                  Text(
+                    '₹599',
+                    style: TextStyle(
+                      fontSize: AppConstants.fontSizeButtonPriceText,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: AppConstants.buttonHeightMedium,
-          child: ElevatedButton(
-            onPressed: () {
-               Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const InAppWebViewPage(
-          url: 'https://app.ngf132.com/order-business',
-          title: 'Buy Business Card',
         ),
       ),
     );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.activeYellow,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'CREATE A BUSINESS CARD - ',
-                  style: TextStyle(
-                    fontSize: AppConstants.fontSizeButtonText,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.black,
-                  ),
-                ),
-                Text(
-                  '₹599',
-                  style: TextStyle(
-                    fontSize: AppConstants.fontSizeButtonPriceText,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.black,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
+  }
 }

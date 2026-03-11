@@ -1257,7 +1257,7 @@ class _BusinessTagDetailsPageState extends State<BusinessTagDetailsPage> with Si
   // ✅ WHATSAPP SHARING
   // ==========================
   Future<void> _openWhatsApp(String message) async {
-    final phoneNumber = '919876543210'; // Replace with your WhatsApp business number
+    final phoneNumber = '918069409475'; // Replace with your WhatsApp business number
     final encodedMessage = Uri.encodeComponent(message);
     final whatsappUrl = 'https://wa.me/$phoneNumber?text=$encodedMessage';
     

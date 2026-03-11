@@ -219,7 +219,7 @@ class TagReplacementDialog {
   /// Open WhatsApp conversation with Akanksha
   static Future<void> _openWhatsApp(BuildContext context) async {
     try {
-      const phoneNumber = '+919876543210'; // Replace with actual Akanksha's number
+      const phoneNumber = '918069409475'; // Replace with actual Akanksha's number
       const message = 'Hi, I want to order a tag replacement (NGF132 V2)';
 
 

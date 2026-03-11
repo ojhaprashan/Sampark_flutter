@@ -9,6 +9,7 @@ import '../auth/login_page.dart';
 import '../auth/edit_profile_page.dart';
 import '../auth/login_pin_page.dart';
 import '../main_navigation.dart';
+import 'region_selection_dialog.dart';
 
 
 
@@ -205,7 +206,8 @@ class _AppHeaderState extends State<AppHeader> {
             topRight: Radius.circular(20),
           ),
         ),
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+        // ✅ CHANGED: Increased bottom padding from 20 to 50
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 50), 
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -271,6 +273,15 @@ class _AppHeaderState extends State<AppHeader> {
                       context,
                       MaterialPageRoute(builder: (_) => const LoginPinPage()),
                     );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _buildMenuButton(
+                  icon: Icons.language,
+                  label: 'Change Region',
+                  onTap: () {
+                    Navigator.pop(context);
+                    RegionSelectionDialog.show(context);
                   },
                 ),
                 const SizedBox(height: 12),

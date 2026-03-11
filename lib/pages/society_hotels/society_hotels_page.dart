@@ -17,19 +17,19 @@ class SocietyHotelsPage extends StatefulWidget {
 class _SocietyHotelsPageState extends State<SocietyHotelsPage> {
   bool _isLoggedIn = false;
 
-  // Media Slider Items
+  // ✅ UPDATED: Changed to BoxFit.cover for aspect ratio filling
   final List<MediaSliderItem> _sliderItems = [
     MediaSliderItem.networkImage(
       url: 'https://sampark.me/assets/app/society_1.png',
-      boxFit: BoxFit.contain,
+      boxFit: BoxFit.cover,
     ),
     MediaSliderItem.networkImage(
       url: 'https://sampark.me/assets/app/society_2.png',
-      boxFit: BoxFit.contain,
+      boxFit: BoxFit.cover,
     ),
     MediaSliderItem.networkImage(
       url: 'https://sampark.me/assets/app/society_3.png',
-      boxFit: BoxFit.contain,
+      boxFit: BoxFit.cover,
     ),
   ];
 
@@ -48,7 +48,7 @@ class _SocietyHotelsPageState extends State<SocietyHotelsPage> {
     }
   }
 
-  // ✅ Open Apply Form in WebView
+  // Open Apply Form in WebView
   void _applyNow() {
     Navigator.push(
       context,
@@ -140,15 +140,8 @@ class _SocietyHotelsPageState extends State<SocietyHotelsPage> {
 
                           const SizedBox(height: 12),
 
-                          // Media Slider
-                          MediaSlider(
-                            items: _sliderItems,
-                            height: 280,
-                            autoScroll: true,
-                            show3DEffect: false,
-                            autoScrollDuration: const Duration(seconds: 4),
-                            viewportFraction: 1.0,
-                          ),
+                          // ✅ Media Slider with 1024/500 Aspect Ratio
+                          _buildImageSlider(),
 
                           const SizedBox(height: 16),
 
@@ -282,6 +275,30 @@ class _SocietyHotelsPageState extends State<SocietyHotelsPage> {
           // Bottom Apply Now Button
           _buildBottomApplyButton(),
         ],
+      ),
+    );
+  }
+
+  // ✅ Image Slider with 1024/500 Aspect Ratio
+  Widget _buildImageSlider() {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double sidePadding = 16.0; 
+    double sliderWidth = screenWidth - (sidePadding * 2);
+    
+    // ✅ Aspect Ratio Calculation
+    double sliderHeight = sliderWidth / (1024 / 500);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: sidePadding),
+      child: MediaSlider(
+        items: _sliderItems,
+        height: sliderHeight, // ✅ Dynamic height
+        borderRadius: BorderRadius.circular(20), // ✅ Rounded corners
+        autoScroll: true,
+        show3DEffect: false,
+        autoScrollDuration: const Duration(seconds: 4),
+        viewportFraction: 1.0,
+        showIndicators: true,
       ),
     );
   }

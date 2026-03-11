@@ -1149,44 +1149,46 @@ Future<void> launchURL(String url) async {
   }
 }
 // ✅ Update this function to accept (BuildContext context)
+// Replace your existing _buildImageSlider function with this:
+
 Widget _buildImageSlider(BuildContext context) {
   return LayoutBuilder(
     builder: (context, constraints) {
-      // 1. Calculate height dynamically based on the PARENT width (not screen width)
-      // This ensures it exactly matches the width of the Shop button above it.
-      double sliderHeight = constraints.maxWidth / 3.6;
+      // ✅ FIX: Exact Aspect Ratio for 1013x317 images
+      // Ratio = Width / Height = 1013 / 317 ≈ 3.195
+      double sliderHeight = constraints.maxWidth / (1013 / 371);
 
       return Padding(
         padding: const EdgeInsets.only(
-          top: 10.0,    // Spacing from top
-          bottom: 16.0, // ✅ GAP: Spacing after the slider
+          top: 10.0,
+          bottom: 16.0,
         ),
         child: ClipRRect(
-          // ✅ RADIUS: Matches the Shop button and other cards (usually 12 or 16)
-          borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+          borderRadius: BorderRadius.circular(24),
           child: MediaSlider(
             height: sliderHeight,
             items: [
               MediaSliderItem.networkImage(
                 url: 'https://sampark.me/assets/app/more_1.png',
                 title: 'Tag Feature 1',
-                boxFit: BoxFit.fill,
+                // ✅ Use BoxFit.cover to handle slight pixel differences gracefully
+                boxFit: BoxFit.cover, 
               ),
               MediaSliderItem.networkImage(
                 url: 'https://sampark.me/assets/app/more_2.png',
                 title: 'Tag Feature 2',
-                boxFit: BoxFit.fill,
+                boxFit: BoxFit.cover,
               ),
               MediaSliderItem.networkImage(
                 url: 'https://sampark.me/assets/app/more_3.png',
                 title: 'Tag Feature 3',
-                boxFit: BoxFit.fill,
+                boxFit: BoxFit.cover,
               ),
             ],
             autoScroll: true,
             show3DEffect: false,
             viewportFraction: 1.0,
-            showIndicators: false,
+            showIndicators: false, 
           ),
         ),
       );

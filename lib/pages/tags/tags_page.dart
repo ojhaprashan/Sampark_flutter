@@ -417,7 +417,7 @@ class _TagsPageState extends State<TagsPage> with AutomaticKeepAliveClientMixin 
                             },
                           ),
                           
-                          const SizedBox(height: 90), // Bottom padding for navigation
+                          // const SizedBox(height: 10), // Bottom padding for navigation
                         ],
                       ),
                     ),
@@ -432,56 +432,49 @@ class _TagsPageState extends State<TagsPage> with AutomaticKeepAliveClientMixin 
   }
 
   // ✅ Image Slider styled like Product Details Page
- Widget _buildImageSlider() {
-    // 1. Get screen width
-    double screenWidth = MediaQuery.of(context).size.width;
+Widget _buildImageSlider() {
+  double screenWidth = MediaQuery.of(context).size.width;
+  double sidePadding = 10.0;
+  double sliderWidth = screenWidth - (sidePadding * 2);
 
-    // 2. Define "little space" (Changed to 16.0 for left/right spacing)
-    double sidePadding = 10.0; 
+  // ✅ FIX: Exact Aspect Ratio for 1013x317 images
+  // Ratio = Width / Height = 1013 / 317 ≈ 3.195
+  double sliderHeight = sliderWidth / (1013 / 371);
 
-    // 3. Calculate Width
-    double sliderWidth = screenWidth - (sidePadding * 2);
-
-    // 4. Calculate Height dynamically (Ratio 3.6 makes it a thin banner)
-    // Lower number = Taller banner. Higher number = Thinner banner.
-    double sliderHeight = sliderWidth / 3.6; 
-
-    return Padding(
-      // ✅ Changed to EdgeInsets.only to add Top, Left, and Right padding
-      padding: EdgeInsets.only(
-        top: 10.0,         // Spacing from the top
-        left: sidePadding, // Spacing from the left
-        right: sidePadding // Spacing from the right
+  return Padding(
+    padding: EdgeInsets.only(
+      top: 10.0,
+      left: sidePadding,
+      right: sidePadding
+    ),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: MediaSlider(
+        height: sliderHeight,
+        items: [
+          MediaSliderItem.networkImage(
+            url: 'https://sampark.me/assets/app/profile_1.png',
+            title: 'Tag Feature 1',
+            // ✅ Use BoxFit.cover so it fills the calculated area perfectly
+            boxFit: BoxFit.cover, 
+          ),
+          MediaSliderItem.networkImage(
+            url: 'https://sampark.me/assets/app/profile_2.png',
+            title: 'Tag Feature 2',
+            boxFit: BoxFit.cover, 
+          ),
+          MediaSliderItem.networkImage(
+            url: 'https://sampark.me/assets/app/profile_3.png',
+            title: 'Tag Feature 3',
+            boxFit: BoxFit.cover, 
+          ),
+        ],
+        autoScroll: true,
+        show3DEffect: false,
+        viewportFraction: 1.0,
+        showIndicators: false,
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: MediaSlider(
-          // ✅ Height is calculated based on phone width minus padding
-          height: sliderHeight, 
-          
-          items: [
-            MediaSliderItem.networkImage(
-              url: 'https://sampark.me/assets/app/profile_1.png',
-              title: 'Tag Feature 1',
-              boxFit: BoxFit.fill, 
-            ),
-            MediaSliderItem.networkImage(
-              url: 'https://sampark.me/assets/app/profile_2.png', 
-              title: 'Tag Feature 2',
-              boxFit: BoxFit.fill,
-            ),
-            MediaSliderItem.networkImage(
-              url: 'https://sampark.me/assets/app/profile_3.png', 
-              title: 'Tag Feature 3',
-              boxFit: BoxFit.fill,
-            ),
-          ],
-          autoScroll: true,
-          show3DEffect: false,
-          viewportFraction: 1.0, 
-          showIndicators: false,
-        ),
-      ),
-    );
-  }
+    ),
+  );
+}
 }

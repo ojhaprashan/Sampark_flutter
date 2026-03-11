@@ -178,7 +178,7 @@ class _ShopPageState extends State<ShopPage> {
         left: 16 * _scale,
         right: 16 * _scale,
         top: 20 * _scale,
-        bottom: 90 * _scale,
+        bottom: 20 * _scale,
       ),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,

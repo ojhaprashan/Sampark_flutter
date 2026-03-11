@@ -6,47 +6,45 @@ import '../../utils/colors.dart';
 import '../../utils/constants.dart';
 import '../../services/auth_service.dart';
 
-
 class FranchisePage extends StatefulWidget {
   const FranchisePage({super.key});
-
 
   @override
   State<FranchisePage> createState() => _FranchisePageState();
 }
 
-
 class _FranchisePageState extends State<FranchisePage> {
   bool _isLoggedIn = false;
 
-
-  // Media items for slider
-final List<MediaSliderItem> _mediaItems = [
+  // ✅ UPDATED: Added boxFit: BoxFit.cover
+  final List<MediaSliderItem> _mediaItems = [
     MediaSliderItem.networkImage(
       url: 'https://sampark.me/assets/app/franchise_1.png',
+      boxFit: BoxFit.cover,
     ),
     MediaSliderItem.networkImage(
       url: 'https://sampark.me/assets/app/franchise_2.png',
+      boxFit: BoxFit.cover,
     ),
     MediaSliderItem.networkImage(
       url: 'https://sampark.me/assets/app/franchise_3.png',
+      boxFit: BoxFit.cover,
     ),
     MediaSliderItem.networkImage(
       url: 'https://sampark.me/assets/app/franchise_4.png',
+      boxFit: BoxFit.cover,
     ),
     MediaSliderItem.networkImage(
       url: 'https://sampark.me/assets/app/franchise_5.png',
+      boxFit: BoxFit.cover,
     ),
   ];
-
-
 
   @override
   void initState() {
     super.initState();
     _checkLoginStatus();
   }
-
 
   Future<void> _checkLoginStatus() async {
     final loggedIn = await AuthService.isLoggedIn();
@@ -56,7 +54,6 @@ final List<MediaSliderItem> _mediaItems = [
       });
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +77,6 @@ final List<MediaSliderItem> _mediaItems = [
             ),
           ),
 
-
           SafeArea(
             child: Column(
               children: [
@@ -91,7 +87,6 @@ final List<MediaSliderItem> _mediaItems = [
                   showUserInfo: false,
                   showCartIcon: false,
                 ),
-
 
                 // Main Content
                 Expanded(
@@ -109,7 +104,7 @@ final List<MediaSliderItem> _mediaItems = [
                         children: [
                           const SizedBox(height: AppConstants.spacingMedium),
 
-                          // ✅ Page Title ABOVE slider
+                          // Page Title ABOVE slider
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: AppConstants.paddingPage),
                             child: Column(
@@ -137,9 +132,9 @@ final List<MediaSliderItem> _mediaItems = [
                             ),
                           ),
 
-                          const SizedBox(height: 12), // ✅ Minimal gap
+                          const SizedBox(height: 12),
 
-                          // ✅ Media Slider - Compact version
+                          // ✅ Media Slider - Updated with Aspect Ratio
                           _buildImageSlider(),
 
                           const SizedBox(height: AppConstants.spacingLarge),
@@ -172,7 +167,6 @@ final List<MediaSliderItem> _mediaItems = [
             ),
           ),
 
-
           // Bottom Button
           _buildBottomButton(),
         ],
@@ -180,26 +174,29 @@ final List<MediaSliderItem> _mediaItems = [
     );
   }
 
-
-  // ✅ Compact Image Slider - Minimal spacing
+  // ✅ Image Slider with 1024/500 Aspect Ratio
   Widget _buildImageSlider() {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double sidePadding = 16.0; 
+    double sliderWidth = screenWidth - (sidePadding * 2);
+    
+    // ✅ Aspect Ratio Calculation
+    double sliderHeight = sliderWidth / (1024 / 500);
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: ClipRRect(
-        // borderRadius: BorderRadius.circular(12),
-        child: MediaSlider(
-          items: _mediaItems,
-          height: 180, // ✅ Reduced height
-          autoScroll: true,
-          show3DEffect: false,
-          autoScrollDuration: const Duration(seconds: 4),
-          viewportFraction: 1.0,
-          showIndicators: true,
-        ),
+      padding: EdgeInsets.symmetric(horizontal: sidePadding),
+      child: MediaSlider(
+        items: _mediaItems,
+        height: sliderHeight, // ✅ Dynamic height
+        borderRadius: BorderRadius.circular(20), // ✅ Rounded corners
+        autoScroll: true,
+        show3DEffect: false,
+        autoScrollDuration: const Duration(seconds: 4),
+        viewportFraction: 1.0,
+        showIndicators: true,
       ),
     );
   }
-
 
   Widget _buildInvestmentCard() {
     return Container(
@@ -251,7 +248,6 @@ final List<MediaSliderItem> _mediaItems = [
     );
   }
 
-
   Widget _buildAssuredIncomeCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: AppConstants.paddingPage),
@@ -297,8 +293,7 @@ final List<MediaSliderItem> _mediaItems = [
     );
   }
 
-
-  // ✅ Services Section - 3 items per row with colorful icons
+  // ✅ Services Section
   Widget _buildServicesSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppConstants.paddingPage),
@@ -315,7 +310,6 @@ final List<MediaSliderItem> _mediaItems = [
           ),
           const SizedBox(height: AppConstants.spacingMedium),
           
-          // Single container with grid layout inside (3 columns)
           Container(
             padding: const EdgeInsets.all(AppConstants.paddingLarge),
             decoration: BoxDecoration(
@@ -335,14 +329,13 @@ final List<MediaSliderItem> _mediaItems = [
             ),
             child: Column(
               children: [
-                // Row 1
                 Row(
                   children: [
                     Expanded(
                       child: _buildServiceItem(
                         Icons.phone_in_talk,
                         'Masked Audio\nCalls',
-                        const Color(0xFF2196F3), // Blue
+                        const Color(0xFF2196F3),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -357,21 +350,20 @@ final List<MediaSliderItem> _mediaItems = [
                       child: _buildServiceItem(
                         Icons.picture_as_pdf,
                         'PDF Tag\n(Offline)',
-                        const Color(0xFFE91E63), // Pink
+                        const Color(0xFFE91E63),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 
-                // Row 2
                 Row(
                   children: [
                     Expanded(
                       child: _buildServiceItem(
                         Icons.videocam,
                         'Masked Video\nCalls',
-                        const Color(0xFF9C27B0), // Purple
+                        const Color(0xFF9C27B0),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -379,7 +371,7 @@ final List<MediaSliderItem> _mediaItems = [
                       child: _buildServiceItem(
                         Icons.phone_callback,
                         'Call Back\nCaller',
-                        const Color(0xFF00BCD4), // Cyan
+                        const Color(0xFF00BCD4),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -387,21 +379,20 @@ final List<MediaSliderItem> _mediaItems = [
                       child: _buildServiceItem(
                         Icons.location_on,
                         'Check\nLocation',
-                        const Color(0xFF4CAF50), // Green
+                        const Color(0xFF4CAF50),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 
-                // Row 3
                 Row(
                   children: [
                     Expanded(
                       child: _buildServiceItem(
                         Icons.sms,
                         'Offline SMS\nAvailable',
-                        const Color(0xFFFF9800), // Orange
+                        const Color(0xFFFF9800),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -409,11 +400,10 @@ final List<MediaSliderItem> _mediaItems = [
                       child: _buildServiceItem(
                         Icons.headset_mic,
                         'Live Support\nAlways',
-                        const Color(0xFFF44336), // Red
+                        const Color(0xFFF44336),
                       ),
                     ),
                     const SizedBox(width: 12),
-                    // Empty space to maintain 3-column grid
                     const Expanded(child: SizedBox()),
                   ],
                 ),
@@ -425,8 +415,6 @@ final List<MediaSliderItem> _mediaItems = [
     );
   }
 
-
-  // ✅ Service item with colorful icon
   Widget _buildServiceItem(IconData icon, String title, Color color) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -452,8 +440,6 @@ final List<MediaSliderItem> _mediaItems = [
     );
   }
 
-
-  // ✅ Service item with WhatsApp PNG image
   Widget _buildServiceItemWithImage(String imagePath, String title) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -486,7 +472,6 @@ final List<MediaSliderItem> _mediaItems = [
     );
   }
 
-
   Widget _buildSupportSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppConstants.paddingPage),
@@ -514,7 +499,6 @@ final List<MediaSliderItem> _mediaItems = [
       ),
     );
   }
-
 
   Widget _buildPromiseItem(String text) {
     return Container(
@@ -551,60 +535,59 @@ final List<MediaSliderItem> _mediaItems = [
     );
   }
 
-
   Widget _buildBottomButton() {
-  return Positioned(
-    bottom: 0,
-    left: 0,
-    right: 0,
-    child: Container(
-      padding: const EdgeInsets.all(AppConstants.buttonPaddingVertical),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 16,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: AppConstants.buttonHeightMedium,
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const InAppWebViewPage(
-                    url: 'https://app.ngf132.com/resellers-form',
-                    title: 'Franchise Form',
-                  ),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.activeYellow,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
-              ),
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: const EdgeInsets.all(AppConstants.buttonPaddingVertical),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
             ),
-            child: Text(
-              'Start Franchise',
-              style: TextStyle(
-                fontSize: AppConstants.fontSizeButtonText,
-                fontWeight: FontWeight.w700,
-                color: AppColors.black,
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: AppConstants.buttonHeightMedium,
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const InAppWebViewPage(
+                      url: 'https://app.ngf132.com/resellers-form',
+                      title: 'Franchise Form',
+                    ),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.activeYellow,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+                ),
+              ),
+              child: Text(
+                'Start Franchise',
+                style: TextStyle(
+                  fontSize: AppConstants.fontSizeButtonText,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.black,
+                ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

@@ -197,17 +197,17 @@ class _ManageTagTabState extends State<ManageTagTab> {
            
             // ✅ Show India-specific features only for India
             if (_countryCode == '+91') ...[
-              _buildActionButton(
-                context,
-                icon: Icons.car_repair,
-                iconColor: Colors.red.shade600,
-                label: 'Roadside Assistance (RSA)',
-                badge: '24/7',
-                trailing: Icons.arrow_forward_ios,
-                onTap: () {
-                  _openRSA(context);
-                },
-              ),
+              // _buildActionButton(
+              //   context,
+              //   icon: Icons.car_repair,
+              //   iconColor: Colors.red.shade600,
+              //   label: 'Roadside Assistance (RSA)',
+              //   badge: '24/7',
+              //   trailing: Icons.arrow_forward_ios,
+              //   onTap: () {
+              //     _openRSA(context);
+              //   },
+              // ),
               _buildActionButton(
                 context,
                 icon: Icons.download,

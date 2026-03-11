@@ -56,10 +56,16 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 
   // Buy Now URL map: productId → URL
   final Map<String, String> _buyNowLinks = {
-    '18': 'https://app.ngf132.com/qr-for-car',   // Bike
-    '17': 'https://app.ngf132.com/qr-for-car',   // Car
-    '39': 'https://app.ngf132.com/qr-for-doc',   // CA/Doc
-    '21': 'https://app.ngf132.com/order-business',   // CA/Doc
+    '18': 'https://app.ngf132.com/qr-for-car',  
+    '17': 'https://app.ngf132.com/qr-for-car',  
+    '39': 'https://app.ngf132.com/qr-for-doc', 
+    '21': 'https://app.ngf132.com/order-business', 
+    '24': 'http://app.ngf132.com/action/add_to_cart_link?pid=24',
+    '27': 'http://app.ngf132.com/action/add_to_cart_link?pid=27',
+    '42': 'http://app.ngf132.com/action/add_to_cart_link?pid=42',
+
+
+
 
     // Add more productId → URL mappings here as needed
   };
@@ -70,32 +76,121 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   final int _totalReviews = 456;
 
   // Static images for product slider
-  final List<MediaSliderItem> _productImages = [
-    MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/shop_1.png',
-      boxFit: BoxFit.fill,
-    ),
-    MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/shop_2.png',
-      boxFit: BoxFit.fill,
-    ),
-    MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/shop_3.png',
-      boxFit: BoxFit.fill,
-    ),
-    MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/shop_4.png',
-      boxFit: BoxFit.fill,
-    ),
-    MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/shop_5.png',
-      boxFit: BoxFit.fill,
-    ),
-    MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/shop_6.png',
-      boxFit: BoxFit.fill,
-    ),
-  ];
+  // Organized by product ID for dynamic image loading
+  final Map<String, List<MediaSliderItem>> _productImagesMap = {
+    // Bike (ID: 18)
+    '18': [
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_b_1.png',
+        boxFit: BoxFit.fill,
+      ),
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_b_2.png',
+        boxFit: BoxFit.fill,
+      ),
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_b_3.png',
+        boxFit: BoxFit.fill,
+      ),
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_b_4.png',
+        boxFit: BoxFit.fill,
+      ),
+    ],
+    // Car (ID: 17)
+    '17': [
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_c_1.png',
+        boxFit: BoxFit.fill,
+      ),
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_c_2.png',
+        boxFit: BoxFit.fill,
+      ),
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_c_3.png',
+        boxFit: BoxFit.fill,
+      ),
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_c_4.png',
+        boxFit: BoxFit.fill,
+      ),
+    ],
+
+        '42': [
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_c_1.png',
+        boxFit: BoxFit.fill,
+      ),
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_c_2.png',
+        boxFit: BoxFit.fill,
+      ),
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_c_3.png',
+        boxFit: BoxFit.fill,
+      ),
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_c_4.png',
+        boxFit: BoxFit.fill,
+      ),
+    ],
+
+    '21': [
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_bc_1.png',
+        boxFit: BoxFit.fill,
+      ),
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_bc_2.png',
+        boxFit: BoxFit.fill,
+      ),
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_bc_3.png',
+        boxFit: BoxFit.fill,
+      ),
+    ],
+    // Product ID: 24
+    '24': [
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_dr_1.png',
+        boxFit: BoxFit.fill,
+      ),
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_dr_2.png',
+        boxFit: BoxFit.fill,
+      ),
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_dr_1.png',
+        boxFit: BoxFit.fill,
+      ),
+    ],
+    // Product ID: 27
+    '27': [
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_mt_1.png',
+        boxFit: BoxFit.fill,
+      ),
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_mt_2.png',
+        boxFit: BoxFit.fill,
+      ),
+      MediaSliderItem.networkImage(
+        url: 'https://sampark.me/assets/app/pr_mt_3.png',
+        boxFit: BoxFit.fill,
+      ),
+    ],
+  };
+
+  /// Get images for the selected product variant
+  List<MediaSliderItem> _getProductImages() {
+    final images = _productImagesMap[_selectedVariantId];
+    if (images != null && images.isNotEmpty) {
+      return images;
+    }
+    // Fallback to first available images if variant not found
+    return _productImagesMap.values.first;
+  }
 
   final List<String> _staticOffers = [
     'Masked Audio and Video Call',
@@ -157,10 +252,8 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   @override
   void initState() {
     super.initState();
-    // Check if productId is in the variant config
-    final bool _idInConfig = _variantConfigs.any((c) => c['id'] == widget.productId);
-    // If found in config, use it; otherwise set to empty string
-    _selectedVariantId = _idInConfig ? widget.productId! : '';
+    // Always use the product ID passed to the page
+    _selectedVariantId = widget.productId ?? '';
 
     _checkLoginStatus();
     _loadProductDetails();
@@ -413,40 +506,50 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     );
   }
 
-  Widget _buildImageSlider() {
-    double screenWidth = MediaQuery.of(context).size.width;
-    double sidePadding = 14.0;
-    double sliderWidth = screenWidth - (sidePadding * 2);
-    double sliderHeight = sliderWidth / 2.1;
+Widget _buildImageSlider() {
+  double screenWidth = MediaQuery.of(context).size.width;
+  double sidePadding = 14.0;
+  double sliderWidth = screenWidth - (sidePadding * 2);
+  
+  // ✅ FIX: Exact Aspect Ratio for 1024x500 images
+  // Ratio = Width / Height = 1024 / 500 = 2.048
+  double sliderHeight = sliderWidth / (1024 / 500);
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
-        ),
+  return Container(
+    decoration: const BoxDecoration(
+      color: AppColors.white,
+      borderRadius: BorderRadius.only(
+        topLeft: Radius.circular(30),
+        topRight: Radius.circular(30),
       ),
-      padding: EdgeInsets.only(
-        top: 10.0,
-        left: sidePadding,
-        right: sidePadding,
-        bottom: 12.0,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: MediaSlider(
-          items: _productImages,
-          height: sliderHeight,
-          autoScroll: false,
-          show3DEffect: false,
-          viewportFraction: 1.0,
-          showIndicators: true,
-        ),
-      ),
-    );
-  }
-
+    ),
+    padding: EdgeInsets.only(
+      top: 12.0,
+      left: sidePadding,
+      right: sidePadding,
+      bottom: 12.0,
+    ),
+    child: MediaSlider(
+      items: _getProductImages().map((item) {
+        // Ensure all product items use BoxFit.cover or contain based on preference
+        // Since we fixed the container size, cover is safest.
+        return MediaSliderItem(
+          type: item.type,
+          path: item.path,
+          title: item.title,
+          isNetworkImage: item.isNetworkImage,
+          boxFit: BoxFit.cover, // Changed from fill to cover
+        );
+      }).toList(),
+      height: sliderHeight,
+      autoScroll: false,
+      show3DEffect: false,
+      viewportFraction: 1.0,
+      showIndicators: true,
+      borderRadius: BorderRadius.circular(24), 
+    ),
+  );
+}
   Widget _buildProductHeader() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppConstants.paddingPage),
@@ -556,9 +659,11 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   }
 
   Widget _buildVariantSection() {
-    // If the current product ID isn't in our configured list, 
-    // we might want to hide this section or show it differently.
-    // For now, we still show the list to allow switching.
+    // Only show variant selector for these specific products
+    if (!['18', '17', '39'].contains(_selectedVariantId)) {
+      return const SizedBox.shrink();
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppConstants.paddingPage),
       child: Column(

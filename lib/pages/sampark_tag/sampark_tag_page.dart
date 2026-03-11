@@ -6,53 +6,45 @@ import '../../utils/colors.dart';
 import '../../utils/constants.dart';
 import '../../services/auth_service.dart';
 
-
-
 class SamparkTagPage extends StatefulWidget {
   const SamparkTagPage({super.key});
-
-
 
   @override
   State<SamparkTagPage> createState() => _SamparkTagPageState();
 }
 
-
-
 class _SamparkTagPageState extends State<SamparkTagPage> {
   bool _isLoggedIn = false;
 
-
-
-  // Define media items
-final List<MediaSliderItem> _mediaItems = [
+  // ✅ UPDATED: Added boxFit: BoxFit.cover to ensure images fill the ratio
+  final List<MediaSliderItem> _mediaItems = [
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/sampark_1.png',
+      url: 'https://sampark.me/assets/app/pr_c_1.png',
+      boxFit: BoxFit.cover,
     ),
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/sampark_2.png',
+      url: 'https://sampark.me/assets/app/pr_c_2.png',
+      boxFit: BoxFit.cover,
     ),
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/sampark_3.png',
+      url: 'https://sampark.me/assets/app/pr_c_3.png',
+      boxFit: BoxFit.cover,
     ),
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/sampark_4.png',
+      url: 'https://sampark.me/assets/app/pr_c_4.png',
+      boxFit: BoxFit.cover,
     ),
     MediaSliderItem.networkImage(
-      url: 'https://sampark.me/assets/app/sampark_5.png',
+      url: 'https://sampark.me/assets/app/pr_c_5.png',
+      boxFit: BoxFit.cover,
     ),
   ];
-
-
-
 
   @override
   void initState() {
     super.initState();
     _checkLoginStatus();
   }
-
-
 
   Future<void> _checkLoginStatus() async {
     final loggedIn = await AuthService.isLoggedIn();
@@ -63,8 +55,6 @@ final List<MediaSliderItem> _mediaItems = [
     }
   }
 
-
-  // Navigate to buy form
   void _navigateToBuyForm() {
     Navigator.push(
       context,
@@ -77,10 +67,17 @@ final List<MediaSliderItem> _mediaItems = [
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
+    // ✅ CALCULATION: Setup dimensions for 1024x500 Aspect Ratio
+    double screenWidth = MediaQuery.of(context).size.width;
+    double sidePadding = 16.0; // Consistent padding
+    double sliderWidth = screenWidth - (sidePadding * 2);
+    
+    // Ratio = Width / Height => Height = Width / Ratio
+    // Ratio = 1024 / 500 = 2.048
+    double sliderHeight = sliderWidth / (1024 / 500);
+
     return Scaffold(
       backgroundColor: AppColors.white,
       body: Stack(
@@ -101,8 +98,6 @@ final List<MediaSliderItem> _mediaItems = [
             ),
           ),
 
-
-
           SafeArea(
             child: Column(
               children: [
@@ -113,8 +108,6 @@ final List<MediaSliderItem> _mediaItems = [
                   showUserInfo: false,
                   showCartIcon: false,
                 ),
-
-
 
                 // Main Content
                 Expanded(
@@ -131,8 +124,6 @@ final List<MediaSliderItem> _mediaItems = [
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 8),
-
-
 
                           // Page Title
                           Padding(
@@ -162,18 +153,15 @@ final List<MediaSliderItem> _mediaItems = [
                             ),
                           ),
 
+                          const SizedBox(height: 12), // Increased spacing slightly
 
-
-                          const SizedBox(height: 8),
-
-
-
-                          // Media Slider - Wrapped with intrinsic sizing
+                          // ✅ MEDIA SLIDER - UPDATED IMPLEMENTATION
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 0),
+                            padding: EdgeInsets.symmetric(horizontal: sidePadding),
                             child: MediaSlider(
                               items: _mediaItems,
-                              height: 160, // Slightly reduced height
+                              height: sliderHeight, // Dynamic height based on ratio
+                              borderRadius: BorderRadius.circular(20), // Rounded corners
                               autoScroll: true,
                               show3DEffect: false,
                               autoScrollDuration: const Duration(seconds: 3),
@@ -182,11 +170,7 @@ final List<MediaSliderItem> _mediaItems = [
                             ),
                           ),
 
-
-
-                          const SizedBox(height: 8),
-
-
+                          const SizedBox(height: 12),
 
                           // One time buy section
                           Padding(
@@ -220,11 +204,7 @@ final List<MediaSliderItem> _mediaItems = [
                             ),
                           ),
 
-
-
                           const SizedBox(height: 8),
-
-
 
                           // Buy Now Button with COD
                           Padding(
@@ -266,29 +246,20 @@ final List<MediaSliderItem> _mediaItems = [
                             ),
                           ),
 
-
-
                           const SizedBox(height: 16),
-
-
 
                           // All Features Box
                           _buildAllFeaturesBox(),
 
-
                           const SizedBox(height: 16),
-
 
                           // How to Use Section
                           _buildHowToUseSection(),
 
-
                           const SizedBox(height: 16),
-
 
                           // Why Choose Section
                           _buildWhyChooseSection(),
-
 
                           // Bottom spacing for fixed button
                           const SizedBox(height: 80),
@@ -301,8 +272,6 @@ final List<MediaSliderItem> _mediaItems = [
             ),
           ),
 
-
-
           // Bottom Buy Button
           _buildBottomBuyButton(),
         ],
@@ -310,8 +279,10 @@ final List<MediaSliderItem> _mediaItems = [
     );
   }
 
-
-
+  // ... (Rest of your widgets: _buildAllFeaturesBox, _buildCompactFeature, etc. remain unchanged)
+  // Re-paste them here if you need the full file content block, 
+  // but the changes above cover the requested logic.
+  
   // All features in single box - 3 columns grid
   Widget _buildAllFeaturesBox() {
     return Padding(
@@ -399,8 +370,6 @@ final List<MediaSliderItem> _mediaItems = [
     );
   }
 
-
-
   // Compact feature item with icon - NO background
   Widget _buildCompactFeature({
     required IconData icon,
@@ -430,8 +399,6 @@ final List<MediaSliderItem> _mediaItems = [
       ],
     );
   }
-
-
 
   // Compact feature with WhatsApp PNG image
   Widget _buildCompactFeatureWithImage({
@@ -468,8 +435,6 @@ final List<MediaSliderItem> _mediaItems = [
       ],
     );
   }
-
-
 
   Widget _buildBottomBuyButton() {
     return Positioned(
@@ -529,7 +494,6 @@ final List<MediaSliderItem> _mediaItems = [
     );
   }
 
-
   // How to Use Section
   Widget _buildHowToUseSection() {
     return Padding(
@@ -575,7 +539,6 @@ final List<MediaSliderItem> _mediaItems = [
     );
   }
 
-
   Widget _buildStep(String number, String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -616,7 +579,6 @@ final List<MediaSliderItem> _mediaItems = [
     );
   }
 
-
   // Why Choose Section
   Widget _buildWhyChooseSection() {
     return Padding(
@@ -652,7 +614,6 @@ final List<MediaSliderItem> _mediaItems = [
       ),
     );
   }
-
 
   Widget _buildWhyItem(String title, String description) {
     return Padding(

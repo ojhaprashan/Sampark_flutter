@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Required for SystemChrome
 import 'package:provider/provider.dart';
 import 'package:my_new_app/pages/more/more_page.dart';
 import '../utils/colors.dart';
@@ -8,10 +9,11 @@ import 'home/home_page.dart';
 import 'tags/tags_page.dart';
 import 'shop/widgets/shop.dart';
 import 'scan/scan_page.dart';
+import 'widgets/region_selection_dialog.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
-  
+
   const MainNavigation({
     super.key,
     this.initialIndex = 0,
@@ -27,6 +29,7 @@ class _MainNavigationState extends State<MainNavigation> with SingleTickerProvid
   late AnimationController _animationController;
 
   @override
+@override
   void initState() {
     super.initState();
     _checkLoginStatus();
@@ -35,8 +38,18 @@ class _MainNavigationState extends State<MainNavigation> with SingleTickerProvid
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-  }
 
+    // 1. Keep Edge-to-Edge enabled
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+    // 2. CHANGE COLOR TO WHITE HERE
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.white, // <--- Change this to white
+      systemNavigationBarIconBrightness: Brightness.dark, // Makes the buttons (back/home) dark
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ));
+  }
   @override
   void dispose() {
     _animationController.dispose();
@@ -45,9 +58,18 @@ class _MainNavigationState extends State<MainNavigation> with SingleTickerProvid
 
   Future<void> _checkLoginStatus() async {
     final loggedIn = await AuthService.isLoggedIn();
-    setState(() {
-      _isLoggedIn = loggedIn;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = loggedIn;
+      });
+      if (loggedIn) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            RegionSelectionDialog.checkAndShow(context);
+          }
+        });
+      }
+    }
   }
 
   List<Widget> get _pages => _isLoggedIn
@@ -92,14 +114,19 @@ class _MainNavigationState extends State<MainNavigation> with SingleTickerProvid
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_currentIndex],
-      extendBody: true,
-      bottomNavigationBar: _buildFloatingNavBar(),
+      extendBody: false, // This allows the body to go behind the navbar
+      bottomNavigationBar: _buildFloatingNavBar(context), // Pass context here
     );
   }
 
-  Widget _buildFloatingNavBar() {
+  Widget _buildFloatingNavBar(BuildContext context) {
+    // 3. Get the bottom padding (safe area) height
+    final double bottomPadding = MediaQuery.of(context).viewPadding.bottom;
+
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      // 4. Add bottomPadding to your margin. 
+      // This pushes the card UP so it sits above the Android swipe handle.
+      margin: EdgeInsets.fromLTRB(20, 0, 20, 16 + bottomPadding), 
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(28),
@@ -213,5 +240,3 @@ class NavItem {
     required this.isEnabled,
   });
 }
-
-// MorePage placeholder

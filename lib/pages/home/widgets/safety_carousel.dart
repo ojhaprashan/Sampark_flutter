@@ -11,7 +11,7 @@ class SafetyCarousel extends StatefulWidget {
 
 class _SafetyCarouselState extends State<SafetyCarousel> {
   int _currentPage = 0;
-  final PageController _pageController = PageController();
+  late PageController _pageController;
   Timer? _timer;
 
   final List<String> bannerImages = [
@@ -25,20 +25,21 @@ class _SafetyCarouselState extends State<SafetyCarousel> {
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
     _startAutoScroll();
   }
 
   void _startAutoScroll() {
-    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    _stopAutoScroll(); 
+    _timer = Timer.periodic(const Duration(seconds: 7), (timer) {
       if (_pageController.hasClients) {
-        if (_currentPage < bannerImages.length - 1) {
-          _currentPage++;
-        } else {
-          _currentPage = 0;
+        int nextPage = _currentPage + 1;
+        if (nextPage >= bannerImages.length) {
+          nextPage = 0;
         }
-
+        
         _pageController.animateToPage(
-          _currentPage,
+          nextPage,
           duration: const Duration(milliseconds: 400),
           curve: Curves.easeInOut,
         );
@@ -46,33 +47,50 @@ class _SafetyCarouselState extends State<SafetyCarousel> {
     });
   }
 
+  void _stopAutoScroll() {
+    _timer?.cancel();
+  }
+
   @override
   void dispose() {
-    _timer?.cancel();
+    _stopAutoScroll();
     _pageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // ✅ FIX: Calculate height based on 1025x500 aspect ratio
+    // We subtract 32 (16 padding on left + 16 on right) to get the actual image width
+    double screenWidth = MediaQuery.of(context).size.width;
+    double imageWidth = screenWidth - 32; 
+    
+    // Ratio = Width / Height = 1025 / 500 = 2.05
+    double carouselHeight = imageWidth / (1025 / 500);
+
     return Column(
       children: [
         SizedBox(
-          height: 150,
-          child: PageView.builder(
-            controller: _pageController,
-            onPageChanged: (index) {
-              setState(() {
-                _currentPage = index;
-              });
-            },
-            itemCount: bannerImages.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _buildBannerCard(bannerImages[index]),
-              );
-            },
+          height: carouselHeight, // ✅ Apply dynamic height
+          child: GestureDetector(
+            onPanDown: (_) => _stopAutoScroll(),
+            onPanCancel: () => _startAutoScroll(),
+            onPanEnd: (_) => _startAutoScroll(),
+            child: PageView.builder(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentPage = index;
+                });
+              },
+              itemCount: bannerImages.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildBannerCard(bannerImages[index]),
+                );
+              },
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -89,10 +107,11 @@ class _SafetyCarouselState extends State<SafetyCarousel> {
 
   Widget _buildBannerCard(String imageUrl) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20), // Matches the header curve
+      borderRadius: BorderRadius.circular(20),
       child: Image.network(
         imageUrl,
-        fit: BoxFit.fill, // ✅ FIXED: changed to fill so the whole image shows
+        // ✅ Use BoxFit.cover so it fills the calculated area perfectly
+        fit: BoxFit.cover, 
         width: double.infinity,
         height: double.infinity,
         loadingBuilder: (context, child, loadingProgress) {
@@ -113,7 +132,7 @@ class _SafetyCarouselState extends State<SafetyCarousel> {
         errorBuilder: (context, error, stackTrace) {
           return Container(
             color: const Color(0xFFFFF9E6),
-            child: Center(
+            child: const Center(
               child: Icon(
                 Icons.image,
                 size: 50,

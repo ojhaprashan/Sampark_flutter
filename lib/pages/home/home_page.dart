@@ -7,7 +7,7 @@ import '../widgets/app_header.dart';
 import '../widgets/vehicle_search_agreement_sheet.dart';
 import '../widgets/error_dialog.dart';
 import '../AppWebView/appweb.dart';
-import 'widgets/safety_carousel.dart';
+import '../widgets/media_slider.dart';
 import 'widgets/search_contact_bar.dart';
 import 'widgets/action_grid.dart';
 import 'widgets/features_section.dart';
@@ -221,6 +221,57 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin 
     }
   }
 
+  // ✅ Media Slider with same aspect ratio and styling as SafetyCarousel
+  // ✅ Updated to have constant spacing (Top, Left, Right)
+  Widget _buildMediaSlider() {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double sidePadding = 16.0;
+    double sliderWidth = screenWidth - (sidePadding * 2);
+
+    // ✅ Aspect ratio from SafetyCarousel: 1025x500
+    double sliderHeight = sliderWidth / (1025 / 500);
+
+    return Padding(
+      // ✅ CHANGED: Applied constant padding 16.0 to Left, Top, and Right
+      padding: EdgeInsets.fromLTRB(sidePadding, sidePadding, sidePadding, 0),
+      child: MediaSlider(
+        height: sliderHeight,
+        borderRadius: BorderRadius.circular(20), 
+        items: [
+          MediaSliderItem.networkImage(
+            url: 'https://sampark.me/assets/app/home_1.png',
+            title: 'Home Feature 1',
+            boxFit: BoxFit.cover,
+          ),
+          MediaSliderItem.networkImage(
+            url: 'https://sampark.me/assets/app/home_2.png',
+            title: 'Home Feature 2',
+            boxFit: BoxFit.cover,
+          ),
+          MediaSliderItem.networkImage(
+            url: 'https://sampark.me/assets/app/home_3.png',
+            title: 'Home Feature 3',
+            boxFit: BoxFit.cover,
+          ),
+          MediaSliderItem.networkImage(
+            url: 'https://sampark.me/assets/app/home_4.png',
+            title: 'Home Feature 4',
+            boxFit: BoxFit.cover,
+          ),
+          MediaSliderItem.networkImage(
+            url: 'https://sampark.me/assets/app/home_0.png',
+            title: 'Home Feature 5',
+            boxFit: BoxFit.cover,
+          ),
+        ],
+        autoScroll: true,
+        show3DEffect: false,
+        viewportFraction: 1.0,
+        showIndicators: true, 
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -268,20 +319,22 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin 
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          const SizedBox(height: 8), 
-                          const SafetyCarousel(),
-                          const SizedBox(height: 10), // Reduced from 16
+                          // ❌ REMOVED: const SizedBox(height: 8) to allow slider padding to control top spacing
+                          _buildMediaSlider(),
+                          const SizedBox(height: 10), 
+                          
                           // ✅ Only show search bar if country code is India
                           if (_countryCode == '+91')
                             SearchContactBar(
-                              onSearch: _handleVehicleSearch, // ✅ Added callback
+                              onSearch: _handleVehicleSearch, 
                             ),
                           if (_countryCode == '+91')
-                            const SizedBox(height: 12), // Reduced from 16
+                            const SizedBox(height: 12), 
+                          
                           ActionGrid(key: ValueKey(isLoggedIn)),
-                          const SizedBox(height: 12), // Reduced from 20
+                          const SizedBox(height: 12),
                           const FeaturesSection(),
-                          const SizedBox(height: 90), // Keep for bottom navigation
+                          const SizedBox(height: 10), // Keep for bottom navigation
                         ],
                       ),
                     ),

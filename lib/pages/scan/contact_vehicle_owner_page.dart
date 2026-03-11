@@ -14,6 +14,9 @@ import 'package:my_new_app/pages/widgets/app_header.dart';
 import '../../utils/colors.dart';
 import '../../utils/constants.dart';
 import '../../services/tag_profile_service.dart';
+import '../../services/location_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/save_tag_location_service.dart';
 
 class ContactVehicleOwnerPage extends StatefulWidget {
   final int tagId;
@@ -53,11 +56,60 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
     super.initState();
     _checkLoginStatus();
     _fetchTagProfile();
+    // Save tag location when page loads (only if tag ID is from scan, not 0)
+    if (widget.tagId != 0) {
+      _saveTagLocation();
+    }
   }
 
   Future<void> _checkLoginStatus() async {
-    // Check login status
+    final loggedIn = await AuthService.isLoggedIn();
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = loggedIn;
+      });
+    }
   }
+  /// Save tag location to the server once the page loads
+  /// Uses location data from LocalStorage and phone number from user data
+  Future<void> _saveTagLocation() async {
+    try {
+      // Get saved location from local storage
+      final locationData = await LocationService.getLastLocation();
+      
+      if (locationData == null) {
+        print('⚠️ [ContactVehicleOwnerPage] Location not available for saving');
+        return;
+      }
+
+      // Get user phone number
+      final userData = await AuthService.getUserData();
+      final phoneNumber = userData['phone'] ?? '';
+
+      print('📍 [ContactVehicleOwnerPage] Attempting to save tag location');
+      print('   ├─ Tag ID: ${widget.tagId}');
+      print('   ├─ Phone: $phoneNumber');
+      print('   ├─ Location: ${locationData.latitude}, ${locationData.longitude}');
+
+      // Call the API to save tag location
+      await SaveTagLocationService.saveTagLocation(
+        tagId: widget.tagId,
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        phoneNumber: phoneNumber.isNotEmpty ? phoneNumber : null,
+      );
+
+      print('✅ [ContactVehicleOwnerPage] Tag location saved successfully');
+    } catch (e) {
+      print('❌ [ContactVehicleOwnerPage] Error saving tag location: $e');
+      // Don't show error to user - this is a background operation
+    }
+  }
+
+
+
+
+
 
   Future<void> _fetchTagProfile() async {
     // Skip fetch if tagId is 0 (manual navigation, not from QR scan)
@@ -653,33 +705,33 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                             ),
                           ] else if (_showReasonList) ...[
                             // Question for reason selection
-                            Row(
-                              children: [
-                                IconButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      _showReasonList = false;
-                                      _selectedReason = null;
-                                    });
-                                  },
-                                  icon: Icon(
-                                    Icons.arrow_back,
-                                    color: AppColors.black,
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    _getReasonSelectionQuestion(),
-                                    style: TextStyle(
-                                      fontSize: AppConstants.fontSizeCardTitle,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.black,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: AppConstants.spacingMedium),
+                            // Row(
+                            //   children: [
+                            //     IconButton(
+                            //       onPressed: () {
+                            //         setState(() {
+                            //           _showReasonList = false;
+                            //           _selectedReason = null;
+                            //         });
+                            //       },
+                            //       icon: Icon(
+                            //         Icons.arrow_back,
+                            //         color: AppColors.black,
+                            //       ),
+                            //     ),
+                            //     // Expanded(
+                            //     //   child: Text(
+                            //     //     _getReasonSelectionQuestion(),
+                            //     //     style: TextStyle(
+                            //     //       fontSize: AppConstants.fontSizeCardTitle,
+                            //     //       fontWeight: FontWeight.w600,
+                            //     //       color: AppColors.black,
+                            //     //     ),
+                            //     //   ),
+                            //     // ),
+                            //   ],
+                            // ),
+                            SizedBox(height: AppConstants.spacingTooSmall),
 
                             // Reason Options
                             ..._reasons

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../utils/colors.dart';
 import '../../utils/constants.dart';
 import 'login_page.dart';
 import '../../services/auth_service.dart';
+import '../../services/auth_api_service.dart';
 import '../../services/tags_service.dart';
 import '../../providers/wallet_provider.dart';
 import '../main_navigation.dart';
@@ -22,7 +24,9 @@ class _SignupPageState extends State<SignupPage> {
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
   String _selectedCountryCode = '+91';
+  
   bool _otpSent = false;
+  bool _requiresPin = false; // Added to track if PIN is required
   bool _isLoading = false;
 
   final List<Map<String, String>> _countries = [
@@ -49,29 +53,69 @@ class _SignupPageState extends State<SignupPage> {
       _isLoading = true;
     });
 
-    // Simulate API call
-    Future.delayed(const Duration(seconds: 1), () {
+    // Format phone number with country code
+    final countryCodeDigits = _selectedCountryCode.replaceFirst('+', '');
+    final fullPhone = countryCodeDigits + _phoneController.text.trim();
+
+    // ✅ Call the actual OTP API
+    _requestOTPFromAPI(fullPhone);
+  }
+
+  /// Request OTP from API
+  Future<void> _requestOTPFromAPI(String fullPhone) async {
+    try {
+      print('📞 [SignupPage] Requesting OTP for phone: $fullPhone');
+      
+      final response = await AuthAPIService.requestOTP(
+        phone: fullPhone,
+      );
+
       if (mounted) {
         setState(() {
           _isLoading = false;
           _otpSent = true;
+          // ✅ Check if PIN is required instead of OTP
+          _requiresPin = response.requirePin;
         });
-        _showSnackBar(
-          'OTP sent to $_selectedCountryCode ${_phoneController.text}',
-          Colors.green,
-        );
+
+        // Show appropriate message
+        if (response.requirePin) {
+          _showSnackBar(
+            'Please enter your login PIN',
+            Colors.blue,
+          );
+        } else if (response.sent) {
+          _showSnackBar(
+            'OTP sent to $_selectedCountryCode ${_phoneController.text}',
+            Colors.green,
+          );
+        } else {
+          _showSnackBar(
+            response.message.isNotEmpty ? response.message : 'Failed to process request',
+            Colors.orange,
+          );
+        }
       }
-    });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showSnackBar('Error: ${e.toString()}', Colors.red);
+      }
+    }
   }
 
   void _verifyOTP() {
+    final inputLabel = _requiresPin ? 'PIN' : 'OTP';
+
     if (_otpController.text.isEmpty) {
-      _showSnackBar('Please enter OTP', Colors.red);
+      _showSnackBar('Please enter $inputLabel', Colors.red);
       return;
     }
 
     if (_otpController.text.length != 4) {
-      _showSnackBar('OTP should be 4 digits', Colors.red);
+      _showSnackBar('$inputLabel should be 4 digits', Colors.red);
       return;
     }
 
@@ -79,111 +123,171 @@ class _SignupPageState extends State<SignupPage> {
       _isLoading = true;
     });
 
-    // Simulate OTP verification
-    Future.delayed(const Duration(seconds: 1), () async {
-      if (mounted) {
-        try {
-          // Store user data - ensure phone is properly formatted
-          final phoneNumber = _phoneController.text.trim();
-          if (phoneNumber.isEmpty) {
-            if (mounted) {
-              setState(() {
-                _isLoading = false;
-              });
-              _showSnackBar('Phone number is empty', Colors.red);
-            }
-            return;
-          }
+    // Format phone number with country code
+    final countryCodeDigits = _selectedCountryCode.replaceFirst('+', '');
+    final fullPhone = countryCodeDigits + _phoneController.text.trim();
 
-          await AuthService.signup(
-            name: 'Sampark',
-            phone: phoneNumber,
-            countryCode: _selectedCountryCode,
-          );
-
-          // Add a longer delay to ensure data is written to SharedPreferences
-          await Future.delayed(const Duration(milliseconds: 1000));
-
-          if (mounted) {
-            // ✅ Check if user has tags before navigating
-            await _navigateBasedOnUserTags(phoneNumber);
-          }
-        } catch (e) {
-          if (mounted) {
-            setState(() {
-              _isLoading = false;
-            });
-            _showSnackBar('Error during signup: $e', Colors.red);
-          }
-        }
-      }
-    });
+    // ✅ Call the actual verification API
+    _verifyOTPFromAPI(fullPhone, _otpController.text);
   }
 
-  /// ✅ NEW: Check if user (who just signed up) already has tags
-  /// If old user (has tags) -> MainNavigation (tags page)
-  /// If new user (no tags) -> VehicleDetailsPage (add vehicles)
-  Future<void> _navigateBasedOnUserTags(String phoneNumber) async {
+  /// Verify OTP or PIN from API
+  Future<void> _verifyOTPFromAPI(String fullPhone, String inputCode) async {
     try {
-      print('🏷️ [SignupPage] Checking if user has existing tags...');
+      print('🔐 [SignupPage] Verifying ${_requiresPin ? "PIN" : "OTP"} for phone: $fullPhone');
       
-      // API credentials
-      const String smValue = '67s87s6yys66';
-      const String dgValue = 'testYU78dII8iiUIPSISJ';
-      
-      // Extract country code from _selectedCountryCode (remove '+' prefix)
-      final countryCode = _selectedCountryCode.replaceFirst('+', '');
-      
-      // Format phone with country code for API call
-      final phone =  phoneNumber;
-      
-      // Fetch user tags
-      final userTagsStats = await TagsService.fetchUserTags(
-        phone: phone,
-        smValue: smValue,
-        dgValue: dgValue,
+      // ✅ Pass PIN or OTP based on _requiresPin state
+      final response = await AuthAPIService.verifyOTP(
+        phone: fullPhone,
+        otp: _requiresPin ? null : inputCode, // Pass as OTP if PIN not required
+        pin: _requiresPin ? inputCode : null, // Pass as PIN if PIN required
       );
 
-      print('📊 [SignupPage] User Tags Check:');
-      print('   ├─ Has Active Tags: ${userTagsStats.hasActiveTags}');
-      print('   ├─ Total Tags: ${userTagsStats.summary.getTotalTags()}');
-      print('   │  ├─ Car Tags: ${userTagsStats.summary.carTags}');
-      print('   │  ├─ Bike Tags: ${userTagsStats.summary.bikeTags}');
-      print('   │  ├─ Business Tags: ${userTagsStats.summary.businessTags}');
-      print('   │  ├─ Menu Tags: ${userTagsStats.summary.menuTags}');
-      print('   │  ├─ Emergency Tags: ${userTagsStats.summary.emergencyTags}');
-      print('   │  └─ Door Tags: ${userTagsStats.summary.doorTags}');
+      if (mounted) {
+        if (response.success) {
+          print('✅ [SignupPage] Verification successful');
+          // After successful verification, check the phone
+          _checkPhoneAndCreateAccount(fullPhone);
+        } else {
+          setState(() {
+            _isLoading = false;
+          });
+          _showSnackBar(
+            response.message.isNotEmpty ? response.message : 'Failed to verify',
+            Colors.red,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showSnackBar('Error: ${e.toString()}', Colors.red);
+      }
+    }
+  }
+
+  /// Check phone API - Creates account if new, retrieves data if existing
+  Future<void> _checkPhoneAndCreateAccount(String fullPhone) async {
+    try {
+      print('📱 [SignupPage] Checking phone and creating account...');
+      
+      final checkResponse = await AuthAPIService.checkPhone(
+        phone: fullPhone,
+      );
 
       if (mounted) {
-        // Trigger wallet fetch for newly signed-up user
-        final walletProvider = Provider.of<WalletProvider>(context, listen: false);
-        walletProvider.reset(); // Clear any previous user's data first
-        walletProvider.fetchWallet(phoneNumber); // Fetch for the newly signed-up user
+        final countryCode = _selectedCountryCode;
+        final phoneOnly = _phoneController.text.trim();
 
-        if (userTagsStats.hasActiveTags) {
-          // ✅ Old user - has existing tags, navigate to MainNavigation
-          print('✅ [SignupPage] Old user with existing tags detected - navigating to tags page');
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const MainNavigation(initialIndex: 2),
-            ),
+        // Determine user type
+        print('👤 [SignupPage] User Type: ${checkResponse.isNewUser ? 'NEW' : 'EXISTING'}');
+
+        // Save user data to local storage using AuthService
+        await AuthService.loginFromAPI(
+          phone: phoneOnly,
+          countryCode: countryCode,
+          name: checkResponse.name.isNotEmpty ? checkResponse.name : 'Sampark User',
+          email: checkResponse.email,
+          city: checkResponse.city,
+          verified: checkResponse.verified,
+        );
+
+        // Give a moment for data to be saved
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        // Get FCM token and send to server
+        await _sendFCMTokenToServer(fullPhone, phoneOnly);
+
+        if (mounted) {
+          // Navigate based on new or existing user
+          await _navigateBasedOnUserStatus(
+            phoneOnly,
+            checkResponse.isNewUser,
           );
-        } else {
-          // ✅ New user - no tags, navigate to VehicleDetailsPage
-          print('✅ [SignupPage] New user detected - navigating to vehicle details page');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showSnackBar('Error: ${e.toString()}', Colors.red);
+      }
+    }
+  }
+
+  /// Get FCM token and send it to the server
+  Future<void> _sendFCMTokenToServer(String fullPhone, String phoneOnly) async {
+    try {
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      
+      if (fcmToken != null && fcmToken.isNotEmpty) {
+        try {
+          await AuthAPIService.updateFCMToken(
+            phone: phoneOnly,
+            fcmToken: fcmToken,
+            platform: 'android',
+          );
+        } catch (e) {
+          print('⚠️ [SignupPage] Error sending FCM Token: $e');
+        }
+      }
+    } catch (e) {
+      print('⚠️ [SignupPage] Error getting FCM Token: $e');
+    }
+  }
+
+  /// Navigate based on whether user is new or old
+  Future<void> _navigateBasedOnUserStatus(
+    String phoneNumber,
+    bool isNewUser,
+  ) async {
+    try {
+      if (isNewUser) {
+        if (mounted) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (_) => const VehicleDetailsPage(isFromSignup: true),
             ),
           );
         }
+      } else {
+        const String smValue = '67s87s6yys66';
+        const String dgValue = 'testYU78dII8iiUIPSISJ';
+        
+        final userTagsStats = await TagsService.fetchUserTags(
+          phone: phoneNumber,
+          smValue: smValue,
+          dgValue: dgValue,
+        );
+
+        if (mounted) {
+          final walletProvider = Provider.of<WalletProvider>(context, listen: false);
+          walletProvider.reset();
+          walletProvider.fetchWallet(phoneNumber);
+
+          if (userTagsStats.hasActiveTags) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => const MainNavigation(initialIndex: 2),
+              ),
+            );
+          } else {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => const VehicleDetailsPage(isFromSignup: true),
+              ),
+            );
+          }
+        }
       }
     } catch (e) {
-      print('❌ [SignupPage] Error checking user tags: $e');
-      
       if (mounted) {
-        // If tag check fails, default to VehicleDetailsPage for new signup flow
-        print('⚠️ [SignupPage] Tag check failed, defaulting to VehicleDetailsPage');
+        setState(() {
+          _isLoading = false;
+        });
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => const VehicleDetailsPage(isFromSignup: true),
@@ -193,12 +297,12 @@ class _SignupPageState extends State<SignupPage> {
     }
   }
 
-
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: color,
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -207,11 +311,9 @@ class _SignupPageState extends State<SignupPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      // ✅ Remove AppBar - no back button needed
       body: SafeArea(
         child: Column(
           children: [
-            // ✅ Simple Header - Just Logo
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -223,7 +325,6 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ),
             ),
-            // ✅ Scrollable Content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
@@ -232,7 +333,9 @@ class _SignupPageState extends State<SignupPage> {
                   children: [
                     const SizedBox(height: 20),
                     Text(
-                      _otpSent ? 'Verify OTP' : 'Create Account',
+                      _otpSent 
+                          ? (_requiresPin ? 'Enter PIN' : 'Verify OTP') 
+                          : 'Create Account',
                       style: GoogleFonts.inter(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
@@ -242,7 +345,9 @@ class _SignupPageState extends State<SignupPage> {
                     const SizedBox(height: 8),
                     Text(
                       _otpSent
-                          ? 'Enter the OTP sent to $_selectedCountryCode ${_phoneController.text}'
+                          ? (_requiresPin 
+                              ? 'Enter your 4-digit PIN' 
+                              : 'Enter the OTP sent to $_selectedCountryCode ${_phoneController.text}')
                           : 'Join SAMPARK to manage your tags',
                       style: TextStyle(
                         fontSize: 14,
@@ -345,9 +450,9 @@ class _SignupPageState extends State<SignupPage> {
                         ),
                       ),
                     ] else ...[
-                      // OTP Field
+                      // OTP or PIN Field
                       Text(
-                        'Enter OTP',
+                        _requiresPin ? 'Enter PIN' : 'Enter OTP',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -360,6 +465,7 @@ class _SignupPageState extends State<SignupPage> {
                         keyboardType: TextInputType.number,
                         maxLength: 4,
                         textAlign: TextAlign.center,
+                        obscureText: _requiresPin, // Hide PIN digits for security
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w700,
@@ -391,6 +497,7 @@ class _SignupPageState extends State<SignupPage> {
                           onPressed: () {
                             setState(() {
                               _otpSent = false;
+                              _requiresPin = false;
                               _otpController.clear();
                             });
                           },
@@ -437,7 +544,9 @@ class _SignupPageState extends State<SignupPage> {
                                 ),
                               )
                             : Text(
-                                _otpSent ? 'Verify & Continue' : 'Send OTP',
+                                _otpSent 
+                                  ? (_requiresPin ? 'Verify PIN & Continue' : 'Verify OTP & Continue') 
+                                  : 'Send OTP',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
