@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:my_new_app/pages/AppWebView/appweb.dart';
 import 'package:my_new_app/pages/business_card/business_card_page.dart';
 import 'package:my_new_app/pages/demo/widgets/demo.dart';
+import 'package:my_new_app/pages/etag/widgets/etag.dart';
 import 'package:my_new_app/pages/franchise/franchise_page.dart';
 import 'package:my_new_app/pages/main_navigation.dart';
 import 'package:my_new_app/pages/sampark_tag/sampark_tag_page.dart';
@@ -333,7 +335,13 @@ Future<void> launchURL(String url) async {
                 icon: Icons.picture_as_pdf_outlined,
                 title: 'PDF eTag',
                 iconColor: const Color(0xFFFF4444),
-                onTap: () {
+                // onTap: () {
+                //   Navigator.push(
+                //     context,
+                //     MaterialPageRoute(builder: (_) => const ETagPage()),
+                //   );
+                // },
+                   onTap: () {
                   launchURL('https://app.ngf132.com/demo-tag');
                 },
               ),
@@ -921,21 +929,23 @@ Future<void> launchURL(String url) async {
           // Store Buttons
           Row(
             children: [
-              Expanded(
-                child: _buildStoreButton(
-                  icon: Icons.play_arrow,
-                  label: 'Play Store',
-                  onTap: _openPlayStore,
+              if (Platform.isAndroid)
+                Expanded(
+                  child: _buildStoreButton(
+                    icon: Icons.play_arrow,
+                    label: 'Play Store',
+                    onTap: _openPlayStore,
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppConstants.spacingSmall),
-              Expanded(
-                child: _buildStoreButton(
-                  icon: Icons.apple,
-                  label: 'App Store',
-                  onTap: _openAppStore,
+              if (Platform.isAndroid && Platform.isIOS) const SizedBox(width: AppConstants.spacingSmall),
+              if (Platform.isIOS)
+                Expanded(
+                  child: _buildStoreButton(
+                    icon: Icons.apple,
+                    label: 'App Store',
+                    onTap: _openAppStore,
+                  ),
                 ),
-              ),
             ],
           ),
 
