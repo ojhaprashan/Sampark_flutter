@@ -11,6 +11,8 @@ import '../../services/auth_api_service.dart';
 import '../../services/tags_service.dart';
 import '../../providers/wallet_provider.dart';
 import '../main_navigation.dart';
+import '../AppWebView/appweb.dart';
+import '../widgets/region_selection_dialog.dart';
 import 'vehicle_details_page.dart';
 
 class SignupPage extends StatefulWidget {
@@ -26,8 +28,40 @@ class _SignupPageState extends State<SignupPage> {
   String _selectedCountryCode = '+91';
   
   bool _otpSent = false;
-  bool _requiresPin = false; // Added to track if PIN is required
+  bool _requiresPin = false;
   bool _isLoading = false;
+  /// True once the user picks a region (blocks login before selection)
+  bool _regionSelected = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAndShowRegionDialog();
+  }
+
+  /// Always show the region dialog when user arrives at signup.
+  Future<void> _checkAndShowRegionDialog() async {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final chosen = await RegionSelectionDialog.showBeforeLogin(context);
+      if (!mounted) return;
+      setState(() => _regionSelected = true);
+      if (chosen == 'global') {
+        _openGlobalSite();
+      }
+    });
+  }
+
+  void _openGlobalSite() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const InAppWebViewPage(
+          url: 'https://global.ngf132.com/',
+          title: 'Global Portal',
+        ),
+      ),
+    );
+  }
 
   final List<Map<String, String>> _countries = [
     {'code': '+91', 'name': 'India', 'flag': '🇮🇳'},
@@ -519,13 +553,13 @@ class _SignupPageState extends State<SignupPage> {
                       width: double.infinity,
                       height: AppConstants.buttonHeightLarge,
                       child: ElevatedButton(
-                        onPressed: _isLoading
+                        onPressed: (!_regionSelected || _isLoading)
                             ? null
                             : (_otpSent ? _verifyOTP : _sendOTP),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.activeYellow,
                           disabledBackgroundColor:
-                              AppColors.activeYellow.withOpacity(0.6),
+                              AppColors.activeYellow.withOpacity(0.4),
                           shape: RoundedRectangleBorder(
                             borderRadius:
                                 BorderRadius.circular(AppConstants.buttonBorderRadius),
