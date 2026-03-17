@@ -10,6 +10,8 @@ import '../../services/auth_api_service.dart';
 import '../../services/firebase_notification_service.dart';
 import '../../providers/wallet_provider.dart';
 import '../main_navigation.dart';
+import '../AppWebView/appweb.dart';
+import '../widgets/region_selection_dialog.dart';
 import 'signup_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -29,6 +31,8 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
   String? _errorMessage;
   String? _fcmToken;
+  /// True once the user picks a region (blocks login before selection)
+  bool _regionSelected = false;
 
 
   final List<Map<String, String>> _countries = [
@@ -42,6 +46,33 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     _initializeFCM();
+    _checkAndShowRegionDialog();
+  }
+
+  /// Always show the region dialog when user arrives at login/signup.
+  /// Region is saved locally but NOT used to auto-navigate on return visits.
+  Future<void> _checkAndShowRegionDialog() async {
+    // Always show the dialog — user must choose every time they reach login
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final chosen = await RegionSelectionDialog.showBeforeLogin(context);
+      if (!mounted) return;
+      setState(() => _regionSelected = true);
+      if (chosen == 'global') {
+        _openGlobalSite();
+      }
+    });
+  }
+
+  void _openGlobalSite() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const InAppWebViewPage(
+          url: 'https://global.ngf132.com/',
+          title: 'Global Portal',
+        ),
+      ),
+    );
   }
 
   /// Initialize Firebase Cloud Messaging
@@ -574,13 +605,13 @@ class _LoginPageState extends State<LoginPage> {
                 width: double.infinity,
                 height: AppConstants.buttonHeightLarge,
                 child: ElevatedButton(
-                  onPressed: _isLoading 
-                      ? null 
+                  onPressed: (!_regionSelected || _isLoading)
+                      ? null
                       : (_otpPinSent ? _verifyOTPPin : _sendOTP),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.activeYellow,
                     disabledBackgroundColor:
-                        AppColors.activeYellow.withOpacity(0.6),
+                        AppColors.activeYellow.withOpacity(0.4),
                     shape: RoundedRectangleBorder(
                       borderRadius:
                           BorderRadius.circular(AppConstants.buttonBorderRadius),
@@ -599,7 +630,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         )
                       : Text(
-                          _otpPinSent 
+                          _otpPinSent
                               ? (_requiresPin ? 'Verify PIN & Login' : 'Verify OTP & Login')
                               : 'Send OTP',
                           style: TextStyle(

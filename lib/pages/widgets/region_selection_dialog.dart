@@ -1,42 +1,79 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../utils/colors.dart';
 
-class RegionSelectionDialog extends StatelessWidget {
-  const RegionSelectionDialog({super.key});
+const String _kRegionKey = 'selected_region';
+const String _kRegionIndia = 'india';
+const String _kRegionGlobal = 'global';
 
-  static Future<void> checkAndShow(BuildContext context) async {
+class RegionSelectionDialog extends StatelessWidget {
+  /// Whether the dialog is shown before login (non-dismissible, no close button)
+  final bool preLogin;
+
+  const RegionSelectionDialog({super.key, this.preLogin = false});
+
+  // ─────────────────────── Static helpers ───────────────────────
+
+  /// Returns the stored region string, or null if not yet selected.
+  static Future<String?> getSelectedRegion() async {
     final prefs = await SharedPreferences.getInstance();
-    final bool hasShown = prefs.getBool('region_dialog_shown') ?? false;
-    
-    if (!hasShown) {
-      if (context.mounted) {
-        await showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const RegionSelectionDialog(),
-        );
-        await prefs.setBool('region_dialog_shown', true);
-      }
+    return prefs.getString(_kRegionKey);
+  }
+
+  /// Save the chosen region locally.
+  static Future<void> saveRegion(String region) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kRegionKey, region);
+  }
+
+  /// Show the dialog before login (non-dismissible).
+  /// Returns the chosen region string: 'india' or 'global'.
+  static Future<String> showBeforeLogin(BuildContext context) async {
+    final result = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const RegionSelectionDialog(preLogin: true),
+    );
+    return result ?? _kRegionIndia;
+  }
+
+  /// Check and show AFTER login (only once, if not already shown before).
+  /// Kept for backward-compat with the header dropdown path.
+  static Future<void> checkAndShow(BuildContext context) async {
+    final region = await getSelectedRegion();
+    // Already chosen before login → don't show again
+    if (region != null) return;
+
+    if (context.mounted) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const RegionSelectionDialog(),
+      );
     }
   }
 
+  /// Show from the header dropdown (dismissible, allows re-selection).
   static void show(BuildContext context) {
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (context) => const RegionSelectionDialog(),
+      builder: (_) => const RegionSelectionDialog(),
     );
   }
 
+  // ─────────────────────── Build ───────────────────────
+
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 0,
-      backgroundColor: Colors.transparent,
-      child: _buildDialogContent(context),
+    return PopScope(
+      canPop: !preLogin, // block back-button during pre-login
+      child: Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: _buildDialogContent(context),
+      ),
     );
   }
 
@@ -56,19 +93,20 @@ class RegionSelectionDialog extends StatelessWidget {
         ],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min, // To make the card compact
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              GestureDetector(
-                onTap: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Icon(Icons.close, color: Colors.grey, size: 20),
-              ),
-            ],
-          ),
+          // Close button only when NOT pre-login
+          if (!preLogin)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: const Icon(Icons.close, color: Colors.grey, size: 20),
+                ),
+              ],
+            ),
+
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -105,16 +143,16 @@ class RegionSelectionDialog extends StatelessWidget {
               Expanded(
                 child: _buildRegionOption(
                   context: context,
-                  flag: '🇺🇸',
-                  title: 'US',
-                  subtitle: 'Auto-\ndetected',
+                  flag: '🌍',
+                  title: 'Global',
+                  subtitle: 'For users outside India',
                   borderColor: Colors.grey.shade200,
                   backgroundColor: Colors.white,
                   textColor: Colors.black,
                   onTap: () async {
-                    const url = 'https://global.ngf132.com/start?l=us';
-                    if (await canLaunchUrl(Uri.parse(url))) {
-                      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                    await saveRegion(_kRegionGlobal);
+                    if (context.mounted) {
+                      Navigator.of(context).pop(_kRegionGlobal);
                     }
                   },
                 ),
@@ -129,8 +167,11 @@ class RegionSelectionDialog extends StatelessWidget {
                   borderColor: AppColors.activeYellow.withOpacity(0.5),
                   backgroundColor: AppColors.activeYellow.withOpacity(0.05),
                   textColor: Colors.deepOrange.shade800,
-                  onTap: () {
-                    Navigator.of(context).pop();
+                  onTap: () async {
+                    await saveRegion(_kRegionIndia);
+                    if (context.mounted) {
+                      Navigator.of(context).pop(_kRegionIndia);
+                    }
                   },
                 ),
               ),

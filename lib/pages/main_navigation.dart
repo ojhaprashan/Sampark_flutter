@@ -9,7 +9,6 @@ import 'home/home_page.dart';
 import 'tags/tags_page.dart';
 import 'shop/widgets/shop.dart';
 import 'scan/scan_page.dart';
-import 'widgets/region_selection_dialog.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -62,13 +61,6 @@ class _MainNavigationState extends State<MainNavigation> with SingleTickerProvid
       setState(() {
         _isLoggedIn = loggedIn;
       });
-      if (loggedIn) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            RegionSelectionDialog.checkAndShow(context);
-          }
-        });
-      }
     }
   }
 
