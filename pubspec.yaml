@@ -2,7 +2,7 @@ name: my_new_app
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+67
+version: 1.0.0+68
 
 environment:
   sdk: ^3.9.2
@@ -30,7 +30,7 @@ dependencies:
   url_launcher: ^6.2.4
   
   # Mobile Scanner
-  mobile_scanner: ^5.2.3
+  mobile_scanner: ^7.2.0
   video_player: ^2.8.2
   
   # WebView Flutter

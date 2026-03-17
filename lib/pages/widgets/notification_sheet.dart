@@ -263,6 +263,8 @@ class _NotificationSheetState extends State<NotificationSheet> {
                 },
               ),
             ),
+          // Bottom padding for system navigation
+          SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
         ],
       ),
     );

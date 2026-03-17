@@ -4,6 +4,8 @@ import '../../utils/colors.dart';
 import '../../services/qr_signup_service.dart';
 import 'contact_vehicle_owner_page.dart';
 import 'tag_activation_page.dart';
+import '../AppWebView/appweb.dart';
+
 class ScanPage extends StatefulWidget {
   const ScanPage({super.key});
 
@@ -361,22 +363,47 @@ void _handleScanResult(String scannedData) async {
           );
         }
       } else {
-        _showErrorAndResumeCamera(
-          response.message,
-        );
+        if (response.message.contains('Tag not found') && scannedData.startsWith('http')) {
+          _redirectToWebView(scannedData);
+        } else {
+          _showErrorAndResumeCamera(
+            response.message,
+          );
+        }
       }
     }
   } catch (e) {
     if (mounted) {
       Navigator.pop(context); // Close loading dialog
-      // Extract only the error message
+      
       String errorMessage = e.toString();
-      if (errorMessage.startsWith('Exception: ')) {
-        errorMessage = errorMessage.replaceFirst('Exception: ', '');
+      if (errorMessage.contains('Tag not found') && scannedData.startsWith('http')) {
+        _redirectToWebView(scannedData);
+      } else {
+        if (errorMessage.startsWith('Exception: ')) {
+          errorMessage = errorMessage.replaceFirst('Exception: ', '');
+        }
+        _showErrorAndResumeCamera(errorMessage);
       }
-      _showErrorAndResumeCamera(errorMessage);
     }
   }
+}
+
+/// Redirect to In-App Web View and resume camera on return
+void _redirectToWebView(String url) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => InAppWebViewPage(
+        url: url,
+        title: 'Sampark+',
+      ),
+    ),
+  ).then((_) {
+    // Restart camera when back
+    cameraController.start();
+    setState(() => _isCameraActive = true);
+  });
 }
 
 /// Show error and resume camera
