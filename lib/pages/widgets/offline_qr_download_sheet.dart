@@ -421,6 +421,8 @@ class _OfflineQRDownloadSheetState extends State<OfflineQRDownloadSheet> {
                             ],
                           ),
                           const SizedBox(height: AppConstants.spacingLarge),
+                          // Bottom padding for system navigation
+                          SizedBox(height: MediaQuery.of(context).padding.bottom),
                         ],
                       ),
                     ),

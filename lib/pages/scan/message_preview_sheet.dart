@@ -184,7 +184,7 @@ class _MessagePreviewSheetState extends State<MessagePreviewSheet> {
         
         if (response.success) {
           Navigator.pop(context);
-          _showSuccess('✅ Message sent successfully!\n${response.message ?? ''}');
+          _showSuccess('✅ Message sent successfully!');
         } else {
           setState(() {
             _errorMessage = '❌ ${response.message ?? 'Failed to send message'}';

@@ -420,6 +420,8 @@ class _ETagDownloadSheetState extends State<ETagDownloadSheet> {
                             ],
                           ),
                           const SizedBox(height: AppConstants.spacingLarge),
+                          // Bottom padding for system navigation
+                          SizedBox(height: MediaQuery.of(context).padding.bottom),
                         ],
                       ),
                     ),

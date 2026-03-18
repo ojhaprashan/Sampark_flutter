@@ -615,6 +615,8 @@ class _FileUploadSheetState extends State<FileUploadSheet> {
                           ? _buildSetPinView()
                           : _buildUploadFilesView(),
             ),
+            // Bottom padding for system navigation
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
           ],
         ),
       ),

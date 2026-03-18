@@ -239,6 +239,8 @@ class _EditTagSheetState extends State<EditTagSheet> {
                 ],
               ),
             ),
+            // Bottom padding for system navigation
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
           ],
         ),
       ),

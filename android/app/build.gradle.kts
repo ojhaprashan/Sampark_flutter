@@ -19,7 +19,9 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace = "com.myapp.ngf132"
     compileSdk = flutter.compileSdkVersion
+
     ndkVersion = "28.2.13676358" // ✅ CHANGED: Updated from 27.0.12077973 to 28.2.13676358
+
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
