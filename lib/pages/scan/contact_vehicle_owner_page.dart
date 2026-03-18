@@ -738,6 +738,17 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                                 .map((reason) => _buildReasonOption(reason)),
                             SizedBox(height: AppConstants.spacingLarge),
 
+                            // Question for contact method
+                            Text(
+                              _getContactQuestion(),
+                              style: TextStyle(
+                                fontSize: AppConstants.fontSizeCardTitle,
+                                color: AppColors.black,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            SizedBox(height: AppConstants.spacingMedium),
+
                             // Action Buttons Row
                             Row(
                               children: [
@@ -761,7 +772,11 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                                         : 0.5,
                                     child: _buildSimpleButton(
                                       icon: Icons.phone,
-                                      label: 'Call',
+                                      label: _tagProfileData != null &&
+                                              _tagProfileData!.callFlags
+                                                  .callMaskingEnabled
+                                          ? 'Masked Call'
+                                          : 'Call',
                                       color: _tagProfileData != null &&
                                               _tagProfileData!
                                                   .callFlags.callsEnabled
