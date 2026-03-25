@@ -1,7 +1,10 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../pages/widgets/video_call_dialog.dart';
+import '../pages/AppWebView/appweb.dart';
 
 // Background message handler (must be a top-level function)
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -23,6 +26,9 @@ class FirebaseNotificationService {
 
   static bool _isInitialized = false;
 
+  /// Global Navigator Key to access context from static service
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   /// Initialize Firebase Cloud Messaging and Local Notifications
   static Future<void> initialize() async {
     if (_isInitialized) {
@@ -40,7 +46,6 @@ class FirebaseNotificationService {
       } catch (e) {
         print('⚠️ [FCM] Firebase initialization warning: $e');
         print('⚠️ [FCM] Continuing with limited FCM functionality');
-        // Continue even if Firebase init fails - allows app to work without real FCM
       }
 
       // Try to set the background message handler
@@ -64,6 +69,13 @@ class FirebaseNotificationService {
         );
 
         print('🔔 [FCM] Permissions requested: ${settings.authorizationStatus}');
+        
+        // Heads up notifications for iOS/macOS when app is in foreground
+        await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
       } catch (e) {
         print('⚠️ [FCM] Permission request warning: $e');
       }
@@ -88,9 +100,25 @@ class FirebaseNotificationService {
       try {
         await _flutterLocalNotificationsPlugin.initialize(
           initializationSettings,
-          onDidReceiveNotificationResponse: _handleNotificationTap,
+          onDidReceiveNotificationResponse: _handleLocalNotificationTap,
         );
-        print('✅ [FCM] Local notifications initialized');
+        
+        // Create the Android notification channel explicitly
+        const AndroidNotificationChannel channel = AndroidNotificationChannel(
+          'sampark_channel', // id
+          'Sampark Notifications', // title
+          description: 'Important notifications from Sampark', // description
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+        );
+
+        await _flutterLocalNotificationsPlugin
+            .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin>()
+            ?.createNotificationChannel(channel);
+
+        print('✅ [FCM] Local notifications and channel initialized');
       } catch (e) {
         print('⚠️ [FCM] Local notifications init warning: $e');
       }
@@ -99,11 +127,20 @@ class FirebaseNotificationService {
       try {
         FirebaseMessaging.onMessage.listen((RemoteMessage message) {
           print('🔔 [FCM] Foreground message received: ${message.messageId}');
-          print('   ├─ Title: ${message.notification?.title}');
-          print('   ├─ Body: ${message.notification?.body}');
-          print('   └─ Data: ${message.data}');
-
-          showLocalNotification(message);
+          
+          final data = message.data;
+          final acceptUrl = data['accept_url'];
+          
+          if (acceptUrl != null && acceptUrl.isNotEmpty) {
+            print('📞 Incoming Video Call Request Detected');
+            _showVideoCallUI(
+              acceptUrl: acceptUrl,
+              declineUrl: data['declined_url'] ?? '',
+              message: message.notification?.body ?? data['body'] ?? 'Incoming Call...',
+            );
+          } else {
+            showLocalNotification(message);
+          }
         });
       } catch (e) {
         print('⚠️ [FCM] Foreground message listener warning: $e');
@@ -113,13 +150,7 @@ class FirebaseNotificationService {
       try {
         FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
           print('🔔 [FCM] Notification tapped (App was in background): ${message.messageId}');
-          _handleNotificationTap(
-            NotificationResponse(
-              notificationResponseType:
-                  NotificationResponseType.selectedNotification,
-              payload: message.data.toString(),
-            ),
-          );
+          _handleNotificationTap(message);
         });
       } catch (e) {
         print('⚠️ [FCM] Message opened app listener warning: $e');
@@ -133,10 +164,59 @@ class FirebaseNotificationService {
     }
   }
 
-  /// Get FCM Token for this device
+  /// Show Video Call Accept/Reject UI
+  static void _showVideoCallUI({
+    required String acceptUrl,
+    required String declineUrl,
+    required String message,
+  }) {
+    final context = navigatorKey.currentContext;
+    if (context == null) {
+      print('❌ [FCM] Cannot show VideoCallUI: context is null');
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => VideoCallDialog(
+        message: message,
+        acceptUrl: acceptUrl,
+        declineUrl: declineUrl,
+      ),
+    );
+  }
+
+  /// Handle notification tap (Background/Terminated)
+  static void _handleNotificationTap(RemoteMessage message) {
+    print('🔔 [FCM] Handling notification tap: ${message.data}');
+    
+    final acceptUrl = message.data['accept_url'];
+    if (acceptUrl != null && acceptUrl.isNotEmpty) {
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => InAppWebViewPage(
+              url: acceptUrl,
+              title: 'Video Call',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Handle local notification tap (Foreground)
+  static void _handleLocalNotificationTap(NotificationResponse response) {
+    print('🔔 [FCM] Local notification tapped: ${response.payload}');
+    // Parse payload if it's a JSON string of RemoteMessage.data
+  }
+
+  /// Get FCM Token
   static Future<String?> getFCMToken() async {
     try {
-      // Try to get token with retries (Firebase might take a moment to initialize)
       String? token;
       int retryCount = 0;
       const maxRetries = 3;
@@ -154,22 +234,9 @@ class FirebaseNotificationService {
         
         retryCount++;
         if (token == null && retryCount < maxRetries) {
-          // Wait 1 second before retrying
           await Future.delayed(const Duration(seconds: 1));
         }
       }
-      
-      if (token == null) {
-        print('❌ [FCM] Failed to get token after $maxRetries attempts');
-        print('❌ [FCM] Firebase may not be properly initialized');
-        print('❌ [FCM] Possible causes:');
-        print('   ├─ Google Play Services not installed');
-        print('   ├─ Firebase not initialized in main.dart');
-        print('   ├─ Invalid google-services.json');
-        print('   └─ Network issues');
-        return null;
-      }
-      
       return token;
     } catch (e) {
       print('❌ [FCM] Error getting FCM token: $e');
@@ -177,33 +244,27 @@ class FirebaseNotificationService {
     }
   }
 
-  /// Save FCM Token to SharedPreferences
+  /// Save FCM Token
   static Future<void> saveFCMToken(String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('fcm_token', token);
-      print('💾 [FCM] Token saved to SharedPreferences');
     } catch (e) {
       print('❌ [FCM] Error saving FCM token: $e');
     }
   }
 
-  /// Get saved FCM Token from SharedPreferences
+  /// Get saved FCM Token
   static Future<String?> getSavedFCMToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('fcm_token');
-      if (token != null) {
-        print('🔑 [FCM] Retrieved saved token: ${token.substring(0, 20)}...');
-      }
-      return token;
+      return prefs.getString('fcm_token');
     } catch (e) {
-      print('❌ [FCM] Error getting saved FCM token: $e');
       return null;
     }
   }
 
-  /// Show local notification (called from foreground listener or background handler)
+  /// Show local notification
   static Future<void> showLocalNotification(RemoteMessage message) async {
     try {
       const AndroidNotificationDetails androidPlatformChannelSpecifics =
@@ -232,8 +293,8 @@ class FirebaseNotificationService {
 
       await _flutterLocalNotificationsPlugin.show(
         DateTime.now().millisecond,
-        message.notification?.title ?? 'Sampark',
-        message.notification?.body ?? '',
+        message.notification?.title ?? message.data['title'] ?? 'Sampark',
+        message.notification?.body ?? message.data['body'] ?? '',
         platformChannelSpecifics,
         payload: message.data.toString(),
       );
@@ -244,19 +305,12 @@ class FirebaseNotificationService {
     }
   }
 
-  /// Handle notification tap
-  static void _handleNotificationTap(NotificationResponse response) {
-    print('🔔 [FCM] Notification tapped: ${response.payload}');
-    // TODO: Add navigation logic based on notification payload if needed
-  }
-
-  /// Delete token on logout
+  /// Delete token
   static Future<void> deleteToken() async {
     try {
       await _firebaseMessaging.deleteToken();
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('fcm_token');
-      print('🗑️ [FCM] Token deleted');
     } catch (e) {
       print('❌ [FCM] Error deleting token: $e');
     }

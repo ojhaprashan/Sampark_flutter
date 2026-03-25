@@ -6,6 +6,8 @@ import '../../services/vehicle_search_service.dart';
 import '../widgets/app_header.dart';
 import '../widgets/vehicle_search_agreement_sheet.dart';
 import '../widgets/error_dialog.dart';
+import '../widgets/simple_rating_sheet.dart';
+import '../widgets/civic_score_search_sheet.dart';
 import '../AppWebView/appweb.dart';
 import '../widgets/media_slider.dart';
 import 'widgets/search_contact_bar.dart';
@@ -333,6 +335,87 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin 
                           
                           ActionGrid(key: ValueKey(isLoggedIn)),
                           const SizedBox(height: 12),
+                          
+                          // ✅ Civic Score Rating Button
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: GestureDetector(
+                              onTap: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (context) => const SimpleRatingSheet(),
+                                );
+                              },
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppColors.activeYellow,
+                                      AppColors.activeYellow.withOpacity(0.85),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.activeYellow.withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.star_rate_rounded,
+                                      size: 20,
+                                      color: AppColors.black,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Rate Civic Score',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.black,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          
+                          // ✅ NEW: Check Civic Score Link
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8, bottom: 16),
+                            child: TextButton.icon(
+                              onPressed: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (context) => const CivicScoreSearchSheet(),
+                                );
+                              },
+                              icon: const Icon(Icons.search_rounded, size: 18, color: AppColors.textGrey),
+                              label: const Text(
+                                'Check Civic Score details',
+                                style: TextStyle(
+                                  color: AppColors.textGrey,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          
                           const FeaturesSection(),
                           const SizedBox(height: 10), // Keep for bottom navigation
                         ],

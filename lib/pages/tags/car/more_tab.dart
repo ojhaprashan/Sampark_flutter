@@ -106,7 +106,7 @@ class _MoreTabState extends State<MoreTab> {
             _buildActionButton(
               context,
               icon: _isWhatsappEnabled ? Icons.chat_bubble : Icons.chat_bubble_outline,
-              iconColor: _isWhatsappEnabled ? Colors.green.shade600 : Colors.grey,
+              iconColor: _isWhatsappEnabled ? Colors.green.shade600 : Colors.blue.shade600,
               label: _isWhatsappEnabled ? 'Disable WhatsApp Notifications' : 'Enable WhatsApp Notifications',
               trailing: _isWhatsappEnabled ? Icons.toggle_on : Icons.toggle_off_outlined,
               onTap: () {
@@ -126,19 +126,19 @@ class _MoreTabState extends State<MoreTab> {
             _buildActionButton(
               context,
               icon: Icons.upload_file,
-              iconColor: Colors.blue.shade600,
+              iconColor: Colors.purple.shade600,
               label: 'Upload files',
               trailing: Icons.file_upload,
               onTap: () {
-    // ✅ OPEN THE NEW SHEET HERE
-    final tagId = int.tryParse(widget.tag.tagInternalId) ?? 0;
-    FileUploadSheet.show(context, tagId: tagId);
-  },
+                // ✅ OPEN THE NEW SHEET HERE
+                final tagId = int.tryParse(widget.tag.tagInternalId) ?? 0;
+                FileUploadSheet.show(context, tagId: tagId);
+              },
             ),
             _buildActionButton(
               context,
               icon: Icons.videocam,
-              iconColor: Colors.grey,
+              iconColor: Colors.teal.shade600,
               label: 'Enable Video Call',
               trailing: Icons.toggle_off_outlined,
               onTap: () {
@@ -163,10 +163,10 @@ class _MoreTabState extends State<MoreTab> {
             if (_countryCode == '+91')
               _buildActionButton(
                 context,
-                icon: Icons.credit_card,
+                icon: Icons.credit_card_rounded,
                 iconColor: Colors.indigo.shade600,
                 label: 'FasTag Recharge',
-                trailing: Icons.arrow_forward,
+                trailing: Icons.arrow_forward_ios_rounded,
                 onTap: () {
                   HapticFeedback.lightImpact();
                   Navigator.push(
@@ -183,7 +183,7 @@ class _MoreTabState extends State<MoreTab> {
             _buildActionButton(
               context,
               icon: Icons.autorenew,
-              iconColor: Colors.teal.shade600,
+              iconColor: Colors.brown.shade600,
               label: 'Get a Tag Replacement',
               trailing: Icons.autorenew,
               onTap: () {
@@ -214,14 +214,21 @@ class _MoreTabState extends State<MoreTab> {
             if (_isLoadingPremium)
               // Loading state
               Container(
-                padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
+                margin: const EdgeInsets.only(bottom: AppConstants.spacingMedium),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppConstants.cardPaddingLarge,
+                  vertical: AppConstants.cardPaddingMedium,
+                ),
                 decoration: BoxDecoration(
-                  color: Colors.purple.shade50,
-                  borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-                  border: Border.all(
-                    color: Colors.purple.shade200,
-                    width: 2,
-                  ),
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -238,7 +245,8 @@ class _MoreTabState extends State<MoreTab> {
                     Text(
                       'Loading membership status...',
                       style: TextStyle(
-                        fontSize: AppConstants.fontSizeCardDescription,
+                        fontSize: AppConstants.fontSizeSectionTitle,
+                        fontWeight: FontWeight.w600,
                         color: Colors.purple.shade600,
                       ),
                     ),
@@ -248,26 +256,40 @@ class _MoreTabState extends State<MoreTab> {
             else if (_hasPremium)
               // ✅ Show Membership Badge if user has premium
               Container(
-                padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
+                margin: const EdgeInsets.only(bottom: AppConstants.spacingMedium),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppConstants.cardPaddingLarge,
+                  vertical: AppConstants.cardPaddingMedium,
+                ),
                 decoration: BoxDecoration(
-                  color: Colors.purple.shade50,
-                  borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-                  border: Border.all(
-                    color: Colors.purple.shade200,
-                    width: 2,
-                  ),
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
                       children: [
-                        Icon(
-                          Icons.workspace_premium,
-                          size: AppConstants.iconSizeLarge,
-                          color: Colors.purple,
+                        Container(
+                          padding: const EdgeInsets.all(AppConstants.paddingSmall),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.withOpacity(0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.workspace_premium,
+                            size: AppConstants.iconSizeLarge,
+                            color: Colors.purple,
+                          ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: AppConstants.spacingMedium),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -276,14 +298,17 @@ class _MoreTabState extends State<MoreTab> {
                               style: TextStyle(
                                 fontSize: AppConstants.fontSizeSectionTitle,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.purple,
+                                color: AppColors.black,
+                                letterSpacing: 0.2,
                               ),
                             ),
+                            const SizedBox(height: 2),
                             Text(
                               'Enjoy exclusive features',
                               style: TextStyle(
-                                fontSize: AppConstants.fontSizeCardDescription,
-                                color: Colors.purple.shade600,
+                                fontSize: AppConstants.fontSizeCardTitle,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey.shade500,
                               ),
                             ),
                           ],
@@ -293,12 +318,13 @@ class _MoreTabState extends State<MoreTab> {
                     Icon(
                       Icons.check_circle,
                       color: Colors.green.shade600,
-                      size: 24,
+                      size: AppConstants.iconSizeLarge,
                     ),
                   ],
                 ),
-              )
-           
+              ),
+              
+            const SizedBox(height: 100), // Ensures scroll area reaches the bottom properly
           ],
         ),
       ),
@@ -760,70 +786,94 @@ class _MoreTabState extends State<MoreTab> {
     bool isRed = false,
     required VoidCallback onTap,
   }) {
+    final effectiveIconColor = iconColor ?? (isRed ? Colors.red : AppColors.black);
+
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
         onTap();
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: AppConstants.paddingSmall),
+        margin: const EdgeInsets.only(bottom: AppConstants.spacingMedium),
         padding: const EdgeInsets.symmetric(
-          horizontal: AppConstants.cardPaddingMedium,
+          horizontal: AppConstants.cardPaddingLarge,
           vertical: AppConstants.cardPaddingMedium,
         ),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-          border: Border.all(
-            color: AppColors.lightGrey,
-            width: 1,
-          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: AppConstants.iconSizeMedium,
-              color: iconColor ?? (isRed ? Colors.red : AppColors.black),
+            Container(
+              padding: const EdgeInsets.all(AppConstants.paddingSmall),
+              decoration: BoxDecoration(
+                color: effectiveIconColor.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: AppConstants.iconSizeLarge,
+                color: effectiveIconColor,
+              ),
             ),
-            const SizedBox(width: AppConstants.paddingSmall),
+            const SizedBox(width: AppConstants.spacingMedium),
+            
             Expanded(
               child: Text(
                 label,
                 style: TextStyle(
-                  fontSize: AppConstants.fontSizeCardTitle,
-                  fontWeight: FontWeight.w500,
+                  fontSize: AppConstants.fontSizeSectionTitle,
+                  fontWeight: FontWeight.w600,
                   color: isRed ? Colors.red : AppColors.black,
+                  letterSpacing: 0.2,
                 ),
               ),
             ),
+            
             if (badge != null) ...[
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 2,
+                  horizontal: AppConstants.paddingSmall,
+                  vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.blue,
-                  borderRadius: BorderRadius.circular(4),
+                  color: Colors.blue.shade600,
+                  borderRadius: BorderRadius.circular(AppConstants.spacingSmall),
                 ),
                 child: Text(
                   badge,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: AppConstants.fontSizeSmallText,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     color: Colors.white,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ),
-              const SizedBox(width: AppConstants.paddingSmall),
+              const SizedBox(width: AppConstants.spacingSmall),
             ],
+            
             if (trailing != null)
               Icon(
                 trailing,
-                size: AppConstants.iconSizeMedium,
-                color: isRed ? Colors.red : AppColors.textGrey,
+                size: AppConstants.iconSizeLarge,
+                color: isRed ? Colors.red.shade400 : Colors.grey.shade400,
               ),
+              
+            if (trailing == null && badge == null)
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: AppConstants.iconSizeMedium,
+                color: Colors.grey.shade300,
+              )
           ],
         ),
       ),
@@ -841,31 +891,47 @@ class _MoreTabState extends State<MoreTab> {
     bool isRed = false,
     required VoidCallback onTap,
   }) {
+    final effectiveIconColor = iconColor ?? (isRed ? Colors.red : AppColors.black);
+
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
         onTap();
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: AppConstants.paddingSmall),
-        padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
+        margin: const EdgeInsets.only(bottom: AppConstants.spacingMedium),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppConstants.cardPaddingLarge,
+          vertical: AppConstants.cardPaddingMedium,
+        ),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-          border: Border.all(
-            color: AppColors.lightGrey,
-            width: 1,
-          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: AppConstants.iconSizeMedium,
-              color: iconColor ?? (isRed ? Colors.red : AppColors.black),
+            Container(
+              padding: const EdgeInsets.all(AppConstants.paddingSmall),
+              decoration: BoxDecoration(
+                color: effectiveIconColor.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: AppConstants.iconSizeLarge,
+                color: effectiveIconColor,
+              ),
             ),
-            const SizedBox(width: AppConstants.paddingSmall),
+            const SizedBox(width: AppConstants.spacingMedium),
+            
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -876,52 +942,67 @@ class _MoreTabState extends State<MoreTab> {
                         child: Text(
                           label,
                           style: TextStyle(
-                            fontSize: AppConstants.fontSizeCardTitle,
+                            fontSize: AppConstants.fontSizeSectionTitle,
                             fontWeight: FontWeight.w600,
                             color: isRed ? Colors.red : AppColors.black,
+                            letterSpacing: 0.2,
                           ),
                         ),
                       ),
-                      if (badge != null)
+                      if (badge != null) ...[
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
+                            horizontal: AppConstants.paddingSmall,
+                            vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.blue,
-                            borderRadius: BorderRadius.circular(4),
+                            color: Colors.blue.shade600,
+                            borderRadius: BorderRadius.circular(AppConstants.spacingSmall),
                           ),
                           child: Text(
                             badge,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: AppConstants.fontSizeSmallText,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
                               color: Colors.white,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ),
+                        const SizedBox(width: AppConstants.spacingSmall),
+                      ]
                     ],
                   ),
                   const SizedBox(height: 3),
                   Text(
                     description,
                     style: TextStyle(
-                      fontSize: AppConstants.fontSizeCardDescription,
-                      color: AppColors.textGrey,
-                      height: 1.3,
+                      fontSize: AppConstants.fontSizeCardTitle,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade500,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: AppConstants.paddingSmall),
-            if (trailing != null)
+            
+            if (trailing != null) ...[
+              const SizedBox(width: AppConstants.paddingSmall),
               Icon(
                 trailing,
-                size: AppConstants.iconSizeMedium,
-                color: isRed ? Colors.red : AppColors.textGrey,
+                size: AppConstants.iconSizeLarge,
+                color: isRed ? Colors.red.shade400 : Colors.grey.shade400,
               ),
+            ],
+            
+            if (trailing == null && badge == null) ...[
+              const SizedBox(width: AppConstants.paddingSmall),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: AppConstants.iconSizeMedium,
+                color: Colors.grey.shade300,
+              ),
+            ]
           ],
         ),
       ),

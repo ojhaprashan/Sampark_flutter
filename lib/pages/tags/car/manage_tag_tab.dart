@@ -18,7 +18,7 @@ import 'add_emergency_contact_sheet.dart';
 class ManageTagTab extends StatefulWidget {
   final Tag tag;
   final TagSettings? tagSettings;
-  final VoidCallback? onDataUpdated;  // ✅ Callback to refresh data when updated
+  final VoidCallback? onDataUpdated;  
 
   const ManageTagTab({
     super.key,
@@ -32,7 +32,6 @@ class ManageTagTab extends StatefulWidget {
 }
 
 class _ManageTagTabState extends State<ManageTagTab> {
-  // ✅ State variables for toggling
   bool _isCallsEnabled = true;
   bool _isTagEnabled = true;
   bool _isWhatsappEnabled = false;
@@ -40,12 +39,11 @@ class _ManageTagTabState extends State<ManageTagTab> {
   bool _isVideoCallEnabled = false;
   bool _isLoading = false;
   String _userPhone = '';
-  String _countryCode = '+91'; // Track country code for India-specific features
+  String _countryCode = '+91'; 
 
   @override
   void initState() {
     super.initState();
-    // Initialize from tagSettings if available
     _isCallsEnabled = widget.tagSettings?.data.callStatus.callsEnabled ?? true;
     _isTagEnabled = widget.tagSettings?.data.status == 'Active';
     _isWhatsappEnabled = widget.tagSettings?.data.callStatus.whatsappEnabled ?? false;
@@ -54,7 +52,6 @@ class _ManageTagTabState extends State<ManageTagTab> {
     _loadUserPhone();
   }
 
-  // ✅ Sync local state when parent refreshes tagSettings
   @override
   void didUpdateWidget(ManageTagTab oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -69,7 +66,6 @@ class _ManageTagTabState extends State<ManageTagTab> {
     }
   }
 
-  // ✅ Load user phone from AuthService
   Future<void> _loadUserPhone() async {
     try {
       final userData = await AuthService.getUserData();
@@ -86,7 +82,6 @@ class _ManageTagTabState extends State<ManageTagTab> {
     }
   }
 
-  // ✅ Check if vehicle is from specific state codes
   bool _isVehicleFromStateCode(List<String> stateCodes) {
     final vehicleNumber = widget.tag.displayName.toUpperCase();
     return stateCodes.any((code) => vehicleNumber.startsWith(code));
@@ -151,7 +146,6 @@ class _ManageTagTabState extends State<ManageTagTab> {
                 );
               },
             ),
-            // ✅ Dynamic Disable/Enable Calls Button (shows opposite action)
             _buildActionButton(
               context,
               icon: _isCallsEnabled ? Icons.phone_disabled : Icons.phone_enabled,
@@ -162,7 +156,6 @@ class _ManageTagTabState extends State<ManageTagTab> {
                 _toggleCalls(context);
               },
             ),
-            // ✅ Dynamic Enable/Disable Tag Button (shows opposite action)
             _buildActionButton(
               context,
               icon: _isTagEnabled ? Icons.pause : Icons.play_arrow,
@@ -193,21 +186,7 @@ class _ManageTagTabState extends State<ManageTagTab> {
                 _showEmergencyContactSheet(context);
               },
             ),
-            // ✅ Show "List your car" only for DL and UP state codes
-           
-            // ✅ Show India-specific features only for India
             if (_countryCode == '+91') ...[
-              // _buildActionButton(
-              //   context,
-              //   icon: Icons.car_repair,
-              //   iconColor: Colors.red.shade600,
-              //   label: 'Roadside Assistance (RSA)',
-              //   badge: '24/7',
-              //   trailing: Icons.arrow_forward_ios,
-              //   onTap: () {
-              //     _openRSA(context);
-              //   },
-              // ),
               _buildActionButton(
                 context,
                 icon: Icons.download,
@@ -243,11 +222,6 @@ class _ManageTagTabState extends State<ManageTagTab> {
     );
   }
 
-  // ========================
-  // ✅ LOADING OVERLAY
-  // ========================
-
-  // ✅ Show Loading Overlay (Simple loader without text)
   void _showLoadingOverlay(BuildContext context) {
     showDialog(
       context: context,
@@ -267,16 +241,10 @@ class _ManageTagTabState extends State<ManageTagTab> {
     );
   }
 
-  // ✅ Hide Loading Overlay
   void _hideLoadingOverlay(BuildContext context) {
     Navigator.of(context, rootNavigator: true).pop();
   }
 
-  // ========================
-  // ✅ TOGGLE FUNCTIONS
-  // ========================
-
-  // ✅ Toggle Calls Function with API call and Loading Overlay
   void _toggleCalls(BuildContext context) async {
     if (_isLoading) return;
 
@@ -313,7 +281,6 @@ class _ManageTagTabState extends State<ManageTagTab> {
 
       _hideLoadingOverlay(context);
 
-      // ✅ Refresh data after successful toggle
       widget.onDataUpdated?.call();
 
       _showSuccessDialog(
@@ -334,7 +301,6 @@ class _ManageTagTabState extends State<ManageTagTab> {
     }
   }
 
-  // ✅ Toggle Tag Function with API call and Loading Overlay
   void _toggleTag(BuildContext context) async {
     if (_isLoading) return;
 
@@ -352,7 +318,6 @@ class _ManageTagTabState extends State<ManageTagTab> {
       final phoneWithCountryCode = countryCode.replaceFirst('+', '') + phone;
 
       final newTagEnabled = !_isTagEnabled;
-      // ✅ Set status based on newTagEnabled (active/pause)
       final newStatus = newTagEnabled ? 'active' : 'pause';
 
       await TagsService.updateTagSettings(
@@ -364,7 +329,7 @@ class _ManageTagTabState extends State<ManageTagTab> {
         videoCallEnabled: _isVideoCallEnabled,
         smValue: '67s87s6yys66',
         dgValue: 'testYU78dII8iiUIPSISJ',
-        status: newStatus,  // ✅ Pass status parameter
+        status: newStatus,  
       );
 
       setState(() {
@@ -374,7 +339,6 @@ class _ManageTagTabState extends State<ManageTagTab> {
 
       _hideLoadingOverlay(context);
 
-      // ✅ Call refresh callback to reload data from API
       widget.onDataUpdated?.call();
 
       _showSuccessDialog(
@@ -395,11 +359,6 @@ class _ManageTagTabState extends State<ManageTagTab> {
     }
   }
 
-  // ===================
-  // ✅ DIALOG FUNCTIONS
-  // ===================
-
-  // ✅ Success Dialog with Animation
   void _showSuccessDialog(
     BuildContext context, {
     required IconData icon,
@@ -420,7 +379,6 @@ class _ManageTagTabState extends State<ManageTagTab> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Animated Icon
                 TweenAnimationBuilder(
                   tween: Tween<double>(begin: 0, end: 1),
                   duration: const Duration(milliseconds: 400),
@@ -496,7 +454,6 @@ class _ManageTagTabState extends State<ManageTagTab> {
     );
   }
 
-  // ✅ Error Dialog
   void _showErrorDialog(BuildContext context, String title, String message) {
     showDialog(
       context: context,
@@ -576,11 +533,6 @@ class _ManageTagTabState extends State<ManageTagTab> {
     );
   }
 
-  // ========================
-  // ✅ HELPER FUNCTIONS
-  // ========================
-
-  // ✅ Show Notification Sheet
   void _showNotificationSheet(BuildContext context) {
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
@@ -594,7 +546,6 @@ class _ManageTagTabState extends State<ManageTagTab> {
     );
   }
 
-  // ✅ Show Add Secondary Number Sheet
   void _showAddSecondaryNumberSheet(BuildContext context) async {
     HapticFeedback.mediumImpact();
     final phoneNumber = await showModalBottomSheet<String>(
@@ -603,7 +554,7 @@ class _ManageTagTabState extends State<ManageTagTab> {
       backgroundColor: Colors.transparent,
       builder: (context) => AddSecondaryNumberSheet(
         tagId: widget.tag.tagInternalId.toString(),
-        existingSecondaryNumber: widget.tagSettings?.data.secondaryNumber,  // ✅ Pass existing data
+        existingSecondaryNumber: widget.tagSettings?.data.secondaryNumber,  
       ),
     );
 
@@ -651,7 +602,6 @@ class _ManageTagTabState extends State<ManageTagTab> {
               duration: const Duration(seconds: 3),
             ),
           );
-          // Refresh tag settings
           widget.onDataUpdated?.call();
         }
       } catch (e) {
@@ -671,14 +621,11 @@ class _ManageTagTabState extends State<ManageTagTab> {
     }
   }
 
-  // ✅ Show Emergency Contact Sheet
   void _showEmergencyContactSheet(BuildContext context) async {
     HapticFeedback.mediumImpact();
     try {
-      // ✅ Convert tagInternalId to int for API call
       final tagIdInt = int.tryParse(widget.tag.tagInternalId) ?? 0;
       
-      // ✅ Fetch existing emergency contact data
       final existingEmergency = await EmergencyService.fetchEmergencyInfo(
         tagId: tagIdInt,
       );
@@ -689,7 +636,7 @@ class _ManageTagTabState extends State<ManageTagTab> {
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
           builder: (context) => AddEmergencyContactSheet(
-            tagId: widget.tag.tagInternalId.toString(),  // ✅ Convert to String for sheet
+            tagId: widget.tag.tagInternalId.toString(),  
             existingPrimaryPhone: existingEmergency.data.primaryPhone,
             existingSecondaryPhone: existingEmergency.data.secondaryPhone,
             existingBloodGroup: existingEmergency.data.bloodGroup,
@@ -697,28 +644,24 @@ class _ManageTagTabState extends State<ManageTagTab> {
             existingNote: existingEmergency.data.note,
           ),
         );
-        // ✅ Refresh data after sheet closes
         widget.onDataUpdated?.call();
       }
     } catch (e) {
       print('❌ Error fetching emergency info: $e');
-      // ✅ If no existing data or error, open sheet with empty fields
       if (mounted) {
         await showModalBottomSheet(
           context: context,
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
           builder: (context) => AddEmergencyContactSheet(
-            tagId: widget.tag.tagInternalId.toString(),  // ✅ Convert to String for sheet
+            tagId: widget.tag.tagInternalId.toString(),  
           ),
         );
-        // ✅ Refresh data after sheet closes
         widget.onDataUpdated?.call();
       }
     }
   }
 
-  // ✅ Open RSA in WebView
   void _openRSA(BuildContext context) {
     HapticFeedback.mediumImpact();
     Navigator.push(
@@ -732,10 +675,8 @@ class _ManageTagTabState extends State<ManageTagTab> {
     );
   }
 
-  // ✅ Generate and Download eTag
   void _generateETag(BuildContext context) async {
     HapticFeedback.mediumImpact();
-    
     _showLoadingOverlay(context);
 
     try {
@@ -749,12 +690,10 @@ class _ManageTagTabState extends State<ManageTagTab> {
         countryCode: countryCode,
       );
 
-      // Close loading dialog
       if (mounted) {
         Navigator.pop(context);
       }
 
-      // Show the eTag download sheet
       if (mounted) {
         showModalBottomSheet(
           context: context,
@@ -767,19 +706,14 @@ class _ManageTagTabState extends State<ManageTagTab> {
             downloadUrl: response.data.downloadUrl,
             pdfFile: response.data.pdfFile,
             message: response.message,
-            onClose: () {
-              // User closed the sheet
-            },
+            onClose: () {},
           ),
         );
       }
     } catch (e) {
-      // Close loading dialog
       if (mounted) {
         Navigator.pop(context);
       }
-
-      // Show error dialog
       if (mounted) {
         ErrorDialog.show(
           context: context,
@@ -793,12 +727,7 @@ class _ManageTagTabState extends State<ManageTagTab> {
     }
   }
 
-
-
-  // ========================
-  // ✅ UI WIDGETS
-  // ========================
-
+  // ✅ Updated UI for Action Buttons
   Widget _buildActionButton(
     BuildContext context, {
     required IconData icon,
@@ -809,70 +738,98 @@ class _ManageTagTabState extends State<ManageTagTab> {
     bool isRed = false,
     required VoidCallback onTap,
   }) {
+    final effectiveIconColor = iconColor ?? (isRed ? Colors.red : AppColors.black);
+    
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
         onTap();
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: AppConstants.paddingSmall),
+        // Spacing between cards
+        margin: const EdgeInsets.only(bottom: AppConstants.spacingMedium), 
+        // Internal padding - reduced to make the card more compact
         padding: const EdgeInsets.symmetric(
-          horizontal: AppConstants.cardPaddingMedium,
-          vertical: AppConstants.cardPaddingMedium,
+          horizontal: AppConstants.cardPaddingLarge,
+          vertical: AppConstants.cardPaddingMedium, 
         ),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-          border: Border.all(
-            color: AppColors.lightGrey,
-            width: 1,
-          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 3), // Subtle and clean shadow
+            ),
+          ],
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: AppConstants.iconSizeMedium,
-              color: iconColor ?? (isRed ? Colors.red : AppColors.black),
+            // Circular icon background
+            Container(
+              padding: const EdgeInsets.all(AppConstants.paddingSmall),
+              decoration: BoxDecoration(
+                color: effectiveIconColor.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: AppConstants.iconSizeLarge, // 20.0
+                color: effectiveIconColor,
+              ),
             ),
-            const SizedBox(width: AppConstants.paddingSmall),
+            const SizedBox(width: AppConstants.spacingMedium),
+            
             Expanded(
               child: Text(
                 label,
                 style: TextStyle(
-                  fontSize: AppConstants.fontSizeCardTitle,
-                  fontWeight: FontWeight.w500,
+                  fontSize: AppConstants.fontSizeSectionTitle, // 14.0
+                  fontWeight: FontWeight.w600,
                   color: isRed ? Colors.red : AppColors.black,
+                  letterSpacing: 0.2,
                 ),
               ),
             ),
+            
             if (badge != null) ...[
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 2,
+                  horizontal: AppConstants.paddingSmall,
+                  vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.blue,
-                  borderRadius: BorderRadius.circular(4),
+                  color: Colors.blue.shade600,
+                  borderRadius: BorderRadius.circular(AppConstants.spacingSmall),
                 ),
                 child: Text(
                   badge,
-                  style: TextStyle(
-                    fontSize: AppConstants.fontSizeSmallText,
-                    fontWeight: FontWeight.w700,
+                  style: const TextStyle(
+                    fontSize: AppConstants.fontSizeSmallText, // 8.0
+                    fontWeight: FontWeight.w800,
                     color: Colors.white,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ),
-              const SizedBox(width: AppConstants.paddingSmall),
+              const SizedBox(width: AppConstants.spacingSmall),
             ],
+            
             if (trailing != null)
               Icon(
                 trailing,
-                size: AppConstants.iconSizeMedium,
-                color: isRed ? Colors.red : AppColors.textGrey,
+                size: AppConstants.iconSizeLarge, // 20.0 (good size for toggle switches)
+                color: isRed ? Colors.red.shade400 : Colors.grey.shade400,
               ),
+              
+            // Automatically add a subtle forward arrow if there's no custom trailing icon
+            if (trailing == null && badge == null)
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: AppConstants.iconSizeMedium, // 16.0
+                color: Colors.grey.shade300,
+              )
           ],
         ),
       ),
@@ -881,31 +838,36 @@ class _ManageTagTabState extends State<ManageTagTab> {
 
   Widget _buildRechargeSection() {
     return Container(
-      padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppConstants.cardPaddingLarge,
+        vertical: AppConstants.cardPaddingMedium,
+      ),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-        border: Border.all(
-          color: AppColors.lightGrey.withOpacity(0.3),
-          width: 1,
-        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 50,
-            height: 35,
+            padding: const EdgeInsets.all(AppConstants.paddingSmall),
             decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(6),
+              color: Colors.purple.shade50,
+              shape: BoxShape.circle,
             ),
             child: Icon(
-              Icons.credit_card,
-              color: Colors.grey.shade600,
-              size: AppConstants.iconSizeLarge,
+              Icons.credit_card_rounded,
+              color: Colors.purple.shade600,
+              size: AppConstants.iconSizeGrid, // 24.0
             ),
           ),
-          const SizedBox(width: AppConstants.paddingSmall),
+          const SizedBox(width: AppConstants.spacingMedium),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -913,20 +875,28 @@ class _ManageTagTabState extends State<ManageTagTab> {
                 Text(
                   'FasTag Recharge',
                   style: TextStyle(
-                    fontSize: AppConstants.fontSizeCardTitle,
-                    fontWeight: FontWeight.w700,
+                    fontSize: AppConstants.fontSizeSectionTitle, // 14.0
+                    fontWeight: FontWeight.w800,
                     color: AppColors.black,
+                    letterSpacing: 0.2,
                   ),
                 ),
+                const SizedBox(height: 2), // Very small gap
                 Text(
                   'Win assured Cashback',
                   style: TextStyle(
-                    fontSize: AppConstants.fontSizeCardDescription,
-                    color: AppColors.textGrey,
+                    fontSize: AppConstants.fontSizeCardTitle, // 12.0
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade500,
                   ),
                 ),
               ],
             ),
+          ),
+          Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: AppConstants.iconSizeMedium, // 16.0
+            color: Colors.grey.shade300,
           ),
         ],
       ),

@@ -201,6 +201,32 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
     launchUrl(phoneUri);
   }
 
+  void _initiateVideoCall() {
+    // Check if tag is paused
+    if (_tagProfileData != null && _tagProfileData!.isPaused) {
+      _showErrorSnackBar('Tag is paused. Please enable it first');
+      return;
+    }
+
+    // Check if video calls are enabled
+    if (_tagProfileData == null || !_tagProfileData!.callFlags.videoCallEnabled) {
+      _showErrorSnackBar('Video calls are not enabled for this tag');
+      return;
+    }
+
+    // Placeholder for video call functionality
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Video Call feature coming soon'),
+        backgroundColor: Colors.blue,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppConstants.paddingSmall),
+        ),
+      ),
+    );
+  }
+
   void _onMessageButtonClicked() {
     // Check if tag is paused
     if (_tagProfileData != null && _tagProfileData!.isPaused) {
@@ -617,62 +643,84 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                                   height: AppConstants.spacingLarge),
 
                               // Action Cards - Box Design
-                              Row(
+                              Column(
                                 children: [
-                                  // Call Options - Show either Masked Call or Direct Call
-                                  if (_tagProfileData!.callFlags.callsEnabled) ...[
-                                    // calls_enabled is true, check for masking
-                                    if (_tagProfileData!.callFlags.callMaskingEnabled) ...[
-                                      // Show Masked Call button
-                                      Expanded(
-                                        child: _buildActionCard(
-                                          icon: Icons.phone,
-                                          label: 'Masked Call',
-                                          color: Colors.orange,
-                                          isEnabled: true,
-                                          onTap: _makeCall,
+                                  Row(
+                                    children: [
+                                      // Call Options - Show either Masked Call or Direct Call
+                                      if (_tagProfileData!.callFlags.callsEnabled) ...[
+                                        // calls_enabled is true, check for masking
+                                        if (_tagProfileData!.callFlags.callMaskingEnabled) ...[
+                                          // Show Masked Call button
+                                          Expanded(
+                                            child: _buildActionCard(
+                                              icon: Icons.phone,
+                                              label: 'Masked Call',
+                                              color: Colors.orange,
+                                              isEnabled: true,
+                                              onTap: _makeCall,
+                                            ),
+                                          ),
+                                        ] else ...[
+                                          // Show Direct Call button (opens phone dialer)
+                                          Expanded(
+                                            child: _buildActionCard(
+                                              icon: Icons.phone,
+                                              label: 'Call',
+                                              color: Colors.orange,
+                                              isEnabled: true,
+                                              onTap: _makeCall,
+                                            ),
+                                          ),
+                                        ],
+                                      ] else ...[
+                                        // calls_enabled is false - No call option available
+                                        Expanded(
+                                          child: Opacity(
+                                            opacity: 0.5,
+                                            child: _buildActionCard(
+                                              icon: Icons.phone,
+                                              label: 'Call',
+                                              color: Colors.grey,
+                                              isEnabled: false,
+                                              onTap: () {},
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ] else ...[
-                                      // Show Direct Call button (opens phone dialer)
+                                      ],
+                                      SizedBox(width: AppConstants.spacingLarge),
+                                      // Message - Always enabled when tag is active
                                       Expanded(
                                         child: _buildActionCard(
-                                          icon: Icons.phone,
-                                          label: 'Call',
-                                          color: Colors.orange,
+                                          icon: Icons.chat_bubble,
+                                          label: 'Message',
+                                          color: Colors.blue,
                                           isEnabled: true,
-                                          onTap: _makeCall,
+                                          onTap: _onMessageButtonClicked,
                                         ),
                                       ),
                                     ],
-                                  ] else ...[
-                                    // calls_enabled is false - No call option available
-                                    Expanded(
-                                      child: Opacity(
-                                        opacity: 0.5,
-                                        child: _buildActionCard(
-                                          icon: Icons.phone,
-                                          label: 'Call',
-                                          color: Colors.grey,
-                                          isEnabled: false,
-                                          onTap: () {},
+                                  ),
+                                  // Video Call Option - Centered below the main buttons
+                                  if (_tagProfileData!.callFlags.videoCallEnabled) ...[
+                                    SizedBox(height: AppConstants.spacingLarge),
+                                    Row(
+                                      children: [
+                                        const Spacer(),
+                                        Expanded(
+                                          flex: 2,
+                                          child: _buildActionCard(
+                                            icon: Icons.videocam,
+                                            label: 'Video Call',
+                                            color: Colors.green,
+                                            isEnabled: true,
+                                            onTap: _initiateVideoCall,
+                                          ),
                                         ),
-                                      ),
+                                        const Spacer(),
+                                      ],
                                     ),
                                   ],
-                                  SizedBox(
-                                      width:
-                                          AppConstants.spacingLarge),
-                                  // Message - Always enabled when tag is active
-                                  Expanded(
-                                    child: _buildActionCard(
-                                      icon: Icons.chat_bubble,
-                                      label: 'Message',
-                                      color: Colors.blue,
-                                      isEnabled: true,
-                                      onTap: _onMessageButtonClicked,
-                                    ),
-                                  ),
                                 ],
                               ),
                             ],
@@ -750,49 +798,73 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                             SizedBox(height: AppConstants.spacingMedium),
 
                             // Action Buttons Row
-                            Row(
+                            Column(
                               children: [
-                                // Message Button
-                                Expanded(
-                                  child: _buildSimpleButton(
-                                    icon: Icons.chat_bubble,
-                                    label: 'Message',
-                                    color: Colors.blue,
-                                    onTap: _sendMessage,
-                                  ),
-                                ),
-                                SizedBox(width: AppConstants.spacingMedium),
-                                // Call Button (with check for calls_enabled)
-                                Expanded(
-                                  child: Opacity(
-                                    opacity: _tagProfileData != null &&
-                                            _tagProfileData!
-                                                .callFlags.callsEnabled
-                                        ? 1.0
-                                        : 0.5,
-                                    child: _buildSimpleButton(
-                                      icon: Icons.phone,
-                                      label: _tagProfileData != null &&
-                                              _tagProfileData!.callFlags
-                                                  .callMaskingEnabled
-                                          ? 'Masked Call'
-                                          : 'Call',
-                                      color: _tagProfileData != null &&
-                                              _tagProfileData!
-                                                  .callFlags.callsEnabled
-                                          ? Colors.orange
-                                          : Colors.grey,
-                                      onTap: _tagProfileData != null &&
-                                              _tagProfileData!
-                                                  .callFlags.callsEnabled
-                                          ? _makeCall
-                                          : () {
-                                              _showErrorSnackBar(
-                                                  'Calls are not enabled for this tag');
-                                            },
+                                Row(
+                                  children: [
+                                    // Message Button
+                                    Expanded(
+                                      child: _buildSimpleButton(
+                                        icon: Icons.chat_bubble,
+                                        label: 'Message',
+                                        color: Colors.blue,
+                                        onTap: _sendMessage,
+                                      ),
                                     ),
-                                  ),
+                                    SizedBox(width: AppConstants.spacingMedium),
+                                    // Call Button (with check for calls_enabled)
+                                    Expanded(
+                                      child: Opacity(
+                                        opacity: _tagProfileData != null &&
+                                                _tagProfileData!
+                                                    .callFlags.callsEnabled
+                                            ? 1.0
+                                            : 0.5,
+                                        child: _buildSimpleButton(
+                                          icon: Icons.phone,
+                                          label: _tagProfileData != null &&
+                                                  _tagProfileData!.callFlags
+                                                      .callMaskingEnabled
+                                              ? 'Masked Call'
+                                              : 'Call',
+                                          color: _tagProfileData != null &&
+                                                  _tagProfileData!
+                                                      .callFlags.callsEnabled
+                                              ? Colors.orange
+                                              : Colors.grey,
+                                          onTap: _tagProfileData != null &&
+                                                  _tagProfileData!
+                                                      .callFlags.callsEnabled
+                                              ? _makeCall
+                                              : () {
+                                                  _showErrorSnackBar(
+                                                      'Calls are not enabled for this tag');
+                                                },
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                                // Video Call Option - Centered below
+                                if (_tagProfileData != null &&
+                                    _tagProfileData!.callFlags.videoCallEnabled) ...[
+                                  SizedBox(height: AppConstants.spacingMedium),
+                                  Row(
+                                    children: [
+                                      const Spacer(),
+                                      Expanded(
+                                        flex: 2,
+                                        child: _buildSimpleButton(
+                                          icon: Icons.videocam,
+                                          label: 'Video Call',
+                                          color: Colors.green,
+                                          onTap: _initiateVideoCall,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                    ],
+                                  ),
+                                ],
                               ],
                             ),
                           ],

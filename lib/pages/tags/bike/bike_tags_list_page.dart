@@ -111,9 +111,9 @@ class _BikeTagsListPageState extends State<BikeTagsListPage> {
 
                 Expanded(
                   child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: const BorderRadius.only(
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF8F9FA), // Professional Off-White Background
+                      borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(30),
                         topRight: Radius.circular(30),
                       ),
@@ -128,7 +128,7 @@ class _BikeTagsListPageState extends State<BikeTagsListPage> {
                                 'Manage All your Bike tags! 🏍️',
                                 style: TextStyle(
                                   fontSize: AppConstants.fontSizePageTitle,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w800,
                                   color: AppColors.black,
                                 ),
                               ),
@@ -161,16 +161,17 @@ class _BikeTagsListPageState extends State<BikeTagsListPage> {
                                           ),
                                         )
                                       : ListView.builder(
-                                          physics:
-                                              const BouncingScrollPhysics(),
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal:
-                                                AppConstants.paddingLarge,
+                                          physics: const BouncingScrollPhysics(),
+                                          padding: const EdgeInsets.only(
+                                            left: AppConstants.paddingLarge,
+                                            right: AppConstants.paddingLarge,
+                                            bottom: 30,
                                           ),
                                           itemCount: _bikeTags.length,
                                           itemBuilder: (context, index) {
                                             return _buildBikeTagCard(
                                               _bikeTags[index],
+                                              index, // Pass the index here
                                             );
                                           },
                                         ),
@@ -187,7 +188,7 @@ class _BikeTagsListPageState extends State<BikeTagsListPage> {
     );
   }
 
-  Widget _buildBikeTagCard(Tag tag) {
+  Widget _buildBikeTagCard(Tag tag, int index) {
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
@@ -199,132 +200,150 @@ class _BikeTagsListPageState extends State<BikeTagsListPage> {
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: AppConstants.paddingMedium),
-        padding: const EdgeInsets.all(AppConstants.cardPaddingLarge),
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-          border: Border.all(
-            color: AppColors.lightGrey,
-            width: 1,
-          ),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // ✅ Main Row - Tag info on left, badges on right
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            // 1. Index Counter Circle
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.primaryYellow.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  '${index + 1}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.darkYellow,
+                  ),
+                ),
+              ),
+            ),
+            
+            const SizedBox(width: 12),
+
+            // 2. Tag Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tag.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis, // Ensure title stays on one line
+                    style: TextStyle(
+                      fontSize: AppConstants.fontSizeSectionTitle,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                      color: AppColors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  
+                  // ✅ FittedBox will automatically scale down long text 
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'ID: ${tag.tagPublicId}',
+                      maxLines: 1, // Forces it to stay on 1 line
+                      style: TextStyle(
+                        fontSize: 12, 
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(width: 8),
+            
+            // 3. Status Badges
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Left side - Tag ID and Full Tag ID
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                // Calls Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: tag.callsEnabled ? Colors.green.shade50 : Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        tag.displayName,
+                        tag.callsEnabled ? 'Calls active' : 'Calls disabled',
                         style: TextStyle(
-                          fontSize: AppConstants.fontSizeSectionTitle,
+                          fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.black,
+                          color: tag.callsEnabled ? Colors.green.shade700 : Colors.red.shade700,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Tag id: ${tag.tagPublicId}',
-                        style: TextStyle(
-                          fontSize: AppConstants.fontSizeCardDescription,
-                          color: AppColors.textGrey,
-                        ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        tag.callsEnabled ? Icons.phone : Icons.phone_disabled,
+                        size: 10,
+                        color: tag.callsEnabled ? Colors.green.shade700 : Colors.red.shade700,
                       ),
                     ],
                   ),
                 ),
                 
-                const SizedBox(width: 8),
+                const SizedBox(height: 8),
                 
-                // ✅ Right side - Status badges (vertical stack)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    // ✅ Calls active/disabled badge - Dynamic
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                // Status Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: tag.status.toLowerCase() == 'active' 
+                        ? Colors.blue.shade50 
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        tag.status.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
+                          color: tag.status.toLowerCase() == 'active' 
+                              ? Colors.blue.shade700 
+                              : Colors.grey.shade600,
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: tag.callsEnabled ? Colors.green.shade50 : Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            tag.callsEnabled ? 'Calls active' : 'Calls disabled',
-                            style: TextStyle(
-                              fontSize: AppConstants.fontSizeSmallText,
-                              fontWeight: FontWeight.w600,
-                              color: tag.callsEnabled ? Colors.green.shade700 : Colors.red.shade700,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            tag.callsEnabled ? Icons.phone : Icons.phone_disabled,
-                            size: 12,
-                            color: tag.callsEnabled ? Colors.green.shade700 : Colors.red.shade700,
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 6),
-                    
-                    // ✅ Status badge - Dynamic
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
+                      const SizedBox(width: 4),
+                      Icon(
+                        tag.status.toLowerCase() == 'active' ? Icons.play_arrow : Icons.pause,
+                        size: 10,
                         color: tag.status.toLowerCase() == 'active' 
-                            ? Colors.blue.shade50 
-                            : Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(6),
+                            ? Colors.blue.shade700 
+                            : Colors.grey.shade600,
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            tag.status,
-                            style: TextStyle(
-                              fontSize: AppConstants.fontSizeSmallText,
-                              fontWeight: FontWeight.w600,
-                              color: tag.status.toLowerCase() == 'active' 
-                                  ? Colors.blue.shade700 
-                                  : Colors.grey.shade700,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            tag.status.toLowerCase() == 'active' ? Icons.play_arrow : Icons.pause,
-                            size: 12,
-                            color: tag.status.toLowerCase() == 'active' 
-                                ? Colors.blue.shade700 
-                                : Colors.grey.shade700,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),

@@ -30,8 +30,8 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
   TagSettings? _tagSettings;
   bool _isLoadingSettings = true;
   String _settingsError = '';
-  bool _hasPremium = false; // ✅ Premium status
-  bool _isLoadingPremium = false; // ✅ Loading premium data
+  bool _hasPremium = false; 
+  bool _isLoadingPremium = false; 
 
   @override
   void initState() {
@@ -43,7 +43,7 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
     );
     _checkLoginStatus();
     _loadTagSettings();
-    _loadPremiumData(); // ✅ Load premium data
+    _loadPremiumData(); 
   }
 
   @override
@@ -62,7 +62,6 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
     }
   }
 
-  // ✅ Load premium data from cache
   Future<void> _loadPremiumData() async {
     try {
       setState(() {
@@ -85,7 +84,6 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
     }
   }
 
-  // ✅ Check if vehicle is from DL or UP state
   bool _isVehicleFromStateCode(List<String> stateCodes) {
     final vehicleNumber = widget.tag.displayName.toUpperCase();
     print('Checking vehicle number: $vehicleNumber against state codes: $stateCodes');
@@ -143,7 +141,6 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
     HapticFeedback.lightImpact();
   }
 
-  // ✅ Open RSA in WebView
   void _openRSA() {
     HapticFeedback.mediumImpact();
     Navigator.push(
@@ -163,7 +160,6 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
       backgroundColor: AppColors.white,
       body: Stack(
         children: [
-          // ✅ Yellow gradient background
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -177,13 +173,11 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
               ),
             ),
           ),
-          // ✅ Show loading or content based on state
           if (_isLoadingSettings)
             _buildInitialLoadingScreen()
           else if (_settingsError.isNotEmpty)
             _buildErrorScreen()
           else
-            // ✅ Content with curve
             Column(
               children: [
                 SafeArea(
@@ -195,11 +189,10 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
                     showCartIcon: false,
                   ),
                 ),
-                // ✅ Curved white container
                 Expanded(
                   child: Container(
                     decoration: const BoxDecoration(
-                      color: AppColors.background,
+                      color: Color(0xFFF5F6F8), // ✅ Professional Off-White Background
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(30),
                         topRight: Radius.circular(30),
@@ -212,32 +205,24 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
                       ),
                       child: Column(
                         children: [
-                          // Fixed Header Section
                           Container(
-                            color: AppColors.background,
+                            color: const Color(0xFFF5F6F8), // ✅ Ensure header matches
                             child: Padding(
                               padding: const EdgeInsets.all(AppConstants.paddingLarge),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Tag Header
                                   _buildTagHeader(),
                                   const SizedBox(height: AppConstants.spacingSmall),
-                                  // ✅ Demo Tag Disclaimer
                                   if (_tagSettings?.data.isDemoTag ?? false)
                                     _buildDemoTagDisclaimer(),
                                   if (_tagSettings?.data.isDemoTag ?? false)
                                     const SizedBox(height: AppConstants.spacingSmall),
-                                  // Scan Count
-                                  // _buildScanCount(),
-                                  // const SizedBox(height: AppConstants.spacingMedium),
-                                  // Tabs
                                   _buildTabs(),
                                 ],
                               ),
                             ),
                           ),
-                          // Swipeable PageView for Tab Content
                           Expanded(
                             child: PageView(
                               controller: _pageController,
@@ -247,12 +232,12 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
                                 ManageTagTab(
                                   tag: widget.tag,
                                   tagSettings: _tagSettings,
-                                  onDataUpdated: _loadTagSettings,  // ✅ Pass refresh callback
+                                  onDataUpdated: _loadTagSettings, 
                                 ),
                                 MoreTab(
                                   tag: widget.tag,
                                   tagSettings: _tagSettings,
-                                  onDataUpdated: _loadTagSettings,  // ✅ Pass refresh callback
+                                  onDataUpdated: _loadTagSettings, 
                                 ),
                               ],
                             ),
@@ -264,8 +249,6 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
                 ),
               ],
             ),
-          // Bottom Button with animation
-          // ✅ Show button if: (Manage tab + DL/UP) OR (More tab + no premium)
           if (!_isLoadingSettings && 
               !_isLoadingPremium &&
               ((_selectedTab == 0 && _isVehicleFromStateCode(['DL', 'UP'])) || 
@@ -280,9 +263,7 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
                 child: ElevatedButton(
                   onPressed: () {
                     HapticFeedback.mediumImpact();
-                    // ✅ Updated logic
                     if (_selectedTab == 1) {
-                      // Navigate to Membership Page
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -290,7 +271,6 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
                         ),
                       );
                     } else {
-                      // Open "List Your Car" in WebView
                       final vehicleNumber = widget.tag.displayName;
                       Navigator.push(
                         context,
@@ -331,7 +311,6 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
     );
   }
 
-  // ✅ Initial Loading Screen Widget
   Widget _buildInitialLoadingScreen() {
     return Column(
       children: [
@@ -347,7 +326,7 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
         Expanded(
           child: Container(
             decoration: const BoxDecoration(
-              color: AppColors.background,
+              color: Color(0xFFF5F6F8), // ✅ Match off-white
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(30),
                 topRight: Radius.circular(30),
@@ -357,7 +336,6 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Animated icon
                   TweenAnimationBuilder(
                     tween: Tween<double>(begin: 0, end: 1),
                     duration: const Duration(milliseconds: 600),
@@ -380,7 +358,6 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
                     },
                   ),
                   const SizedBox(height: 32),
-                  // Yellow circular progress indicator
                   SizedBox(
                     width: 40,
                     height: 40,
@@ -416,7 +393,6 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
     );
   }
 
-  // ✅ Error Screen Widget
   Widget _buildErrorScreen() {
     return Column(
       children: [
@@ -432,7 +408,7 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
         Expanded(
           child: Container(
             decoration: const BoxDecoration(
-              color: AppColors.background,
+              color: Color(0xFFF5F6F8), // ✅ Match off-white
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(30),
                 topRight: Radius.circular(30),
@@ -515,14 +491,18 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
 
   Widget _buildTagHeader() {
     return Container(
-      padding: const EdgeInsets.all(AppConstants.cardPaddingLarge),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-        border: Border.all(
-          color: AppColors.lightGrey.withOpacity(0.3),
-          width: 1,
-        ),
+        color: AppColors.white, // ✅ Keep card white
+        borderRadius: BorderRadius.circular(16),
+        // ✅ Add modern, subtle drop shadow instead of harsh border
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -535,23 +515,28 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
                   '#${widget.tag.displayName}',
                   style: TextStyle(
                     fontSize: AppConstants.fontSizePageTitle,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
                     color: AppColors.black,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Tag id: ${widget.tag.tagPublicId}',
-                  style: TextStyle(
-                    fontSize: AppConstants.fontSizeSubtitle,
-                    color: AppColors.textGrey,
-                    fontWeight: FontWeight.w500,
+                const SizedBox(height: 6),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Tag id: ${widget.tag.tagPublicId}',
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          // ✅ RSA Badge - Now clickable
           GestureDetector(
             onTap: () {
               HapticFeedback.lightImpact();
@@ -559,12 +544,12 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
             },
             child: Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppConstants.paddingMedium,
-                vertical: 6,
+                horizontal: 14,
+                vertical: 8,
               ),
               decoration: BoxDecoration(
                 color: AppColors.activeYellow,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
                     color: AppColors.activeYellow.withOpacity(0.3),
@@ -578,7 +563,7 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
                   Text(
                     'RSA',
                     style: TextStyle(
-                      fontSize: AppConstants.fontSizeCardTitle,
+                      fontSize: 13,
                       fontWeight: FontWeight.w800,
                       color: AppColors.black,
                     ),
@@ -586,7 +571,7 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
                   const SizedBox(width: 4),
                   Icon(
                     Icons.car_repair,
-                    size: AppConstants.iconSizeMedium,
+                    size: 16,
                     color: AppColors.black,
                   ),
                 ],
@@ -598,17 +583,12 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
     );
   }
 
-  // ✅ Demo Tag Disclaimer Widget
   Widget _buildDemoTagDisclaimer() {
     return Container(
       padding: const EdgeInsets.all(AppConstants.paddingSmall),
       decoration: BoxDecoration(
         color: Colors.orange.shade50,
-        border: Border.all(
-          color: Colors.orange.shade200,
-          width: 1,
-        ),
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -634,25 +614,22 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
     );
   }
 
-  // Widget _buildScanCount() {
-  //   return Padding(
-  //     padding: const EdgeInsets.symmetric(horizontal: 4),
-  //     // child: Text(
-  //     //   'Tag id: ${widget.tag.tagPublicId}',
-  //     //   style: TextStyle(
-  //     //     fontSize: AppConstants.fontSizeSubtitle,
-  //     //     color: AppColors.textGrey,
-  //     //     fontWeight: FontWeight.w500,
-  //     //   ),
-  //     // ),
-  //   );
-  // }
-
   Widget _buildTabs() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: AppConstants.paddingSmall),
+     margin: const EdgeInsets.only(
+        top: AppConstants.paddingSmall,
+        bottom: 0, // Set to 0
+      ),
+      padding: const EdgeInsets.all(4), // Inner padding to create a track effect
+      decoration: BoxDecoration(
+        color: AppColors.white, // Solid white background
+        borderRadius: BorderRadius.circular(30), // Fully rounded pill shape
+        
+      ),
       child: Row(
+        mainAxisSize: MainAxisSize.min, // Hugs the tabs tightly
         children: [
+          // Manage Tag Tab
           GestureDetector(
             onTap: () {
               HapticFeedback.selectionClick();
@@ -662,32 +639,30 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeInOut,
               padding: const EdgeInsets.symmetric(
-                horizontal: AppConstants.paddingLarge,
-                vertical: AppConstants.paddingSmall,
+                horizontal: 24, 
+                vertical: 10,
               ),
               decoration: BoxDecoration(
-                color: AppColors.white,
-                border: Border(
-                  bottom: BorderSide(
-                    color: _selectedTab == 0
-                        ? AppColors.activeYellow
-                        : Colors.transparent,
-                    width: 2,
-                  ),
-                ),
+                color: _selectedTab == 0 
+                    ? AppColors.activeYellow // Solid flat yellow
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(26), // Inner pill
+                // ✅ Removed the yellow glowing shadow
               ),
               child: AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 200),
                 style: TextStyle(
                   fontSize: AppConstants.fontSizeSectionTitle,
                   fontWeight: _selectedTab == 0 ? FontWeight.w700 : FontWeight.w600,
-                  color: AppColors.black,
+                  color: _selectedTab == 0 ? Colors.white : AppColors.textGrey,
+                  letterSpacing: 0.3,
                 ),
                 child: const Text('Manage tag'),
               ),
             ),
           ),
-          const SizedBox(width: AppConstants.spacingLarge),
+          
+          // MORE Tab
           GestureDetector(
             onTap: () {
               HapticFeedback.selectionClick();
@@ -697,27 +672,23 @@ class _CarTagDetailsPageState extends State<CarTagDetailsPage>
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeInOut,
               padding: const EdgeInsets.symmetric(
-                horizontal: AppConstants.paddingMedium,
-                vertical: AppConstants.paddingSmall,
+                horizontal: 28, // Slightly wider padding for shorter word to balance it
+                vertical: 10,
               ),
               decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: _selectedTab == 1
-                        ? AppColors.activeYellow
-                        : Colors.transparent,
-                    width: 2,
-                  ),
-                ),
+                color: _selectedTab == 1 
+                    ? AppColors.activeYellow // Solid flat yellow
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(26),
+                // ✅ Removed the yellow glowing shadow
               ),
               child: AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 200),
                 style: TextStyle(
                   fontSize: AppConstants.fontSizeSectionTitle,
-                  fontWeight: _selectedTab == 1 ? FontWeight.w700 : FontWeight.w500,
-                  color: _selectedTab == 1
-                      ? AppColors.black
-                      : AppColors.textGrey,
+                  fontWeight: _selectedTab == 1 ? FontWeight.w700 : FontWeight.w600,
+                  color: _selectedTab == 1 ? Colors.white : AppColors.textGrey,
+                  letterSpacing: 0.3,
                 ),
                 child: const Text('MORE'),
               ),

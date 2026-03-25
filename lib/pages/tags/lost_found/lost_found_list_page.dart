@@ -140,25 +140,50 @@ class _LostFoundListPageState extends State<LostFoundListPage> {
 
                 Expanded(
                   child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: const BorderRadius.only(
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF8F9FA), // Professional Off-White Background
+                      borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(30),
                         topRight: Radius.circular(30),
                       ),
                     ),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Page Title
                         Padding(
                           padding: const EdgeInsets.all(AppConstants.paddingLarge),
                           child: Row(
                             children: [
-                              Text(
-                                'Manage All your tags! 🤩',
-                                style: TextStyle(
-                                  fontSize: AppConstants.fontSizePageTitle,
-                                  fontWeight: FontWeight.w700,
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.06),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.inventory_2, // Perfect icon for lost/found tags
+                                  size: AppConstants.iconSizeGrid,
                                   color: AppColors.black,
+                                ),
+                              ),
+                              const SizedBox(width: AppConstants.paddingMedium),
+                              Expanded(
+                                child: Text(
+                                  'Manage All your tags! 🤩',
+                                  style: TextStyle(
+                                    fontSize: AppConstants.fontSizePageTitle,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.black,
+                                    height: 1.2,
+                                  ),
                                 ),
                               ),
                             ],
@@ -190,16 +215,17 @@ class _LostFoundListPageState extends State<LostFoundListPage> {
                                           ),
                                         )
                                       : ListView.builder(
-                                          physics:
-                                              const BouncingScrollPhysics(),
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal:
-                                                AppConstants.paddingLarge,
+                                          physics: const BouncingScrollPhysics(),
+                                          padding: const EdgeInsets.only(
+                                            left: AppConstants.paddingLarge,
+                                            right: AppConstants.paddingLarge,
+                                            bottom: 30,
                                           ),
                                           itemCount: _items.length,
                                           itemBuilder: (context, index) {
                                             return _buildTagCard(
                                               _items[index],
+                                              index, // Pass the index here
                                             );
                                           },
                                         ),
@@ -216,7 +242,7 @@ class _LostFoundListPageState extends State<LostFoundListPage> {
     );
   }
 
-  Widget _buildTagCard(LostFoundItem item) {
+  Widget _buildTagCard(LostFoundItem item, int index) {
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
@@ -228,132 +254,150 @@ class _LostFoundListPageState extends State<LostFoundListPage> {
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: AppConstants.paddingMedium),
-        padding: const EdgeInsets.all(AppConstants.cardPaddingLarge),
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-          border: Border.all(
-            color: AppColors.lightGrey,
-            width: 1,
-          ),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // ✅ Main Row - Tag info on left, badges on right
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            // 1. Index Counter Circle
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.primaryYellow.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  '${index + 1}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.darkYellow,
+                  ),
+                ),
+              ),
+            ),
+            
+            const SizedBox(width: 12),
+
+            // 2. Tag Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.tagId,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis, // Ensure title stays on one line
+                    style: TextStyle(
+                      fontSize: AppConstants.fontSizeSectionTitle,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                      color: AppColors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  
+                  // FittedBox will automatically scale down long text 
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'ID: ${item.fullTagId}',
+                      maxLines: 1, // Forces it to stay on 1 line
+                      style: TextStyle(
+                        fontSize: 12, 
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(width: 8),
+            
+            // 3. Status Badges
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Left side - Tag ID and Full Tag ID
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                // Calls Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: item.callsActive ? Colors.green.shade50 : Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        item.tagId,
+                        item.callsActive ? 'Calls active' : 'Calls disabled',
                         style: TextStyle(
-                          fontSize: AppConstants.fontSizeSectionTitle,
+                          fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.black,
+                          color: item.callsActive ? Colors.green.shade700 : Colors.red.shade700,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Tag id: ${item.fullTagId}',
-                        style: TextStyle(
-                          fontSize: AppConstants.fontSizeCardDescription,
-                          color: AppColors.textGrey,
-                        ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        item.callsActive ? Icons.phone : Icons.phone_disabled,
+                        size: 10,
+                        color: item.callsActive ? Colors.green.shade700 : Colors.red.shade700,
                       ),
                     ],
                   ),
                 ),
                 
-                const SizedBox(width: 8),
+                const SizedBox(height: 8),
                 
-                // ✅ Right side - Status badges (vertical stack)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    // ✅ Calls active/disabled badge - Dynamic
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                // Status Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: item.status.toLowerCase() == 'active' 
+                        ? Colors.blue.shade50 
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        item.status.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
+                          color: item.status.toLowerCase() == 'active' 
+                              ? Colors.blue.shade700 
+                              : Colors.grey.shade600,
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: item.callsActive ? Colors.green.shade50 : Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            item.callsActive ? 'Calls active' : 'Calls disabled',
-                            style: TextStyle(
-                              fontSize: AppConstants.fontSizeSmallText,
-                              fontWeight: FontWeight.w600,
-                              color: item.callsActive ? Colors.green.shade700 : Colors.red.shade700,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            item.callsActive ? Icons.phone : Icons.phone_disabled,
-                            size: 12,
-                            color: item.callsActive ? Colors.green.shade700 : Colors.red.shade700,
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 6),
-                    
-                    // ✅ Status badge - Dynamic
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
+                      const SizedBox(width: 4),
+                      Icon(
+                        item.status.toLowerCase() == 'active' ? Icons.play_arrow : Icons.pause,
+                        size: 10,
                         color: item.status.toLowerCase() == 'active' 
-                            ? Colors.blue.shade50 
-                            : Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(6),
+                            ? Colors.blue.shade700 
+                            : Colors.grey.shade600,
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            item.status,
-                            style: TextStyle(
-                              fontSize: AppConstants.fontSizeSmallText,
-                              fontWeight: FontWeight.w600,
-                              color: item.status.toLowerCase() == 'active' 
-                                  ? Colors.blue.shade700 
-                                  : Colors.grey.shade700,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            item.status.toLowerCase() == 'active' ? Icons.play_arrow : Icons.pause,
-                            size: 12,
-                            color: item.status.toLowerCase() == 'active' 
-                                ? Colors.blue.shade700 
-                                : Colors.grey.shade700,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),

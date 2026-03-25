@@ -201,11 +201,11 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
                     showCartIcon: false,
                   ),
                 ),
-                // ✅ Curved white container
+                // ✅ Curved off-white container matching car design
                 Expanded(
                   child: Container(
                     decoration: const BoxDecoration(
-                      color: AppColors.background,
+                      color: Color(0xFFF5F6F8), // ✅ Professional Off-White Background
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(30),
                         topRight: Radius.circular(30),
@@ -220,18 +220,19 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
                         children: [
                           // Fixed Header Section
                           Container(
-                            color: AppColors.background,
+                            color: const Color(0xFFF5F6F8),
                             child: Padding(
                               padding: const EdgeInsets.all(AppConstants.paddingLarge),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Tag Header (without card)
+                                  // Tag Header (styled card)
                                   _buildTagHeader(),
+                                  if (_tagSettings?.data.isDemoTag ?? false)
+                                    const SizedBox(height: AppConstants.spacingSmall),
+                                  if (_tagSettings?.data.isDemoTag ?? false)
+                                    _buildDemoTagDisclaimer(),
                                   const SizedBox(height: AppConstants.spacingSmall),
-                                  // Scan Count
-                                  // _buildScanCount(),
-                                  // const SizedBox(height: AppConstants.spacingMedium),
                                   // Tabs
                                   _buildTabs(),
                                 ],
@@ -324,7 +325,7 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
         Expanded(
           child: Container(
             decoration: const BoxDecoration(
-              color: AppColors.background,
+              color: Color(0xFFF5F6F8), // Match off-white
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(30),
                 topRight: Radius.circular(30),
@@ -409,7 +410,7 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
         Expanded(
           child: Container(
             decoration: const BoxDecoration(
-              color: AppColors.background,
+              color: Color(0xFFF5F6F8), // Match off-white
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(30),
                 topRight: Radius.circular(30),
@@ -514,11 +515,7 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
       padding: const EdgeInsets.all(AppConstants.paddingSmall),
       decoration: BoxDecoration(
         color: Colors.orange.shade50,
-        border: Border.all(
-          color: Colors.orange.shade200,
-          width: 1,
-        ),
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -544,50 +541,75 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
     );
   }
 
+  // ✅ Styled Header Card
   Widget _buildTagHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '#${widget.tag.displayName}',
-          style: TextStyle(
-            fontSize: AppConstants.fontSizePageTitle,
-            fontWeight: FontWeight.w700,
-            color: AppColors.black,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Tag id: ${widget.tag.tagPublicId}',
-          style: TextStyle(
-            fontSize: AppConstants.fontSizeSubtitle,
-            color: AppColors.textGrey,
-            fontWeight: FontWeight.w500,
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '#${widget.tag.displayName}',
+                  style: TextStyle(
+                    fontSize: AppConstants.fontSizePageTitle,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                    color: AppColors.black,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Tag id: ${widget.tag.tagPublicId}',
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  // Widget _buildScanCount() {
-  //   return Padding(
-  //     padding: const EdgeInsets.symmetric(horizontal: 4),
-  //     child: Text(
-  //       'Tag id: ${widget.tag.tagPublicId}',
-  //       style: TextStyle(
-  //         fontSize: AppConstants.fontSizeSubtitle,
-  //         color: AppColors.textGrey,
-  //         fontWeight: FontWeight.w500,
-  //       ),
-  //     ),
-  //   );
-  // }
-
+  // ✅ Modern Pill Tabs
   Widget _buildTabs() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: AppConstants.paddingSmall),
+      margin: const EdgeInsets.only(
+        top: AppConstants.paddingSmall,
+        bottom: 0,
+      ),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(30),
+      ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
+          // Manage Tag Tab
           GestureDetector(
             onTap: () {
               HapticFeedback.selectionClick();
@@ -597,32 +619,29 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeInOut,
               padding: const EdgeInsets.symmetric(
-                horizontal: AppConstants.paddingLarge,
-                vertical: AppConstants.paddingSmall,
+                horizontal: 24, 
+                vertical: 10,
               ),
               decoration: BoxDecoration(
-                color: AppColors.white,
-                border: Border(
-                  bottom: BorderSide(
-                    color: _selectedTab == 0
-                        ? AppColors.activeYellow
-                        : Colors.transparent,
-                    width: 2,
-                  ),
-                ),
+                color: _selectedTab == 0 
+                    ? AppColors.activeYellow 
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(26), 
               ),
               child: AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 200),
                 style: TextStyle(
                   fontSize: AppConstants.fontSizeSectionTitle,
                   fontWeight: _selectedTab == 0 ? FontWeight.w700 : FontWeight.w600,
-                  color: AppColors.black,
+                  color: _selectedTab == 0 ? Colors.white : AppColors.textGrey,
+                  letterSpacing: 0.3,
                 ),
                 child: const Text('Manage tag'),
               ),
             ),
           ),
-          const SizedBox(width: AppConstants.spacingLarge),
+          
+          // MORE Tab
           GestureDetector(
             onTap: () {
               HapticFeedback.selectionClick();
@@ -632,25 +651,22 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeInOut,
               padding: const EdgeInsets.symmetric(
-                horizontal: AppConstants.paddingMedium,
-                vertical: AppConstants.paddingSmall,
+                horizontal: 28, 
+                vertical: 10,
               ),
               decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: _selectedTab == 1
-                        ? AppColors.activeYellow
-                        : Colors.transparent,
-                    width: 2,
-                  ),
-                ),
+                color: _selectedTab == 1 
+                    ? AppColors.activeYellow 
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(26),
               ),
               child: AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 200),
                 style: TextStyle(
                   fontSize: AppConstants.fontSizeSectionTitle,
-                  fontWeight: _selectedTab == 1 ? FontWeight.w700 : FontWeight.w500,
-                  color: _selectedTab == 1 ? AppColors.black : AppColors.textGrey,
+                  fontWeight: _selectedTab == 1 ? FontWeight.w700 : FontWeight.w600,
+                  color: _selectedTab == 1 ? Colors.white : AppColors.textGrey,
+                  letterSpacing: 0.3,
                 ),
                 child: const Text('MORE'),
               ),
@@ -762,7 +778,7 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
         // ✅ Shows opposite text (Enable when disabled, Disable when enabled)
         _buildActionButton(
           icon: _isWhatsappEnabled ? Icons.chat_bubble : Icons.chat_bubble_outline,
-          iconColor: _isWhatsappEnabled ? Colors.green.shade600 : Colors.grey.shade600,
+          iconColor: _isWhatsappEnabled ? Colors.green.shade600 : Colors.blue.shade600,
           label: _isWhatsappEnabled ? 'Disable WhatsApp Notifications' : 'Enable WhatsApp Notifications',
           trailing: _isWhatsappEnabled ? Icons.toggle_on : Icons.toggle_off_outlined,
           onTap: () => _toggleWhatsapp(),
@@ -776,18 +792,18 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
         ),
         _buildActionButton(
           icon: Icons.upload_file,
-          iconColor: Colors.blue.shade600,
+          iconColor: Colors.purple.shade600,
           label: 'Upload files',
           trailing: Icons.file_upload,
           onTap: () {
-    // ✅ OPEN THE NEW SHEET HERE
-    final tagId = int.tryParse(widget.tag.tagInternalId) ?? 0;
-    FileUploadSheet.show(context, tagId: tagId);
-  },
+            // ✅ OPEN THE NEW SHEET HERE
+            final tagId = int.tryParse(widget.tag.tagInternalId) ?? 0;
+            FileUploadSheet.show(context, tagId: tagId);
+          },
         ),
         _buildActionButton(
           icon: Icons.videocam,
-          iconColor: Colors.grey.shade600,
+          iconColor: Colors.teal.shade600,
           label: 'Enable Video Call',
           trailing: Icons.toggle_off_outlined,
           onTap: () => _showComingSoonDialog(),
@@ -807,7 +823,7 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
           ),
         _buildActionButton(
           icon: Icons.autorenew,
-          iconColor: Colors.teal.shade600,
+          iconColor: Colors.brown.shade600,
           label: 'Get a Tag Replacement',
           trailing: Icons.autorenew,
           onTap: () {
@@ -838,14 +854,21 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
         if (_isLoadingPremium)
           // Loading state
           Container(
-            padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
+            margin: const EdgeInsets.only(bottom: AppConstants.spacingMedium),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppConstants.cardPaddingLarge,
+              vertical: AppConstants.cardPaddingMedium,
+            ),
             decoration: BoxDecoration(
-              color: Colors.purple.shade50,
-              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-              border: Border.all(
-                color: Colors.purple.shade200,
-                width: 2,
-              ),
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -862,7 +885,8 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
                 Text(
                   'Loading membership status...',
                   style: TextStyle(
-                    fontSize: AppConstants.fontSizeCardDescription,
+                    fontSize: AppConstants.fontSizeSectionTitle,
+                    fontWeight: FontWeight.w600,
                     color: Colors.purple.shade600,
                   ),
                 ),
@@ -872,26 +896,40 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
         else if (_hasPremium)
           // ✅ Show Membership Badge if user has premium
           Container(
-            padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
+            margin: const EdgeInsets.only(bottom: AppConstants.spacingMedium),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppConstants.cardPaddingLarge,
+              vertical: AppConstants.cardPaddingMedium,
+            ),
             decoration: BoxDecoration(
-              color: Colors.purple.shade50,
-              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-              border: Border.all(
-                color: Colors.purple.shade200,
-                width: 2,
-              ),
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    Icon(
-                      Icons.workspace_premium,
-                      size: AppConstants.iconSizeLarge,
-                      color: Colors.purple,
+                    Container(
+                      padding: const EdgeInsets.all(AppConstants.paddingSmall),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withOpacity(0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.workspace_premium,
+                        size: AppConstants.iconSizeLarge,
+                        color: Colors.purple,
+                      ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppConstants.spacingMedium),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -900,14 +938,17 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
                           style: TextStyle(
                             fontSize: AppConstants.fontSizeSectionTitle,
                             fontWeight: FontWeight.w700,
-                            color: Colors.purple,
+                            color: AppColors.black,
+                            letterSpacing: 0.2,
                           ),
                         ),
+                        const SizedBox(height: 2),
                         Text(
                           'Enjoy exclusive features',
                           style: TextStyle(
-                            fontSize: AppConstants.fontSizeCardDescription,
-                            color: Colors.purple.shade600,
+                            fontSize: AppConstants.fontSizeCardTitle,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey.shade500,
                           ),
                         ),
                       ],
@@ -917,7 +958,7 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
                 Icon(
                   Icons.check_circle,
                   color: Colors.green.shade600,
-                  size: 24,
+                  size: AppConstants.iconSizeLarge,
                 ),
               ],
             ),
@@ -926,6 +967,7 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
     );
   }
 
+  // ✅ New Action Button Design
   Widget _buildActionButton({
     required IconData icon,
     Color? iconColor,
@@ -935,76 +977,101 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
     bool isRed = false,
     required VoidCallback onTap,
   }) {
+    final effectiveIconColor = iconColor ?? (isRed ? Colors.red : AppColors.black);
+
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
         onTap();
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: AppConstants.paddingSmall),
+        margin: const EdgeInsets.only(bottom: AppConstants.spacingMedium),
         padding: const EdgeInsets.symmetric(
-          horizontal: AppConstants.cardPaddingMedium,
+          horizontal: AppConstants.cardPaddingLarge,
           vertical: AppConstants.cardPaddingMedium,
         ),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-          border: Border.all(
-            color: AppColors.lightGrey,
-            width: 1,
-          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: AppConstants.iconSizeMedium,
-              color: iconColor ?? (isRed ? Colors.red : AppColors.black),
+            Container(
+              padding: const EdgeInsets.all(AppConstants.paddingSmall),
+              decoration: BoxDecoration(
+                color: effectiveIconColor.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: AppConstants.iconSizeLarge,
+                color: effectiveIconColor,
+              ),
             ),
-            const SizedBox(width: AppConstants.paddingSmall),
+            const SizedBox(width: AppConstants.spacingMedium),
+            
             Expanded(
               child: Text(
                 label,
                 style: TextStyle(
-                  fontSize: AppConstants.fontSizeCardTitle,
-                  fontWeight: FontWeight.w500,
+                  fontSize: AppConstants.fontSizeSectionTitle,
+                  fontWeight: FontWeight.w600,
                   color: isRed ? Colors.red : AppColors.black,
+                  letterSpacing: 0.2,
                 ),
               ),
             ),
+            
             if (badge != null) ...[
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 2,
+                  horizontal: AppConstants.paddingSmall,
+                  vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.blue,
-                  borderRadius: BorderRadius.circular(4),
+                  color: Colors.blue.shade600,
+                  borderRadius: BorderRadius.circular(AppConstants.spacingSmall),
                 ),
                 child: Text(
                   badge,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: AppConstants.fontSizeSmallText,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     color: Colors.white,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ),
-              const SizedBox(width: AppConstants.paddingSmall),
+              const SizedBox(width: AppConstants.spacingSmall),
             ],
+            
             if (trailing != null)
               Icon(
                 trailing,
-                size: AppConstants.iconSizeMedium,
-                color: isRed ? Colors.red : AppColors.textGrey,
+                size: AppConstants.iconSizeLarge,
+                color: isRed ? Colors.red.shade400 : Colors.grey.shade400,
               ),
+              
+            if (trailing == null && badge == null)
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: AppConstants.iconSizeMedium,
+                color: Colors.grey.shade300,
+              )
           ],
         ),
       ),
     );
   }
 
+  // ✅ New Action Button With Description Design
   Widget _buildActionButtonWithDescription({
     required IconData icon,
     Color? iconColor,
@@ -1015,31 +1082,47 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
     bool isRed = false,
     required VoidCallback onTap,
   }) {
+    final effectiveIconColor = iconColor ?? (isRed ? Colors.red : AppColors.black);
+
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
         onTap();
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: AppConstants.paddingSmall),
-        padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
+        margin: const EdgeInsets.only(bottom: AppConstants.spacingMedium),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppConstants.cardPaddingLarge,
+          vertical: AppConstants.cardPaddingMedium,
+        ),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-          border: Border.all(
-            color: AppColors.lightGrey,
-            width: 1,
-          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: AppConstants.iconSizeMedium,
-              color: iconColor ?? (isRed ? Colors.red : AppColors.black),
+            Container(
+              padding: const EdgeInsets.all(AppConstants.paddingSmall),
+              decoration: BoxDecoration(
+                color: effectiveIconColor.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: AppConstants.iconSizeLarge,
+                color: effectiveIconColor,
+              ),
             ),
-            const SizedBox(width: AppConstants.paddingSmall),
+            const SizedBox(width: AppConstants.spacingMedium),
+            
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1050,52 +1133,67 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
                         child: Text(
                           label,
                           style: TextStyle(
-                            fontSize: AppConstants.fontSizeCardTitle,
+                            fontSize: AppConstants.fontSizeSectionTitle,
                             fontWeight: FontWeight.w600,
                             color: isRed ? Colors.red : AppColors.black,
+                            letterSpacing: 0.2,
                           ),
                         ),
                       ),
-                      if (badge != null)
+                      if (badge != null) ...[
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
+                            horizontal: AppConstants.paddingSmall,
+                            vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.blue,
-                            borderRadius: BorderRadius.circular(4),
+                            color: Colors.blue.shade600,
+                            borderRadius: BorderRadius.circular(AppConstants.spacingSmall),
                           ),
                           child: Text(
                             badge,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: AppConstants.fontSizeSmallText,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
                               color: Colors.white,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ),
+                        const SizedBox(width: AppConstants.spacingSmall),
+                      ]
                     ],
                   ),
                   const SizedBox(height: 3),
                   Text(
                     description,
                     style: TextStyle(
-                      fontSize: AppConstants.fontSizeCardDescription,
-                      color: AppColors.textGrey,
-                      height: 1.3,
+                      fontSize: AppConstants.fontSizeCardTitle,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade500,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: AppConstants.paddingSmall),
-            if (trailing != null)
+            
+            if (trailing != null) ...[
+              const SizedBox(width: AppConstants.paddingSmall),
               Icon(
                 trailing,
-                size: AppConstants.iconSizeMedium,
-                color: isRed ? Colors.red : AppColors.textGrey,
+                size: AppConstants.iconSizeLarge,
+                color: isRed ? Colors.red.shade400 : Colors.grey.shade400,
               ),
+            ],
+            
+            if (trailing == null && badge == null) ...[
+              const SizedBox(width: AppConstants.paddingSmall),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: AppConstants.iconSizeMedium,
+                color: Colors.grey.shade300,
+              ),
+            ]
           ],
         ),
       ),
@@ -1106,29 +1204,25 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
   // ✅ LOADING OVERLAY
   // ========================
 
-  // ✅ Show Loading Overlay
- // ✅ Show Loading Overlay (Simple loader without text)
-void _showLoadingOverlay() {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    barrierColor: Colors.black.withOpacity(0.5),
-    builder: (BuildContext context) {
-      return WillPopScope(
-        onWillPop: () async => false,
-        child: Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.activeYellow),
-            strokeWidth: 4,
+  void _showLoadingOverlay() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.activeYellow),
+              strokeWidth: 4,
+            ),
           ),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
-
-  // ✅ Hide Loading Overlay
   void _hideLoadingOverlay() {
     Navigator.of(context, rootNavigator: true).pop();
   }
@@ -1137,7 +1231,6 @@ void _showLoadingOverlay() {
   // ✅ MANAGE TAB FUNCTIONS
   // ========================
 
-  // ✅ Toggle Calls with API and Loading Dialog
   void _toggleCalls() async {
     if (_isLoading) return;
 
@@ -1154,10 +1247,8 @@ void _showLoadingOverlay() {
       final countryCode = userData['countryCode'] ?? '+91';
       final phoneWithCountryCode = countryCode.replaceFirst('+', '') + phone;
 
-      // Toggle the state
       final newCallsEnabled = !_isCallsEnabled;
 
-      // Call API to update settings
       await TagsService.updateTagSettings(
         tagId: widget.tag.tagInternalId,
         phone: phoneWithCountryCode,
@@ -1171,15 +1262,12 @@ void _showLoadingOverlay() {
 
       _hideLoadingOverlay();
 
-      // ✅ Reload data from API to get fresh data
       await _loadTagSettings();
 
-      // ✅ Reset loading flag so user can toggle again
       setState(() {
         _isLoading = false;
       });
 
-      // Show success dialog with opposite text
       _showSuccessDialog(
         icon: newCallsEnabled ? Icons.phone_enabled : Icons.phone_disabled,
         iconColor: newCallsEnabled ? Colors.green : Colors.red,
@@ -1197,7 +1285,6 @@ void _showLoadingOverlay() {
     }
   }
 
-  // ✅ Toggle Tag with API and Loading Dialog
   void _toggleTag() async {
     if (_isLoading) return;
 
@@ -1214,12 +1301,9 @@ void _showLoadingOverlay() {
       final countryCode = userData['countryCode'] ?? '+91';
       final phoneWithCountryCode = countryCode.replaceFirst('+', '') + phone;
 
-      // Toggle the state
       final newTagEnabled = !_isTagEnabled;
-      // ✅ Set status based on newTagEnabled (active/pause)
       final newStatus = newTagEnabled ? 'active' : 'pause';
 
-      // Call API to update tag status
       await TagsService.updateTagSettings(
         tagId: widget.tag.tagInternalId,
         phone: phoneWithCountryCode,
@@ -1229,20 +1313,17 @@ void _showLoadingOverlay() {
         videoCallEnabled: _isVideoCallEnabled,
         smValue: '67s87s6yys66',
         dgValue: 'testYU78dII8iiUIPSISJ',
-        status: newStatus,  // ✅ Pass status parameter
+        status: newStatus, 
       );
 
       _hideLoadingOverlay();
 
-      // ✅ Reload data from API to get fresh data
       await _loadTagSettings();
 
-      // ✅ Reset loading flag so user can toggle again
       setState(() {
         _isLoading = false;
       });
 
-      // Show success dialog
       _showSuccessDialog(
         icon: newTagEnabled ? Icons.check_circle : Icons.pause_circle,
         iconColor: newTagEnabled ? Colors.green : Colors.orange,
@@ -1264,7 +1345,6 @@ void _showLoadingOverlay() {
   // ✅ MORE TAB FUNCTIONS
   // ====================
 
-  // ✅ Toggle WhatsApp with API and Loading Dialog
   void _toggleWhatsapp() async {
     if (_isLoading) return;
 
@@ -1281,7 +1361,6 @@ void _showLoadingOverlay() {
       final countryCode = userData['countryCode'] ?? '+91';
       final phoneWithCountryCode = countryCode.replaceFirst('+', '') + phone;
 
-      // Toggle the state
       final newWhatsappEnabled = !_isWhatsappEnabled;
 
       await TagsService.updateTagSettings(
@@ -1297,10 +1376,8 @@ void _showLoadingOverlay() {
 
       _hideLoadingOverlay();
 
-      // ✅ Reload data from API to get fresh data
       await _loadTagSettings();
 
-      // ✅ Reset loading flag so user can toggle again
       setState(() {
         _isLoading = false;
       });
@@ -1322,7 +1399,6 @@ void _showLoadingOverlay() {
     }
   }
 
-  // ✅ Toggle Call Masking with API and Loading Dialog
   void _toggleCallMasking() async {
     if (_isLoading) return;
 
@@ -1339,7 +1415,6 @@ void _showLoadingOverlay() {
       final countryCode = userData['countryCode'] ?? '+91';
       final phoneWithCountryCode = countryCode.replaceFirst('+', '') + phone;
 
-      // Toggle the state
       final newCallMaskingEnabled = !_isCallMaskingEnabled;
 
       await TagsService.updateTagSettings(
@@ -1355,10 +1430,8 @@ void _showLoadingOverlay() {
 
       _hideLoadingOverlay();
 
-      // ✅ Reload data from API to get fresh data
       await _loadTagSettings();
 
-      // ✅ Reset loading flag so user can toggle again
       setState(() {
         _isLoading = false;
       });
@@ -1380,7 +1453,6 @@ void _showLoadingOverlay() {
     }
   }
 
-  // ✅ Toggle Video Call with API and Loading Dialog
   void _toggleVideoCall() async {
     if (_isLoading) return;
 
@@ -1397,7 +1469,6 @@ void _showLoadingOverlay() {
       final countryCode = userData['countryCode'] ?? '+91';
       final phoneWithCountryCode = countryCode.replaceFirst('+', '') + phone;
 
-      // Toggle the state
       final newVideoCallEnabled = !_isVideoCallEnabled;
 
       await TagsService.updateTagSettings(
@@ -1413,10 +1484,8 @@ void _showLoadingOverlay() {
 
       _hideLoadingOverlay();
 
-      // ✅ Reload data from API to get fresh data
       await _loadTagSettings();
 
-      // ✅ Reset loading flag so user can toggle again
       setState(() {
         _isLoading = false;
       });
@@ -1437,6 +1506,7 @@ void _showLoadingOverlay() {
       _showErrorDialog('Error', 'Failed to update settings: $e');
     }
   }
+
   void _generateOfflineQR() async {
     HapticFeedback.mediumImpact();
     
@@ -1454,10 +1524,9 @@ void _showLoadingOverlay() {
       );
 
       if (mounted) {
-        Navigator.pop(context); // Close loading dialog
+        Navigator.pop(context); 
       }
 
-      // Show the eTag download sheet
       if (mounted) {
         showModalBottomSheet(
           context: context,
@@ -1470,15 +1539,13 @@ void _showLoadingOverlay() {
             downloadUrl: response.data.downloadUrl,
             pdfFile: response.data.pdfFile,
             message: response.message,
-            onClose: () {
-              // User closed the sheet
-            },
+            onClose: () {},
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context); // Close loading dialog
+        Navigator.pop(context); 
       }
 
       if (mounted) {
@@ -1493,12 +1560,9 @@ void _showLoadingOverlay() {
   }
 
   // ===================
-
-  // ===================
   // ✅ DIALOG FUNCTIONS
   // ===================
 
-  // ✅ Success Dialog with Animation
   void _showSuccessDialog({
     required IconData icon,
     required Color iconColor,
@@ -1518,7 +1582,6 @@ void _showLoadingOverlay() {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Animated Icon
                 TweenAnimationBuilder(
                   tween: Tween<double>(begin: 0, end: 1),
                   duration: const Duration(milliseconds: 400),
@@ -1594,7 +1657,6 @@ void _showLoadingOverlay() {
     );
   }
 
-  // ✅ Error Dialog
   void _showErrorDialog(String title, String message) {
     showDialog(
       context: context,
@@ -1674,7 +1736,6 @@ void _showLoadingOverlay() {
     );
   }
 
-  // ✅ Show Notification Sheet
   void _showNotificationSheet() {
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
@@ -1688,7 +1749,6 @@ void _showLoadingOverlay() {
     );
   }
 
-  // ✅ Show Secondary Number Sheet
   void _showSecondaryNumberSheet() async {
     HapticFeedback.mediumImpact();
     final phoneNumber = await showModalBottomSheet<String>(
@@ -1697,7 +1757,7 @@ void _showLoadingOverlay() {
       backgroundColor: Colors.transparent,
       builder: (context) => AddSecondaryNumberSheet(
         tagId: widget.tag.tagInternalId.toString(),
-        existingSecondaryNumber: _tagSettings?.data.secondaryNumber,  // ✅ Pass existing data
+        existingSecondaryNumber: _tagSettings?.data.secondaryNumber, 
       ),
     );
 
@@ -1745,9 +1805,7 @@ void _showLoadingOverlay() {
               duration: const Duration(seconds: 3),
             ),
           );
-          // Refresh tag settings
           await _loadTagSettings();
-          // ✅ Reset loading flag so user can toggle again
           setState(() {
             _isLoading = false;
           });
@@ -1769,14 +1827,11 @@ void _showLoadingOverlay() {
     }
   }
 
-  // ✅ Show Emergency Contact Sheet
   void _showEmergencyContactSheet() async {
     HapticFeedback.mediumImpact();
     try {
-      // ✅ Convert tagInternalId to int for API call
       final tagIdInt = int.tryParse(widget.tag.tagInternalId) ?? 0;
       
-      // ✅ Fetch existing emergency contact data
       final existingEmergency = await EmergencyService.fetchEmergencyInfo(
         tagId: tagIdInt,
       );
@@ -1795,12 +1850,10 @@ void _showLoadingOverlay() {
             existingNote: existingEmergency.data.note,
           ),
         );
-        // ✅ Refresh tag settings after sheet closes (data might have been updated)
         await _loadTagSettings();
       }
     } catch (e) {
       print('❌ Error fetching emergency info: $e');
-      // ✅ If no existing data or error, open sheet with empty fields
       if (mounted) {
         await showModalBottomSheet(
           context: context,
@@ -1810,13 +1863,11 @@ void _showLoadingOverlay() {
             tagId: widget.tag.tagInternalId.toString(),
           ),
         );
-        // ✅ Refresh tag settings after sheet closes
         await _loadTagSettings();
       }
     }
   }
 
-  // ✅ Show Coming Soon Dialog for Video Call
   void _showComingSoonDialog() {
     showDialog(
       context: context,

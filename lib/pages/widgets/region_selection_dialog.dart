@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/colors.dart';
@@ -38,10 +39,8 @@ class RegionSelectionDialog extends StatelessWidget {
   }
 
   /// Check and show AFTER login (only once, if not already shown before).
-  /// Kept for backward-compat with the header dropdown path.
   static Future<void> checkAndShow(BuildContext context) async {
     final region = await getSelectedRegion();
-    // Already chosen before login → don't show again
     if (region != null) return;
 
     if (context.mounted) {
@@ -67,12 +66,15 @@ class RegionSelectionDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: !preLogin, // block back-button during pre-login
-      child: Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        child: _buildDialogContent(context),
+      canPop: !preLogin,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+        child: Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: _buildDialogContent(context),
+        ),
       ),
     );
   }
@@ -95,7 +97,6 @@ class RegionSelectionDialog extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          // Close button only when NOT pre-login
           if (!preLogin)
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -210,8 +211,8 @@ class RegionSelectionDialog extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 120,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        height: 125, // Slight increase in height to accommodate Column
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(12),
@@ -220,28 +221,24 @@ class RegionSelectionDialog extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Text(flag, style: const TextStyle(fontSize: 24)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: textColor == Colors.black ? Colors.black87 : textColor,
-                    ),
-                  ),
-                ),
-              ],
+            Text(flag, style: const TextStyle(fontSize: 24)),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 15, // Slightly reduced to ensure it fits
+                fontWeight: FontWeight.bold,
+                color: textColor == Colors.black ? Colors.black87 : textColor,
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Expanded(
               child: Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11, // Slightly reduced
                   color: textColor.withOpacity(0.8),
                   height: 1.2,
                 ),

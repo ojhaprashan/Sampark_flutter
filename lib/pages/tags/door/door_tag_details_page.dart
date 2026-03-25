@@ -194,11 +194,11 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
                     showCartIcon: false,
                   ),
                 ),
-                // ✅ Curved white container
+                // ✅ Curved off-white container matching modern design
                 Expanded(
                   child: Container(
                     decoration: const BoxDecoration(
-                      color: AppColors.background,
+                      color: Color(0xFFF5F6F8), // Professional Off-White Background
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(30),
                         topRight: Radius.circular(30),
@@ -213,34 +213,21 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
                         children: [
                           // Fixed Header Section
                           Container(
-                            color: AppColors.background,
+                            color: const Color(0xFFF5F6F8),
                             child: Padding(
                               padding: const EdgeInsets.all(AppConstants.paddingLarge),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Title
-                                  Text(
-                                    '#${widget.tag.displayName}',
-                                    style: TextStyle(
-                                      fontSize: AppConstants.fontSizePageTitle,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.black,
-                                    ),
-                                  ),
+                                  // Styled Tag Header
+                                  _buildTagHeader(),
+                                  if (_tagSettings?.data.isDemoTag ?? false)
+                                    const SizedBox(height: AppConstants.spacingSmall),
+                                  if (_tagSettings?.data.isDemoTag ?? false)
+                                    _buildDemoTagDisclaimer(),
                                   const SizedBox(height: AppConstants.spacingSmall),
-                                  // Tabs
+                                  // Pill Tabs
                                   _buildTabs(),
-                                  const SizedBox(height: AppConstants.spacingSmall),
-                                  // Tag ID
-                                  Text(
-                                    'Tag id: ${widget.tag.tagPublicId}',
-                                    style: TextStyle(
-                                      fontSize: AppConstants.fontSizeSubtitle,
-                                      color: AppColors.textGrey,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
                                 ],
                               ),
                             ),
@@ -331,7 +318,7 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
         Expanded(
           child: Container(
             decoration: const BoxDecoration(
-              color: AppColors.background,
+              color: Color(0xFFF5F6F8), // Match off-white
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(30),
                 topRight: Radius.circular(30),
@@ -416,7 +403,7 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
         Expanded(
           child: Container(
             decoration: const BoxDecoration(
-              color: AppColors.background,
+              color: Color(0xFFF5F6F8), // Match off-white
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(30),
                 topRight: Radius.circular(30),
@@ -506,10 +493,64 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
         ),
         child: Column(
           children: [
+            const SizedBox(height: AppConstants.spacingMedium),
             content,
             const SizedBox(height: 100),
           ],
         ),
+      ),
+    );
+  }
+
+  // ✅ Styled Header Card
+  Widget _buildTagHeader() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '#${widget.tag.displayName}',
+                  style: TextStyle(
+                    fontSize: AppConstants.fontSizePageTitle,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                    color: AppColors.black,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Tag id: ${widget.tag.tagPublicId}',
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -520,11 +561,7 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
       padding: const EdgeInsets.all(AppConstants.paddingSmall),
       decoration: BoxDecoration(
         color: Colors.orange.shade50,
-        border: Border.all(
-          color: Colors.orange.shade200,
-          width: 1,
-        ),
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -550,11 +587,22 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
     );
   }
 
+  // ✅ Modern Pill Tabs
   Widget _buildTabs() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: AppConstants.paddingSmall),
+      margin: const EdgeInsets.only(
+        top: AppConstants.paddingSmall,
+        bottom: 0,
+      ),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(30),
+      ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
+          // Manage Tag Tab
           GestureDetector(
             onTap: () {
               HapticFeedback.selectionClick();
@@ -564,31 +612,29 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeInOut,
               padding: const EdgeInsets.symmetric(
-                horizontal: AppConstants.paddingLarge,
-                vertical: AppConstants.paddingSmall,
+                horizontal: 24, 
+                vertical: 10,
               ),
               decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: _selectedTab == 0
-                        ? AppColors.activeYellow
-                        : Colors.transparent,
-                    width: 2,
-                  ),
-                ),
+                color: _selectedTab == 0 
+                    ? AppColors.activeYellow 
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(26), 
               ),
               child: AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 200),
                 style: TextStyle(
                   fontSize: AppConstants.fontSizeSectionTitle,
                   fontWeight: _selectedTab == 0 ? FontWeight.w700 : FontWeight.w600,
-                  color: AppColors.black,
+                  color: _selectedTab == 0 ? Colors.white : AppColors.textGrey,
+                  letterSpacing: 0.3,
                 ),
                 child: const Text('Manage tag'),
               ),
             ),
           ),
-          const SizedBox(width: AppConstants.spacingLarge),
+          
+          // MORE Tab
           GestureDetector(
             onTap: () {
               HapticFeedback.selectionClick();
@@ -598,27 +644,22 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeInOut,
               padding: const EdgeInsets.symmetric(
-                horizontal: AppConstants.paddingMedium,
-                vertical: AppConstants.paddingSmall,
+                horizontal: 28, 
+                vertical: 10,
               ),
               decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: _selectedTab == 1
-                        ? AppColors.activeYellow
-                        : Colors.transparent,
-                    width: 2,
-                  ),
-                ),
+                color: _selectedTab == 1 
+                    ? AppColors.activeYellow 
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(26),
               ),
               child: AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 200),
                 style: TextStyle(
                   fontSize: AppConstants.fontSizeSectionTitle,
-                  fontWeight: _selectedTab == 1 ? FontWeight.w700 : FontWeight.w500,
-                  color: _selectedTab == 1
-                      ? AppColors.black
-                      : AppColors.textGrey,
+                  fontWeight: _selectedTab == 1 ? FontWeight.w700 : FontWeight.w600,
+                  color: _selectedTab == 1 ? Colors.white : AppColors.textGrey,
+                  letterSpacing: 0.3,
                 ),
                 child: const Text('MORE'),
               ),
@@ -638,7 +679,7 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
           label: 'View Contact Page.',
           trailing: Icons.chat_bubble_outline,
           onTap: () {
-              final tagId = int.tryParse(widget.tag.tagInternalId) ?? 0;
+            final tagId = int.tryParse(widget.tag.tagInternalId) ?? 0;
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -651,8 +692,9 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
             );
           },
         ),
-        _buildActionButtonHighlighted(
+        _buildActionButton(
           icon: Icons.notifications,
+          iconColor: Colors.orange.shade600,
           label: 'View Notifications',
           trailing: Icons.notifications,
           onTap: () => _showNotificationSheet(),
@@ -723,11 +765,10 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
   Widget _buildMoreTabContent() {
     return Column(
       children: [
-        const SizedBox(height: AppConstants.spacingMedium),
         // ✅ WhatsApp Toggle
         _buildActionButton(
           icon: _isWhatsappEnabled ? Icons.chat_bubble : Icons.chat_bubble_outline,
-          iconColor: _isWhatsappEnabled ? Colors.green.shade600 : Colors.grey.shade600,
+          iconColor: _isWhatsappEnabled ? Colors.green.shade600 : Colors.blue.shade600,
           label: _isWhatsappEnabled ? 'Disable WhatsApp Notifications' : 'Enable WhatsApp Notifications',
           trailing: _isWhatsappEnabled ? Icons.toggle_on : Icons.toggle_off_outlined,
           onTap: () => _toggleWhatsapp(),
@@ -743,7 +784,7 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
         // ✅ Video Call Toggle
         _buildActionButton(
           icon: Icons.videocam,
-          iconColor: Colors.grey.shade600,
+          iconColor: Colors.teal.shade600,
           label: 'Enable Video Call',
           trailing: Icons.toggle_off_outlined,
           onTap: () => _showComingSoonDialog(),
@@ -777,14 +818,21 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
         if (_isLoadingPremium)
           // Loading state
           Container(
-            padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
+            margin: const EdgeInsets.only(bottom: AppConstants.spacingMedium),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppConstants.cardPaddingLarge,
+              vertical: AppConstants.cardPaddingMedium,
+            ),
             decoration: BoxDecoration(
-              color: Colors.purple.shade50,
-              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-              border: Border.all(
-                color: Colors.purple.shade200,
-                width: 2,
-              ),
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -801,7 +849,8 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
                 Text(
                   'Loading membership status...',
                   style: TextStyle(
-                    fontSize: AppConstants.fontSizeCardDescription,
+                    fontSize: AppConstants.fontSizeSectionTitle,
+                    fontWeight: FontWeight.w600,
                     color: Colors.purple.shade600,
                   ),
                 ),
@@ -811,26 +860,40 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
         else if (_hasPremium)
           // ✅ Show Membership Badge if user has premium
           Container(
-            padding: const EdgeInsets.all(AppConstants.cardPaddingMedium),
+            margin: const EdgeInsets.only(bottom: AppConstants.spacingMedium),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppConstants.cardPaddingLarge,
+              vertical: AppConstants.cardPaddingMedium,
+            ),
             decoration: BoxDecoration(
-              color: Colors.purple.shade50,
-              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-              border: Border.all(
-                color: Colors.purple.shade200,
-                width: 2,
-              ),
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    Icon(
-                      Icons.workspace_premium,
-                      size: AppConstants.iconSizeLarge,
-                      color: Colors.purple,
+                    Container(
+                      padding: const EdgeInsets.all(AppConstants.paddingSmall),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withOpacity(0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.workspace_premium,
+                        size: AppConstants.iconSizeLarge,
+                        color: Colors.purple,
+                      ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppConstants.spacingMedium),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -839,14 +902,17 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
                           style: TextStyle(
                             fontSize: AppConstants.fontSizeSectionTitle,
                             fontWeight: FontWeight.w700,
-                            color: Colors.purple,
+                            color: AppColors.black,
+                            letterSpacing: 0.2,
                           ),
                         ),
+                        const SizedBox(height: 2),
                         Text(
                           'Enjoy exclusive features',
                           style: TextStyle(
-                            fontSize: AppConstants.fontSizeCardDescription,
-                            color: Colors.purple.shade600,
+                            fontSize: AppConstants.fontSizeCardTitle,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey.shade500,
                           ),
                         ),
                       ],
@@ -856,7 +922,7 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
                 Icon(
                   Icons.check_circle,
                   color: Colors.green.shade600,
-                  size: 24,
+                  size: AppConstants.iconSizeLarge,
                 ),
               ],
             ),
@@ -865,112 +931,104 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
     );
   }
 
+  // ✅ Modern Action Button Component
   Widget _buildActionButton({
     required IconData icon,
     Color? iconColor,
     required String label,
+    String? badge,
     IconData? trailing,
     bool isRed = false,
     required VoidCallback onTap,
   }) {
+    final effectiveIconColor = iconColor ?? (isRed ? Colors.red : AppColors.black);
+
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
         onTap();
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: AppConstants.paddingSmall),
+        margin: const EdgeInsets.only(bottom: AppConstants.spacingMedium),
         padding: const EdgeInsets.symmetric(
-          horizontal: AppConstants.cardPaddingMedium,
+          horizontal: AppConstants.cardPaddingLarge,
           vertical: AppConstants.cardPaddingMedium,
         ),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-          border: Border.all(
-            color: AppColors.lightGrey,
-            width: 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: AppConstants.iconSizeMedium,
-              color: iconColor ?? (isRed ? Colors.red : AppColors.black),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
-            const SizedBox(width: AppConstants.paddingSmall),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: AppConstants.fontSizeCardTitle,
-                  fontWeight: FontWeight.w500,
-                  color: isRed ? Colors.red : AppColors.black,
-                ),
-              ),
-            ),
-            if (trailing != null)
-              Icon(
-                trailing,
-                size: AppConstants.iconSizeMedium,
-                color: isRed ? Colors.red : AppColors.textGrey,
-              ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildActionButtonHighlighted({
-    required IconData icon,
-    required String label,
-    IconData? trailing,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: AppConstants.paddingSmall),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppConstants.cardPaddingMedium,
-          vertical: AppConstants.cardPaddingMedium,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.activeYellow,
-          borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-          border: Border.all(
-            color: AppColors.activeYellow,
-            width: 1,
-          ),
-        ),
         child: Row(
           children: [
-            Icon(
-              Icons.notifications,
-              size: AppConstants.iconSizeMedium,
-              color: AppColors.black,
+            Container(
+              padding: const EdgeInsets.all(AppConstants.paddingSmall),
+              decoration: BoxDecoration(
+                color: effectiveIconColor.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: AppConstants.iconSizeLarge,
+                color: effectiveIconColor,
+              ),
             ),
-            const SizedBox(width: AppConstants.paddingSmall),
+            const SizedBox(width: AppConstants.spacingMedium),
+            
             Expanded(
               child: Text(
                 label,
                 style: TextStyle(
-                  fontSize: AppConstants.fontSizeCardTitle,
+                  fontSize: AppConstants.fontSizeSectionTitle,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.black,
+                  color: isRed ? Colors.red : AppColors.black,
+                  letterSpacing: 0.2,
                 ),
               ),
             ),
+            
+            if (badge != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppConstants.paddingSmall,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade600,
+                  borderRadius: BorderRadius.circular(AppConstants.spacingSmall),
+                ),
+                child: Text(
+                  badge,
+                  style: const TextStyle(
+                    fontSize: AppConstants.fontSizeSmallText,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppConstants.spacingSmall),
+            ],
+            
             if (trailing != null)
               Icon(
                 trailing,
-                size: AppConstants.iconSizeMedium,
-                color: AppColors.black,
+                size: AppConstants.iconSizeLarge,
+                color: isRed ? Colors.red.shade400 : Colors.grey.shade400,
               ),
+              
+            if (trailing == null && badge == null)
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: AppConstants.iconSizeMedium,
+                color: Colors.grey.shade300,
+              )
           ],
         ),
       ),
@@ -981,7 +1039,6 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
   // ✅ LOADING OVERLAY
   // ========================
 
-  // ✅ Show Loading Overlay (Simple loader without text)
   void _showLoadingOverlay() {
     showDialog(
       context: context,
@@ -1001,7 +1058,6 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
     );
   }
 
-  // ✅ Hide Loading Overlay
   void _hideLoadingOverlay() {
     Navigator.of(context, rootNavigator: true).pop();
   }
@@ -1010,7 +1066,6 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
   // ✅ MANAGE TAB TOGGLE FUNCTIONS
   // ========================
 
-  // ✅ Toggle Calls with API and Loading Dialog
   void _toggleCalls() async {
     if (_isLoading) return;
 
@@ -1064,7 +1119,6 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
     }
   }
 
-  // ✅ Toggle Tag with API and Loading Dialog
   void _toggleTag() async {
     if (_isLoading) return;
 
@@ -1124,7 +1178,6 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
   // ✅ MORE TAB TOGGLE FUNCTIONS
   // ========================
 
-  // ✅ Toggle WhatsApp
   void _toggleWhatsapp() async {
     if (_isLoading) return;
 
@@ -1178,7 +1231,6 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
     }
   }
 
-  // ✅ Toggle Call Masking
   void _toggleCallMasking() async {
     if (_isLoading) return;
 
@@ -1232,65 +1284,10 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
     }
   }
 
-  // ✅ Toggle Video Call
-  void _toggleVideoCall() async {
-    if (_isLoading) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    HapticFeedback.mediumImpact();
-    _showLoadingOverlay();
-
-    try {
-      final userData = await AuthService.getUserData();
-      final phone = userData['phone'] ?? '';
-      final countryCode = userData['countryCode'] ?? '+91';
-      final phoneWithCountryCode = countryCode.replaceFirst('+', '') + phone;
-
-      final newVideoCallEnabled = !_isVideoCallEnabled;
-
-      await TagsService.updateTagSettings(
-        tagId: widget.tag.tagInternalId,
-        phone: phoneWithCountryCode,
-        callsEnabled: _isCallsEnabled,
-        whatsappEnabled: _isWhatsappEnabled,
-        callMaskingEnabled: _isCallMaskingEnabled,
-        videoCallEnabled: newVideoCallEnabled,
-        smValue: '67s87s6yys66',
-        dgValue: 'testYU78dII8iiUIPSISJ',
-      );
-
-      _hideLoadingOverlay();
-      await _loadTagSettings();
-      
-      setState(() {
-        _isLoading = false;
-      });
-
-      _showSuccessDialog(
-        icon: newVideoCallEnabled ? Icons.videocam : Icons.videocam_off,
-        iconColor: newVideoCallEnabled ? Colors.green : Colors.grey,
-        title: newVideoCallEnabled ? 'Video Call Enabled' : 'Video Call Disabled',
-        message: newVideoCallEnabled
-            ? 'You can now receive video calls'
-            : 'Video calls have been disabled',
-      );
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      _hideLoadingOverlay();
-      _showErrorDialog('Error', 'Failed to update settings: $e');
-    }
-  }
-
   // ===================
   // ✅ DIALOG FUNCTIONS
   // ===================
 
-  // ✅ Show Add Secondary Number Sheet
   void _addSecondaryNumber() async {
     HapticFeedback.mediumImpact();
     final phoneNumber = await showModalBottomSheet<String>(
@@ -1299,7 +1296,7 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
       backgroundColor: Colors.transparent,
       builder: (context) => AddSecondaryNumberSheet(
         tagId: widget.tag.tagInternalId.toString(),
-        existingSecondaryNumber: _tagSettings?.data.secondaryNumber,  // ✅ Pass existing data
+        existingSecondaryNumber: _tagSettings?.data.secondaryNumber, 
       ),
     );
 
@@ -1347,7 +1344,6 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
               duration: const Duration(seconds: 3),
             ),
           );
-          // Refresh tag settings
           await _loadTagSettings();
         }
       } catch (e) {
@@ -1366,6 +1362,7 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
       }
     }
   }
+
   void _showSuccessDialog({
     required IconData icon,
     required Color iconColor,
@@ -1460,7 +1457,6 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
     );
   }
 
-  // ✅ Error Dialog
   void _showErrorDialog(String title, String message) {
     showDialog(
       context: context,
@@ -1540,7 +1536,6 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
     );
   }
 
-  // ✅ Show Notification Sheet
   void _showNotificationSheet() {
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
@@ -1554,7 +1549,6 @@ class _DoorTagDetailsPageState extends State<DoorTagDetailsPage>
     );
   }
 
-  // ✅ Show Coming Soon Dialog for Video Call
   void _showComingSoonDialog() {
     showDialog(
       context: context,
