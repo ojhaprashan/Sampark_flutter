@@ -335,14 +335,11 @@ Future<void> launchURL(String url) async {
                 icon: Icons.picture_as_pdf_outlined,
                 title: 'PDF eTag',
                 iconColor: const Color(0xFFFF4444),
-                // onTap: () {
-                //   Navigator.push(
-                //     context,
-                //     MaterialPageRoute(builder: (_) => const ETagPage()),
-                //   );
-                // },
-                   onTap: () {
-                  launchURL('https://app.ngf132.com/demo-tag');
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ETagPage()),
+                  );
                 },
               ),
               _buildCompactMenuCard(

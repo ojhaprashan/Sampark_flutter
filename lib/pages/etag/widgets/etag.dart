@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../utils/colors.dart';
 import '../../../utils/constants.dart';
 import '../../../services/auth_service.dart';
+import '../../../services/etag_service.dart';
 import '../../widgets/app_header.dart';
 
 class ETagPage extends StatefulWidget {
@@ -13,6 +15,11 @@ class ETagPage extends StatefulWidget {
 
 class _ETagPageState extends State<ETagPage> {
   bool _isLoggedIn = false;
+  bool _isLoading = false;
+  bool _isVerifying = false;
+  bool _hasGeneratedETag = false;
+  String _generatedPhone = '';
+  String? _sessionCookie;
   final _formKey = GlobalKey<FormState>();
   
   // Form controllers
@@ -21,6 +28,7 @@ class _ETagPageState extends State<ETagPage> {
   final _mobileController = TextEditingController();
   final _vehicleNumberController = TextEditingController();
   final _captchaController = TextEditingController();
+  final _otpController = TextEditingController();
   
   String _selectedVehicleType = 'Car';
   final List<String> _vehicleTypes = ['Car', 'Bike', 'Scooter', 'Truck'];
@@ -29,6 +37,19 @@ class _ETagPageState extends State<ETagPage> {
   void initState() {
     super.initState();
     _checkLoginStatus();
+    _checkETagStatus();
+  }
+
+  Future<void> _checkETagStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasGenerated = prefs.getBool('has_generated_demo_etag') ?? false;
+    final phone = prefs.getString('demo_etag_phone') ?? '';
+    if (mounted) {
+      setState(() {
+        _hasGeneratedETag = hasGenerated;
+        _generatedPhone = phone;
+      });
+    }
   }
 
   @override
@@ -38,6 +59,7 @@ class _ETagPageState extends State<ETagPage> {
     _mobileController.dispose();
     _vehicleNumberController.dispose();
     _captchaController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
@@ -50,7 +72,7 @@ class _ETagPageState extends State<ETagPage> {
     }
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       // Check captcha
       if (_captchaController.text.trim() != '15') {
@@ -67,26 +89,245 @@ class _ETagPageState extends State<ETagPage> {
         return;
       }
 
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('eTag order submitted successfully!'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
-          ),
-        ),
-      );
+      setState(() {
+        _isLoading = true;
+      });
 
-      // Clear form
-      _formKey.currentState!.reset();
-      _nameController.clear();
-      _emailController.clear();
-      _mobileController.clear();
-      _vehicleNumberController.clear();
-      _captchaController.clear();
+      try {
+        // Map vehicle type to API param
+        String vty = 'c';
+        if (_selectedVehicleType == 'Bike' || _selectedVehicleType == 'Scooter') {
+          vty = 'b';
+        } else if (_selectedVehicleType == 'Truck') {
+          vty = 't';
+        } else {
+          vty = 'c';
+        }
+
+        final response = await ETagService.requestDemoETagOTP(
+          name: _nameController.text.trim(),
+          phone: _mobileController.text.trim(),
+          plate: _vehicleNumberController.text.trim(),
+          email: _emailController.text.trim(),
+          vty: vty,
+        );
+
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _sessionCookie = response.cookie;
+          });
+          _showOTPSheet();
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceAll('Exception: ', '')),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+              ),
+            ),
+          );
+        }
+      }
     }
+  }
+
+  void _showOTPSheet() {
+    _otpController.clear();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppConstants.paddingPage),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Enter OTP',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.black,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppConstants.spacingMedium),
+                          const Text(
+                            'Please enter the 4-digit OTP sent to your mobile number.',
+                            style: TextStyle(
+                              fontSize: AppConstants.fontSizeCardTitle,
+                              color: AppColors.textGrey,
+                            ),
+                          ),
+                          const SizedBox(height: AppConstants.spacingLarge),
+                          TextFormField(
+                            controller: _otpController,
+                            keyboardType: TextInputType.number,
+                            textAlign: TextAlign.center,
+                            maxLength: 4,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 8,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: '----',
+                              counterText: '',
+                              filled: true,
+                              fillColor: AppColors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+                                borderSide: BorderSide(color: AppColors.lightGrey, width: 1.5),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+                                borderSide: BorderSide(color: AppColors.lightGrey, width: 1.5),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+                                borderSide: const BorderSide(color: AppColors.activeYellow, width: 2),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppConstants.spacingLarge),
+                          SizedBox(
+                            width: double.infinity,
+                            height: AppConstants.buttonHeightMedium,
+                            child: ElevatedButton(
+                              onPressed: _isVerifying
+                                  ? null
+                                  : () async {
+                                      if (_otpController.text.length != 4) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Please enter 4-digit OTP')),
+                                        );
+                                        return;
+                                      }
+
+                                      setModalState(() {
+                                        _isVerifying = true;
+                                      });
+
+                                      try {
+                                        final response = await ETagService.verifyDemoETagOTP(
+                                          otp: _otpController.text,
+                                          cookie: _sessionCookie,
+                                        );
+
+                                        if (mounted) {
+                                          final prefs = await SharedPreferences.getInstance();
+                                          await prefs.setBool('has_generated_demo_etag', true);
+                                          await prefs.setString('demo_etag_phone', _mobileController.text.trim());
+
+                                          // Store scaffold messenger before pop
+                                          final messenger = ScaffoldMessenger.of(this.context);
+                                          
+                                          Navigator.pop(context); // Close sheet
+
+                                          setState(() {
+                                            _hasGeneratedETag = true;
+                                            _generatedPhone = _mobileController.text.trim();
+                                          });
+
+                                          messenger.showSnackBar(
+                                            SnackBar(
+                                              content: Text(response.message),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (mounted) {
+                                          setModalState(() {
+                                            _isVerifying = false;
+                                          });
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(e.toString().replaceAll('Exception: ', '')),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.activeYellow,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: _isVerifying
+                                  ? const SizedBox(
+                                      height: 24,
+                                      width: 24,
+                                      child: CircularProgressIndicator(
+                                        color: AppColors.black,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Verify OTP',
+                                      style: TextStyle(
+                                        fontSize: AppConstants.fontSizeButtonPriceText,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.black,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(height: AppConstants.spacingLarge),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ).then((_) {
+      if (mounted) {
+        setState(() {
+          _isVerifying = false; // Reset verifying state when closed
+        });
+      }
+    });
   }
 
   @override
@@ -198,7 +439,77 @@ class _ETagPageState extends State<ETagPage> {
                               ),
                               const SizedBox(height: AppConstants.spacingLarge),
 
-                              // Your Name
+                              if (_hasGeneratedETag)
+                                Container(
+                                  padding: const EdgeInsets.all(AppConstants.paddingLarge),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.05),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: Colors.green.withOpacity(0.5)),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Row(
+                                        children: [
+                                          Icon(Icons.check_circle, color: Colors.green),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'eTag Generated',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.green,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'You have already generated an eTag for the mobile number $_generatedPhone.',
+                                        style: const TextStyle(
+                                          fontSize: AppConstants.fontSizeCardTitle,
+                                          color: AppColors.black,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        'Please check your email and WhatsApp for details.',
+                                        style: TextStyle(
+                                          fontSize: AppConstants.fontSizeCardTitle,
+                                          color: AppColors.textGrey,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: OutlinedButton(
+                                          onPressed: () {
+                                            setState(() {
+                                              _hasGeneratedETag = false;
+                                              _mobileController.clear();
+                                            });
+                                          },
+                                          style: OutlinedButton.styleFrom(
+                                            side: const BorderSide(color: AppColors.activeYellow),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'Generate for another number',
+                                            style: TextStyle(
+                                              color: AppColors.black,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else ...[
+                                // Your Name
                               _buildTextField(
                                 controller: _nameController,
                                 label: 'Your Name',
@@ -380,14 +691,23 @@ class _ETagPageState extends State<ETagPage> {
                                     ),
                                     elevation: 0,
                                   ),
-                                  child: Text(
-                                    'Get eTag',
-                                    style: TextStyle(
-                                      fontSize: AppConstants.fontSizeButtonPriceText, // ✅ Increased from fontSizeButtonText
-                                      fontWeight: FontWeight.w800, // ✅ Increased weight
-                                      color: AppColors.black,
-                                    ),
-                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          height: 24,
+                                          width: 24,
+                                          child: CircularProgressIndicator(
+                                            color: AppColors.black,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Get eTag',
+                                          style: TextStyle(
+                                            fontSize: AppConstants.fontSizeButtonPriceText, // ✅ Increased from fontSizeButtonText
+                                            fontWeight: FontWeight.w800, // ✅ Increased weight
+                                            color: AppColors.black,
+                                          ),
+                                        ),
                                 ),
                               ),
                               const SizedBox(height: AppConstants.spacingMedium),
@@ -418,7 +738,7 @@ class _ETagPageState extends State<ETagPage> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: AppConstants.paddingPage),
+                              ],
                             ],
                           ),
                         ),

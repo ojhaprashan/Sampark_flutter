@@ -336,7 +336,7 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin 
                           ActionGrid(key: ValueKey(isLoggedIn)),
                           const SizedBox(height: 12),
                           
-                          // ✅ Civic Score Rating Button
+                          // ✅ NEW: Unified Civic Score Button
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: GestureDetector(
@@ -345,7 +345,7 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin 
                                   context: context,
                                   isScrollControlled: true,
                                   backgroundColor: Colors.transparent,
-                                  builder: (context) => const SimpleRatingSheet(),
+                                  builder: (context) => const CivicScoreSearchSheet(),
                                 );
                               },
                               child: Container(
@@ -371,13 +371,13 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin 
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(
-                                      Icons.star_rate_rounded,
+                                      Icons.star_rate_rounded, // Combined meaning of rating and score
                                       size: 20,
                                       color: AppColors.black,
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
-                                      'Rate Civic Score',
+                                      'Civic Score',
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w700,
@@ -385,31 +385,6 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin 
                                       ),
                                     ),
                                   ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          
-                          // ✅ NEW: Check Civic Score Link
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8, bottom: 16),
-                            child: TextButton.icon(
-                              onPressed: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  backgroundColor: Colors.transparent,
-                                  builder: (context) => const CivicScoreSearchSheet(),
-                                );
-                              },
-                              icon: const Icon(Icons.search_rounded, size: 18, color: AppColors.textGrey),
-                              label: const Text(
-                                'Check Civic Score details',
-                                style: TextStyle(
-                                  color: AppColors.textGrey,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  decoration: TextDecoration.underline,
                                 ),
                               ),
                             ),

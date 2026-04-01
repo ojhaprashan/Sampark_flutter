@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'premium_service.dart';
+import 'firebase_notification_service.dart';
 
 class AuthService {
   static const String _keyIsLoggedIn = 'isLoggedIn';
@@ -169,9 +170,9 @@ class AuthService {
     // ✅ Clear premium data as well
     await PremiumService.clearPremiumData();
     
-    // ✅ Delete FCM token
-    // Uncomment when firebase_notification_service is imported
-    // await FirebaseNotificationService.deleteToken();
+    // ✅ Delete FCM token on logout for security
+    print('🔐 [AuthService] Deleting FCM token on logout...');
+    await FirebaseNotificationService.deleteToken();
 
     // ✅ Notify listeners that user data changed
     userDataNotifier.value++;

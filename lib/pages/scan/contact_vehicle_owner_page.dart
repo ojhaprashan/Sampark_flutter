@@ -10,6 +10,7 @@ import 'package:my_new_app/pages/scan/door_masked_call_sheet.dart';
 import 'package:my_new_app/pages/scan/emergency_section_widget.dart';
 import 'package:my_new_app/pages/scan/tag_profile_skeleton.dart';
 import 'package:my_new_app/pages/widgets/app_header.dart';
+import '../AppWebView/appweb.dart';
 
 import '../../utils/colors.dart';
 import '../../utils/constants.dart';
@@ -288,6 +289,48 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
     }
   }
 
+  void _openWhatsAppSupport() async {
+    final tagPublicId = _tagProfileData?.tagPublicId ?? widget.tagId.toString();
+    final message = "Hi, i want to connect with vehicle owner Tag ID: $tagPublicId, Please Help me.";
+    final phoneNumber = '918069409475';
+    final encodedMessage = Uri.encodeComponent(message);
+    final whatsappUrl = 'https://wa.me/$phoneNumber?text=$encodedMessage';
+    
+    final Uri url = Uri.parse(whatsappUrl);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      _showErrorSnackBar('Unable to open WhatsApp');
+    }
+  }
+
+  void _reportWrongInfo() {
+    final tagId = _tagProfileData?.tagId ?? widget.tagId;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => InAppWebViewPage(
+          url: 'https://app.ngf132.com/report_tag/$tagId',
+          title: 'Report Wrong Info',
+        ),
+      ),
+    );
+  }
+
+  void _shareDetails() async {
+    final tagId = _tagProfileData?.tagId ?? widget.tagId;
+    final message = "Hi, please contact vehicle owner here: https://app.ngf132.com/car/$tagId, This is sampark APP, download today.";
+    final encodedMessage = Uri.encodeComponent(message);
+    final whatsappUrl = 'https://wa.me/?text=$encodedMessage';
+    
+    final Uri url = Uri.parse(whatsappUrl);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      _showErrorSnackBar('Unable to open WhatsApp');
+    }
+  }
+
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -428,73 +471,15 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                           ),
                           SizedBox(height: AppConstants.spacingMedium),
 
-                          // Tag Info Card with Blue Tick and Active Badge
+                           // Standalone Enlarged Number Plate
                           if (_tagProfileData != null &&
                               _tagProfileData!.plateNumber.isNotEmpty) ...[
-                            Container(
-                              padding: EdgeInsets.all(AppConstants.paddingLarge),
-                              decoration: BoxDecoration(
-                                color: AppColors.white,
-                                borderRadius: BorderRadius.circular(
-                                    AppConstants.borderRadiusCard),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  // Blue Tick Icon
-                                  Icon(
-                                    Icons.verified,
-                                    color: _tagProfileData!.isActive
-                                        ? Colors.blue
-                                        : Colors.grey,
-                                    size: 28,
-                                  ),
-                                  SizedBox(width: AppConstants.spacingMedium),
-                                  // Plate Number
-                                  Expanded(
-                                    child: Text(
-                                      _getDisplayName(
-                                          _tagProfileData!.plateNumber),
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.red,
-                                        letterSpacing: 1.2,
-                                      ),
-                                    ),
-                                  ),
-                                  // Active Badge
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: AppConstants.paddingMedium,
-                                      vertical: AppConstants.paddingSmall,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _tagProfileData!.isActive
-                                          ? AppColors.activeYellow
-                                          : Colors.grey.withOpacity(0.3),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      _tagProfileData!.statusLabel,
-                                      style: TextStyle(
-                                        fontSize:
-                                            AppConstants.fontSizeCardDescription,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.black,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            _buildIndianNumberPlate(
+                              _getDisplayName(_tagProfileData!.plateNumber),
+                              isLarge: true,
                             ),
                             SizedBox(height: AppConstants.spacingLarge),
+                          ] else if (_isLoadingProfile) ...[
                             // ✅ Demo Tag Disclaimer
                             if (_tagProfileData != null && _tagProfileData!.isDemoTag)
                               Container(
@@ -647,49 +632,37 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                                 children: [
                                   Row(
                                     children: [
-                                      // Call Options - Show either Masked Call or Direct Call
-                                      if (_tagProfileData!.callFlags.callsEnabled) ...[
-                                        // calls_enabled is true, check for masking
-                                        if (_tagProfileData!.callFlags.callMaskingEnabled) ...[
-                                          // Show Masked Call button
-                                          Expanded(
-                                            child: _buildActionCard(
-                                              icon: Icons.phone,
-                                              label: 'Masked Call',
-                                              color: Colors.orange,
-                                              isEnabled: true,
-                                              onTap: _makeCall,
-                                            ),
-                                          ),
-                                        ] else ...[
-                                          // Show Direct Call button (opens phone dialer)
-                                          Expanded(
-                                            child: _buildActionCard(
-                                              icon: Icons.phone,
-                                              label: 'Call',
-                                              color: Colors.orange,
-                                              isEnabled: true,
-                                              onTap: _makeCall,
-                                            ),
-                                          ),
-                                        ],
-                                      ] else ...[
-                                        // calls_enabled is false - No call option available
-                                        Expanded(
-                                          child: Opacity(
-                                            opacity: 0.5,
-                                            child: _buildActionCard(
-                                              icon: Icons.phone,
-                                              label: 'Call',
-                                              color: Colors.grey,
-                                              isEnabled: false,
-                                              onTap: () {},
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                      // Call Options - Keep original layout
+                                      Expanded(
+                                        child: _tagProfileData!.callFlags.callsEnabled
+                                            ? (_tagProfileData!.callFlags.callMaskingEnabled
+                                                ? _buildActionCard(
+                                                    icon: Icons.phone,
+                                                    label: 'Masked Call',
+                                                    color: Colors.orange,
+                                                    isEnabled: true,
+                                                    onTap: _makeCall,
+                                                  )
+                                                : _buildActionCard(
+                                                    icon: Icons.phone,
+                                                    label: 'Call',
+                                                    color: Colors.orange,
+                                                    isEnabled: true,
+                                                    onTap: _makeCall,
+                                                  ))
+                                            : Opacity(
+                                                opacity: 0.5,
+                                                child: _buildActionCard(
+                                                  icon: Icons.phone,
+                                                  label: 'Call',
+                                                  color: Colors.grey,
+                                                  isEnabled: false,
+                                                  onTap: () {},
+                                                ),
+                                              ),
+                                      ),
                                       SizedBox(width: AppConstants.spacingLarge),
-                                      // Message - Always enabled when tag is active
+                                      // Message - Original layout
                                       Expanded(
                                         child: _buildActionCard(
                                           icon: Icons.chat_bubble,
@@ -701,23 +674,18 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                                       ),
                                     ],
                                   ),
-                                  // Video Call Option - Centered below the main buttons
+                                  // Video Call Mini Button in a separate Row below Masked Call
                                   if (_tagProfileData!.callFlags.videoCallEnabled) ...[
-                                    SizedBox(height: AppConstants.spacingLarge),
+                                    SizedBox(height: AppConstants.spacingSmall),
                                     Row(
                                       children: [
-                                        const Spacer(),
-                                        Expanded(
-                                          flex: 2,
-                                          child: _buildActionCard(
-                                            icon: Icons.videocam,
-                                            label: 'Video Call',
-                                            color: Colors.green,
-                                            isEnabled: true,
-                                            onTap: _initiateVideoCall,
-                                          ),
+                                        _buildMiniButton(
+                                          icon: Icons.videocam,
+                                          label: 'Video Call',
+                                          color: Colors.green,
+                                          onTap: _initiateVideoCall,
                                         ),
-                                        const Spacer(),
+                                        const Spacer(), // Keeps Video Call on the left
                                       ],
                                     ),
                                   ],
@@ -798,20 +766,8 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                             SizedBox(height: AppConstants.spacingMedium),
 
                             // Action Buttons Row
-                            Column(
-                              children: [
                                 Row(
                                   children: [
-                                    // Message Button
-                                    Expanded(
-                                      child: _buildSimpleButton(
-                                        icon: Icons.chat_bubble,
-                                        label: 'Message',
-                                        color: Colors.blue,
-                                        onTap: _sendMessage,
-                                      ),
-                                    ),
-                                    SizedBox(width: AppConstants.spacingMedium),
                                     // Call Button (with check for calls_enabled)
                                     Expanded(
                                       child: Opacity(
@@ -843,30 +799,33 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                                         ),
                                       ),
                                     ),
+                                    SizedBox(width: AppConstants.spacingMedium),
+                                    // Message Button
+                                    Expanded(
+                                      child: _buildSimpleButton(
+                                        icon: Icons.chat_bubble,
+                                        label: 'Message',
+                                        color: Colors.blue,
+                                        onTap: _sendMessage,
+                                      ),
+                                    ),
                                   ],
                                 ),
-                                // Video Call Option - Centered below
                                 if (_tagProfileData != null &&
                                     _tagProfileData!.callFlags.videoCallEnabled) ...[
-                                  SizedBox(height: AppConstants.spacingMedium),
+                                  SizedBox(height: AppConstants.spacingSmall),
                                   Row(
                                     children: [
-                                      const Spacer(),
-                                      Expanded(
-                                        flex: 2,
-                                        child: _buildSimpleButton(
-                                          icon: Icons.videocam,
-                                          label: 'Video Call',
-                                          color: Colors.green,
-                                          onTap: _initiateVideoCall,
-                                        ),
+                                      _buildMiniButton(
+                                        icon: Icons.videocam,
+                                        label: 'Video Call',
+                                        color: Colors.green,
+                                        onTap: _initiateVideoCall,
                                       ),
                                       const Spacer(),
                                     ],
                                   ),
                                 ],
-                              ],
-                            ),
                           ],
 
                           SizedBox(height: AppConstants.spacingLarge),
@@ -877,6 +836,78 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
                             tagTypeCode: _tagProfileData?.tagTypeCode ?? 'c',
                           ),
 
+                          SizedBox(height: AppConstants.paddingPage),
+                          
+                          // Urgent Support / Report / Share Section
+                          Center(
+                            child: Wrap(
+                              alignment: WrapAlignment.center,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 8,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Image.asset(
+                                      'assets/icons/whatsapp.png',
+                                      width: 14,
+                                      height: 14,
+                                      errorBuilder: (context, error, stackTrace) => 
+                                        Icon(Icons.chat, size: 14, color: AppColors.textGrey),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    GestureDetector(
+                                      onTap: _openWhatsAppSupport,
+                                      child: Text(
+                                        'Urgent — Sampark us',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textGrey,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  '·',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: AppColors.textGrey,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: _reportWrongInfo,
+                                  child: Text(
+                                    'Report wrong info',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textGrey,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '·',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: AppColors.textGrey,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: _shareDetails,
+                                  child: Text(
+                                    'Share',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textGrey,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                           SizedBox(height: AppConstants.paddingPage),
                         ],
                       ),
@@ -1008,6 +1039,58 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
     );
   }
 
+  Widget _buildMiniButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          vertical: 6,
+          horizontal: 12,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius / 1.5),
+          border: Border.all(
+            color: color,
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: color,
+              size: 16,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildReasonOption(ContactReason reason) {
     final isSelected = _selectedReason == reason.value;
     return GestureDetector(
@@ -1080,6 +1163,169 @@ class _ContactVehicleOwnerPageState extends State<ContactVehicleOwnerPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildIndianNumberPlate(String plateNumber, {bool isLarge = false}) {
+    final double height = isLarge ? 54 : 48;
+    final double blueStripWidth = isLarge ? 32 : 24;
+    final double fontSize = isLarge ? 22 : 18;
+    final double chakraSize = isLarge ? 14 : 12;
+    final double indFontSize = isLarge ? 10 : 8;
+    final double letterSpacing = isLarge ? 1.5 : 1.2;
+    final double screwSize = isLarge ? 6 : 5;
+    final double screwPos = isLarge ? 4 : 3;
+
+    return Container(
+      height: height,
+      margin: EdgeInsets.symmetric(
+        horizontal: isLarge ? 0 : AppConstants.spacingSmall,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        // Thick black border for the plate frame
+        border: Border.all(color: Colors.black87, width: isLarge ? 3.0 : 2.5),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: isLarge ? MainAxisSize.min : MainAxisSize.max,
+        children: [
+          // Left Blue Strip (IND)
+          Container(
+            width: blueStripWidth,
+            decoration: const BoxDecoration(
+              color: Color(0xFF003399), // Standard HSRP Blue
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(5.0),
+                bottomLeft: Radius.circular(5.0),
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildIndianFlag(width: isLarge ? 24 : 16, height: isLarge ? 16 : 10),
+                const SizedBox(height: 4),
+                Text(
+                  'IND',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: indFontSize,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Right Side - Plate Number with Screws
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: isLarge ? 12 : 15),
+            child: Stack(
+              children: [
+                // Simulated screws in the corners
+                Positioned(top: screwPos / 2, left: -10, child: _buildScrew(size: screwSize)),
+                Positioned(top: screwPos / 2, right: -10, child: _buildScrew(size: screwSize)),
+                Positioned(bottom: screwPos / 2, left: -10, child: _buildScrew(size: screwSize)),
+                Positioned(bottom: screwPos / 2, right: -10, child: _buildScrew(size: screwSize)),
+
+                // The actual plate number
+                Align(
+                  alignment: Alignment.center,
+                  child: Text(
+                    plateNumber,
+                    style: TextStyle(
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.black87,
+                      letterSpacing: letterSpacing,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds a tiny grey circle to simulate a screw on the number plate
+  Widget _buildScrew({double size = 6}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade400,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.grey.shade600, width: 0.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.white.withOpacity(0.8),
+            offset: const Offset(-1, -1),
+            blurRadius: 1,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIndianFlag({required double width, required double height}) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.white.withOpacity(0.5), width: 0.5),
+        borderRadius: BorderRadius.circular(2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 1,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFFF9933),
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(1.5), topRight: Radius.circular(1.5)),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Container(
+              color: Colors.white,
+              child: Center(
+                child: Icon(
+                  Icons.radio_button_checked,
+                  color: const Color(0xFF000080),
+                  size: height * 0.3,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFF138808),
+                borderRadius: BorderRadius.only(bottomLeft: Radius.circular(1.5), bottomRight: Radius.circular(1.5)),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

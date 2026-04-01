@@ -802,11 +802,11 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
           },
         ),
         _buildActionButton(
-          icon: Icons.videocam,
-          iconColor: Colors.teal.shade600,
-          label: 'Enable Video Call',
-          trailing: Icons.toggle_off_outlined,
-          onTap: () => _showComingSoonDialog(),
+          icon: _isVideoCallEnabled ? Icons.videocam : Icons.videocam_off,
+          iconColor: _isVideoCallEnabled ? Colors.green.shade600 : Colors.teal.shade600,
+          label: _isVideoCallEnabled ? 'Disable Video Call' : 'Enable Video Call',
+          trailing: _isVideoCallEnabled ? Icons.toggle_on : Icons.toggle_off_outlined,
+          onTap: () => _toggleVideoCall(),
         ),
         // ✅ Show Offline QR Download only for India
         if (_countryCode == '+91')
@@ -1866,84 +1866,5 @@ class _BikeTagDetailsPageState extends State<BikeTagDetailsPage>
         await _loadTagSettings();
       }
     }
-  }
-
-  void _showComingSoonDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(AppConstants.paddingLarge),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade100,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.videocam,
-                    size: 32,
-                    color: Colors.blue.shade600,
-                  ),
-                ),
-                const SizedBox(height: AppConstants.spacingMedium),
-                Text(
-                  'Coming Soon!',
-                  style: TextStyle(
-                    fontSize: AppConstants.fontSizeCardTitle,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.black,
-                  ),
-                ),
-                const SizedBox(height: AppConstants.spacingSmall),
-                Text(
-                  'Video call feature will be available soon.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: AppConstants.fontSizeCardDescription,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textGrey,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: AppConstants.spacingMedium),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: AppConstants.paddingMedium),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryYellow,
-                      borderRadius: BorderRadius.circular(AppConstants.borderRadiusCard),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Got it',
-                        style: TextStyle(
-                          fontSize: AppConstants.fontSizeCardDescription,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.black,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 }

@@ -8,7 +8,7 @@ import '../pages/AppWebView/appweb.dart';
 
 // Background message handler (must be a top-level function)
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  print('🔔 [FCM] Background message received: ${message.messageId}');
+  print('🔔 [DEBUG-FCM] Notification received from backend (Background)');
   print('   ├─ Title: ${message.notification?.title}');
   print('   ├─ Body: ${message.notification?.body}');
   print('   └─ Data: ${message.data}');
@@ -126,13 +126,16 @@ class FirebaseNotificationService {
       // Handle foreground messages
       try {
         FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-          print('🔔 [FCM] Foreground message received: ${message.messageId}');
+          print('🔔 [DEBUG-FCM] Notification received from backend (Foreground)');
+          print('   ├─ Title: ${message.notification?.title}');
+          print('   ├─ Body: ${message.notification?.body}');
+          print('   └─ Data: ${message.data}');
           
           final data = message.data;
           final acceptUrl = data['accept_url'];
           
           if (acceptUrl != null && acceptUrl.isNotEmpty) {
-            print('📞 Incoming Video Call Request Detected');
+            print('📞 [DEBUG-FCM] Incoming Video Call Request Detected');
             _showVideoCallUI(
               acceptUrl: acceptUrl,
               declineUrl: data['declined_url'] ?? '',
@@ -149,7 +152,7 @@ class FirebaseNotificationService {
       // Handle notification tap when app is in background/terminated
       try {
         FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-          print('🔔 [FCM] Notification tapped (App was in background): ${message.messageId}');
+          print('🔔 [DEBUG-FCM] User tapped on notification (App was in background)');
           _handleNotificationTap(message);
         });
       } catch (e) {
@@ -189,7 +192,8 @@ class FirebaseNotificationService {
 
   /// Handle notification tap (Background/Terminated)
   static void _handleNotificationTap(RemoteMessage message) {
-    print('🔔 [FCM] Handling notification tap: ${message.data}');
+    print('🔔 [DEBUG-FCM] Handling notification tap action');
+    print('   └─ Payload: ${message.data}');
     
     final acceptUrl = message.data['accept_url'];
     if (acceptUrl != null && acceptUrl.isNotEmpty) {
@@ -210,7 +214,8 @@ class FirebaseNotificationService {
 
   /// Handle local notification tap (Foreground)
   static void _handleLocalNotificationTap(NotificationResponse response) {
-    print('🔔 [FCM] Local notification tapped: ${response.payload}');
+    print('🔔 [DEBUG-FCM] User tapped on local notification (Foreground)');
+    print('   └─ Payload: ${response.payload}');
     // Parse payload if it's a JSON string of RemoteMessage.data
   }
 
@@ -298,8 +303,8 @@ class FirebaseNotificationService {
         platformChannelSpecifics,
         payload: message.data.toString(),
       );
-
-      print('✅ [FCM] Local notification shown');
+      
+      print('✅ [DEBUG-FCM] Notification arrived on phone and displayed');
     } catch (e) {
       print('❌ [FCM] Error showing notification: $e');
     }
